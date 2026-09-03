@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <!-- Tes jalan di Postgres, bukan sqlite :memory:. Produksi memakai
+             Postgres, dan sqlite diam-diam menerima hal yang ditolak Postgres
+             (tipe kolom, urutan, ON CONFLICT) — kalau tesnya beda mesin,
+             yang lolos di sini belum tentu lolos di sana. -->
+        <env name="DB_CONNECTION" value="pgsql"/>
+        <env name="DB_DATABASE" value="dwf_backoffice_testing"/>
+        <env name="DB_URL" value=""/>
+        <env name="DWF_ADMIN_EMAIL" value="seeder@example.test"/>
+        <env name="DWF_ADMIN_PASSWORD" value="seeder-password"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <!--
+            reCAPTCHA dimatikan untuk seluruh suite.
+
+            Tanpa dua baris ini, hasil tes bergantung pada isi `.env` mesin
+            yang menjalankannya: begitu kunci asli terpasang, setiap tes yang
+            melakukan login mulai menuntut token captcha dan gagal. Tes yang
+            memang menguji captcha (`RecaptchaTest`) menyalakannya sendiri
+            lewat `config()`.
+        -->
+        <!-- Sama alasannya dengan reCAPTCHA di bawah: tes yang melakukan login
+             tidak boleh ikut menempuh 2FA kecuali memang itu yang diuji.
+             `TwoFactorTest` menyalakannya sendiri lewat `config()`. -->
+        <env name="DWF_TWO_FACTOR" value="false"/>
+        <env name="RECAPTCHA_SITE_KEY" value=""/>
+        <env name="RECAPTCHA_SECRET_KEY" value=""/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+    </php>
+</phpunit>

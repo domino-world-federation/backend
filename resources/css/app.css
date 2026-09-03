@@ -1,0 +1,367 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/* Mode gelap dikendalikan atribut `data-theme` di <html>, bukan media query —
+   toggle matahari di topbar harus bisa mengalahkan preferensi sistem. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Token — dibaca dari Figma `Cwd12fOcsUXmyLF4q1yWVP`, kanvas Backoffice.
+   Jangan menulis nilai warna atau ukuran font langsung di komponen; lewat sini.
+   Rincian dan sumber tiap nilai: docs/DESIGN-TOKENS.md
+--------------------------------------------------------------------------- */
+@theme {
+    /* Font. Tiga family, tiga wilayah — sidebar / konten / chrome editor. */
+    --font-sidebar: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-content: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+    --font-editor: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: var(--font-content);
+
+    /* Palet Carbon "CoolGray" — dasar seluruh area konten. */
+    --color-cool-10: #f2f4f8;
+    --color-cool-20: #dde1e6;
+    --color-cool-30: #c1c7cd;
+    --color-cool-40: #a2a9b0;
+    --color-cool-60: #697077;
+    --color-cool-70: #4d5358;
+    --color-cool-80: #343a3f;
+    --color-cool-90: #21272a;
+    --color-cool-100: #121619;
+
+    /* Emas DWF dan biru tua Carbon. */
+    --color-primary-60: #e1b762;
+    --color-primary-90: #001d6c;
+
+    /* Sidebar. Latarnya rata — token gradient Figma `252:3402` sengaja tidak
+       dipakai; alasannya di komentar `AppSidebar.vue`. Nilainya tetap dicatat
+       di sini kalau suatu saat diminta kembali. */
+    --color-shell: #101010;
+    --color-shell-gradient-end: #636363;
+    --color-shell-sub-active: #383838;
+    --color-shell-main-active: #f5f5f5;
+    --color-shell-muted: #c2c2c2;
+
+    /* Permukaan. */
+    --color-canvas: #e8e8e8;
+    --color-surface: #ffffff;
+
+    /* Tinta DI ATAS permukaan terbalik — tombol filled, pil filter aktif, apa
+       pun yang dilatari `cool-100`/`cool-90`.
+
+       Ini ADA karena `text-white` di sana adalah bug mode gelap, bukan gaya:
+       `cool-100` membalik jadi `#FFFFFF` saat gelap, jadi teks putih di atasnya
+       jadi putih-di-atas-putih dan tombolnya lenyap. Nilainya selalu tinta
+       mode SEBALIKNYA, jadi ia ikut membalik bersama latarnya. */
+    --color-on-inverse: #ffffff;
+
+    --color-danger: #da1e28;
+
+    /* ---------------------------------------------------------------------
+       Warna grafik. SENGAJA BUKAN warna merek.
+
+       Emas DWF `#E1B762` dan navy `#001D6C` sudah diuji sebagai pasangan seri
+       dan keduanya gagal: emas ada di OKLCH L 0.80 (di atas pita 0.43–0.77) dan
+       kontrasnya cuma 1.88:1 di atas putih — tipis dan hilang; navy ada di
+       L 0.28, di bawah pita. Warna merek bekerja untuk aksen UI (toggle, bar
+       progres), bukan untuk garis data setebal 2px.
+
+       Nilai di bawah lolos enam pemeriksaan (pita terang, lantai kroma,
+       pemisahan buta warna protan/deutan, lantai penglihatan normal, kontras)
+       di kedua mode — diverifikasi terhadap permukaan kita sendiri, bukan
+       diperkirakan. Jangan menukar salah satunya tanpa menjalankan ulang
+       validatornya.
+    --------------------------------------------------------------------- */
+    --color-series-1: #2a78d6;
+    --color-series-2: #eb6834;
+
+    /* Status — selalu dipasang bersama ikon dan label, tidak pernah warna saja.
+       `warning` hanya 1.79:1 di atas putih; ia terbaca karena ada teksnya. */
+    --color-status-good: #0ca30c;
+    --color-status-warning: #fab219;
+    --color-status-critical: #d03b3b;
+
+    /* Chrome rich-text editor (skala slate — beda dari CoolGray, memang begitu
+       di wireframe). */
+    --color-editor-0: #ffffff;
+    --color-editor-5: #f8fafc;
+    --color-editor-20: #e2e8f0;
+    --color-editor-30: #cbd5e1;
+    --color-editor-60: #475569;
+    --color-editor-80: #1e293b;
+
+    /* Metrik shell. */
+    --spacing-sidebar: 312px;
+    --spacing-sidebar-collapsed: 76px;
+    --spacing-topbar: 56px;
+    --spacing-content: 1080px;
+
+    --shadow-editor: 0 2px 4px -2px rgb(23 23 23 / 0.06), 0 4px 8px -2px rgb(23 23 23 / 0.1);
+}
+
+/* ---------------------------------------------------------------------------
+   Mode gelap — DITURUNKAN, bukan dibaca dari Figma.
+
+   Wireframe hanya menggambar mode terang, tapi topbar-nya punya ikon matahari,
+   jadi toggle-nya memang diminta. Nilai di bawah membalik skala CoolGray dan
+   BELUM diverifikasi ke desainer. Lihat docs/DESIGN-TOKENS.md §5.
+--------------------------------------------------------------------------- */
+[data-theme='dark'] {
+    --color-cool-10: #21272a;
+    --color-cool-20: #343a3f;
+    --color-cool-30: #4d5358;
+    --color-cool-40: #697077;
+    --color-cool-60: #a2a9b0;
+    --color-cool-70: #c1c7cd;
+    --color-cool-80: #dde1e6;
+    --color-cool-90: #f2f4f8;
+    --color-cool-100: #ffffff;
+
+    --color-primary-90: #a5b6ff;
+
+    --color-canvas: #16191c;
+    --color-surface: #1c2023;
+
+    /* `cool-100` terang — latar tombol filled sekarang putih, tintanya gelap. */
+    --color-on-inverse: #121619;
+
+    --color-editor-0: #1c2023;
+    --color-editor-5: #16191c;
+    --color-editor-20: #343a3f;
+    --color-editor-30: #4d5358;
+    --color-editor-60: #c1c7cd;
+    --color-editor-80: #f2f4f8;
+
+    /* Langkah gelap dari palet yang sama — dipilih, bukan hasil membalik yang
+       terang. Divalidasi terhadap permukaan gelap kita `#1C2023`. */
+    --color-series-1: #3987e5;
+    --color-series-2: #d95926;
+}
+
+/* ---------------------------------------------------------------------------
+   Skala tipografi. Nama gaya persis seperti di Figma agar bisa dicocokkan
+   satu-satu saat review desain.
+--------------------------------------------------------------------------- */
+@utility text-heading-4 {
+    font-family: var(--font-content);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+@utility text-heading-6 {
+    font-family: var(--font-content);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+@utility text-subtitle-s {
+    font-family: var(--font-content);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.1;
+}
+
+@utility text-body-m {
+    font-family: var(--font-content);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+@utility text-body-s {
+    font-family: var(--font-content);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+@utility text-body-xs {
+    font-family: var(--font-content);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+@utility text-button-m {
+    font-family: var(--font-content);
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.0313em;
+}
+
+@utility text-button-s {
+    font-family: var(--font-content);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.0357em;
+}
+
+/* Sidebar — Inter, line-height 1.5 di semua ukuran. */
+@utility text-nav-l {
+    font-family: var(--font-sidebar);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+@utility text-nav-l-semibold {
+    font-family: var(--font-sidebar);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+@utility text-nav-m {
+    font-family: var(--font-sidebar);
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+@utility text-nav-m-semibold {
+    font-family: var(--font-sidebar);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+/* Bar progres Inertia — hanya menebalkan yang bawaan, bukan menggantinya.
+   Inertia menyuntikkan CSS-nya sendiri (`#nprogress .bar`) lewat <style> saat
+   runtime, jadi ia selalu datang SETELAH berkas ini. Selektor di bawah sengaja
+   diawali `html` supaya spesifisitasnya lebih tinggi; tanpa itu aturan bawaan
+   yang menang dan tinggi 2px-nya tidak berubah.
+
+   Strukturnya sengaja tidak diambil alih (`includeCSS: false`): Inertia
+   menampilkan bar-nya lewat popover top-layer, dan CSS bawaannya memuat reset
+   untuk gaya UA `[popover]` (`inset: unset`, `background: none`, `::backdrop`).
+   Menulis ulang semua itu berarti menanggung risiko bar-nya mati total demi
+   satu properti tinggi. */
+html #nprogress .bar {
+    height: 3px;
+}
+
+/* Isi editor teks kaya. Gayanya ditulis di sini, bukan lewat kelas utility,
+   karena HTML-nya dihasilkan tiptap saat runtime — tidak ada teks sumber yang
+   bisa dipindai Tailwind. */
+@utility prose-dwf {
+    & p {
+        margin-block: 0.75em;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--color-cool-90);
+    }
+
+    & h2 {
+        margin-block: 1.2em 0.5em;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--color-cool-90);
+    }
+
+    & h3 {
+        margin-block: 1em 0.4em;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.1;
+        color: var(--color-cool-90);
+    }
+
+    & ul,
+    & ol {
+        margin-block: 0.75em;
+        padding-inline-start: 1.5em;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--color-cool-90);
+    }
+
+    & ul { list-style: disc; }
+    & ol { list-style: decimal; }
+    & li { margin-block: 0.25em; }
+
+    & mark {
+        background-color: color-mix(in srgb, var(--color-primary-60) 45%, transparent);
+        color: inherit;
+    }
+
+    & strong { font-weight: 700; }
+    & em { font-style: italic; }
+
+    & :first-child { margin-block-start: 0; }
+    & :last-child { margin-block-end: 0; }
+
+    /* Placeholder tiptap saat dokumen benar-benar kosong. */
+    & p.is-editor-empty:first-child::before {
+        content: attr(data-placeholder);
+        float: inline-start;
+        height: 0;
+        color: var(--color-cool-60);
+        pointer-events: none;
+    }
+}
+
+/* Batang gulir daftar menu sidebar. Bawaan sistem berwarna terang dan
+   menempel jelas di atas latar #101010 — di sini ditipiskan dan disamarkan,
+   tapi tetap terlihat supaya orang tahu daftarnya masih bisa digulir. */
+@utility sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.25) transparent;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: rgb(255 255 255 / 0.25);
+        border-radius: 9999px;
+    }
+}
+
+@layer base {
+    html {
+        background-color: var(--color-canvas);
+
+        /* Setiap lompatan gulir di aplikasi ini digerakkan, bukan dipotong:
+           `scroll-behavior` berlaku untuk anchor `#id`, `scrollIntoView()`,
+           dan `window.scrollTo()` sekaligus — jadi satu baris di sini
+           menggantikan pemanggilan `behavior: 'smooth'` yang harus diingat di
+           tiap tempat.
+
+           Yang menggulir memang `html`: sidebar dan topbar dipatok `sticky`,
+           dan tidak ada pembungkus ber-`overflow` di atas isi halaman. */
+        scroll-behavior: smooth;
+    }
+
+    /* Bukan sekadar sopan santun: gulir yang dianimasikan adalah salah satu
+       pemicu vertigo yang paling sering disebut orang yang menyalakan setelan
+       ini. Motion menangani sisi JavaScript-nya sendiri lewat
+       `<MotionConfig reduced-motion="user">`; CSS harus diberi tahu terpisah. */
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+    }
+
+    body {
+        font-family: var(--font-content);
+        color: var(--color-cool-90);
+    }
+
+    /* Fokus terlihat di seluruh permukaan — wireframe tidak menggambar state
+       fokus sama sekali, dan tanpa ini backoffice tidak bisa dipakai dengan
+       keyboard. */
+    :focus-visible {
+        outline: 2px solid var(--color-primary-60);
+        outline-offset: 2px;
+    }
+}
