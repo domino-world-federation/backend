@@ -132,4 +132,49 @@ class DashboardTest extends TestCase
                 ->where('auth.user.avatarUrl', null)
             );
     }
+
+    /**
+     * Bagian yang jadi konten statis TIDAK punya tujuan, dan itu disengaja.
+     *
+     * Deret logo partner dilayani naskah statis di situs publik sejak
+     * 2026-09-03, jadi menautkannya ke `/blocks` akan menjanjikan bahwa
+     * menyunting di sana mengubah halaman — dan itu tidak lagi benar.
+     *
+     * Konsekuensinya di sisi Vue: `LandingSectionStatus` menggambar `<div>`,
+     * bukan `<Link>`. `<Link :href="null">` melempar "Cannot read properties of
+     * null" dan membuat SELURUH dashboard jadi halaman kosong — bukan cuma
+     * barisnya. Yang menjaga itu tipe `LandingSection.href` yang nullable;
+     * `vue-tsc` gagal kalau seseorang mengembalikannya jadi `string`.
+     */
+    public function test_a_static_section_has_no_destination(): void
+    {
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->get('/dashboard')
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('sections.4.key', 'federation-strip')
+                ->where('sections.4.href', null));
+    }
+
+    /**
+     * Dan yang PUNYA tujuan tidak boleh mengirim string kosong.
+     *
+     * `''` lolos setiap pemeriksaan `null` tapi menghasilkan tautan ke halaman
+     * yang sedang dibuka — kontrol yang terlihat bekerja dan tidak melakukan
+     * apa-apa.
+     */
+    public function test_every_other_section_points_somewhere_real(): void
+    {
+        $sections = $this->actingAs(User::factory()->superAdmin()->create())
+            ->get('/dashboard')
+            ->viewData('page')['props']['sections'];
+
+        foreach ($sections as $section) {
+            if ($section['href'] === null) {
+                continue;
+            }
+
+            $this->assertNotSame('', $section['href'], "Section {$section['key']} menaut ke string kosong.");
+            $this->assertStringStartsWith('/', $section['href']);
+        }
+    }
 }

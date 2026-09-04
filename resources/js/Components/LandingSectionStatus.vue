@@ -82,9 +82,16 @@ const percent = computed(() =>
                 :key="section.key"
                 class="border-t border-cool-20 first:border-t-0"
             >
-                <Link
-                    :href="section.href"
-                    class="flex items-center gap-3 py-3 transition-colors hover:bg-cool-10"
+                <!-- `<Link>` kalau ada tujuannya, `<div>` kalau tidak.
+                     Bagian yang jadi konten statis di situs publik tidak punya
+                     layar untuk dibuka, dan `<Link :href="null">` melempar
+                     "Cannot read properties of null" — yang membuat SELURUH
+                     dashboard jadi halaman kosong, bukan cuma barisnya. -->
+                <component
+                    :is="section.href ? Link : 'div'"
+                    :href="section.href ?? undefined"
+                    class="flex items-center gap-3 py-3"
+                    :class="section.href ? 'transition-colors hover:bg-cool-10' : ''"
                 >
                     <component
                         :is="STATUS[section.status].icon"
@@ -101,8 +108,15 @@ const percent = computed(() =>
                         </span>
                     </span>
 
-                    <PhCaretRight :size="16" class="shrink-0 text-cool-40" aria-hidden="true" />
-                </Link>
+                    <!-- Chevron cuma dicetak kalau ada yang bisa dibuka: panah
+                         yang menunjuk ke tempat yang tidak ada adalah janji. -->
+                    <PhCaretRight
+                        v-if="section.href"
+                        :size="16"
+                        class="shrink-0 text-cool-40"
+                        aria-hidden="true"
+                    />
+                </component>
             </li>
         </ul>
     </div>

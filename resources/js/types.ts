@@ -104,7 +104,18 @@ export interface LandingSection {
     label: string
     status: SectionStatus
     note: string
-    href: string
+    /**
+     * `null` untuk bagian yang TIDAK dikelola dari backoffice — deret logo
+     * partner, misalnya, yang jadi konten statis di situs publik. Barisnya
+     * tetap dicetak (menghilangkannya membuat orang mencari bagian yang
+     * hilang) tapi tidak bisa diklik.
+     *
+     * Tipenya dibuat nullable justru supaya `vue-tsc` menangkap pemakaian yang
+     * salah: `<Link :href="null">` melempar "Cannot read properties of null"
+     * saat dirender, dan dashboardnya jadi HALAMAN KOSONG tanpa satu pun
+     * petunjuk di layar.
+     */
+    href: string | null
 }
 
 export interface ActivityEntry {
