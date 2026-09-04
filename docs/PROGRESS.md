@@ -319,12 +319,13 @@ handler-nya. Rinciannya di
 > memperlihatkannya — yang terlihat cuma disk yang penuh, berbulan-bulan
 > kemudian.
 
-- [~] **Deploy: config nginx sudah ada, sisanya belum.**
-      [`deploy/nginx/`](../deploy/nginx/) memuat dua host —
+- [~] **Deploy: nginx sudah jalan, sisanya belum.** Dua host —
       `fed-bo.pborado.com` (backoffice) dan `fed-api.pborado.com` (**hanya
-      `/api`**, sisanya 404) — berikut README pemasangan dan perintah ujinya.
-      Yang belum: unit systemd/php-fpm pool sendiri, dan skrip rilis. Daftar hal
-      yang gagal diam-diam di server ada di [docs/PRODUCTION.md](PRODUCTION.md).
+      `/api`**, sisanya 404). Berkas confignya **di luar repo**: `deploy/`
+      di-gitignore karena isinya path dan hostname mesin sungguhan, jadi
+      ALASAN dan kerangkanya yang disimpan, di
+      [docs/PRODUCTION.md](PRODUCTION.md) §7 — cukup untuk menyusunnya ulang
+      dari nol. Yang belum: unit systemd/php-fpm pool sendiri, dan skrip rilis.
 - [ ] **Ikon lonceng di topbar mati.** Notifikasi belum punya sumber data;
       tombolnya `disabled`, digambar `cursor-not-allowed`, dan `title`-nya
       menyebut alasannya — bukan mengulang namanya.

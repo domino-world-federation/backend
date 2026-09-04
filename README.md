@@ -146,7 +146,7 @@ app/
 ├─ Http/Resources/          PublicResource + turunannya (kontrak API publik)
 └─ Support/
    ├─ Access.php            modul × aksi → izin. Menambah modul = satu baris
-   ├─ Navigation.php        struktur sidebar — SATU sumber (lihat CLAUDE.md)
+   ├─ Navigation.php        struktur sidebar — SATU sumber (lihat CONVENTIONS)
    ├─ Dashboard/DashboardData.php  query yang mengisi dashboard
    └─ Media/StoredFile.php         simpan/ganti/hapus berkas unggahan
 resources/
@@ -177,4 +177,7 @@ Alasannya di [`../landing-page-nuxt/docs/PRD.md`](../landing-page-nuxt/docs/PRD.
 jadi satu build yang memuat keduanya berarti satu bug di admin bisa menjatuhkan
 situs publik.
 
-Aturan kerjanya — dan hal yang mudah keliru — ada di [CLAUDE.md](CLAUDE.md).
+Aturan kerjanya — dan hal yang mudah keliru — ada di
+[docs/CONVENTIONS.md](docs/CONVENTIONS.md). `CLAUDE.md` dan `AGENTS.md` di akar
+adalah symlink ke berkas itu: tiap asisten menemukan nama yang dicarinya, dan
+isinya tetap satu supaya tidak ada dua salinan yang bisa berbeda pendapat.

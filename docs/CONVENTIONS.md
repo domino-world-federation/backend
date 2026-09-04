@@ -1,5 +1,10 @@
 # DWF Backoffice — aturan kerja
 
+> Berkas ini yang ter-commit. `CLAUDE.md` dan `AGENTS.md` di akar repo adalah
+> **symlink** ke sini dan keduanya di-gitignore — tiap asisten menemukan nama
+> yang dicarinya, dan isinya tetap SATU supaya tidak ada dua salinan yang bisa
+> berbeda pendapat. Menyunting salah satu symlink berarti menyunting berkas ini.
+
 Portal admin Domino World Federation. Laravel 13 + Inertia + Vue 3, dan nanti
 juga menampung API publik yang dikonsumsi [`../landing-page-nuxt`](../landing-page-nuxt).
 

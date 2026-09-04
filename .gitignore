@@ -25,3 +25,14 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Config server — path dan hostname mesin sungguhan, dikelola di luar repo.
+/deploy
+
+# Scaffolding asisten AI. Aturan kerjanya sendiri ADA di repo — di
+# docs/CONVENTIONS.md; kedua berkas di bawah cuma symlink ke sana, supaya tiap
+# asisten menemukan nama yang dicarinya tanpa menambah berkas kedua yang bisa
+# berbeda isi.
+/.claude
+/CLAUDE.md
+/AGENTS.md

@@ -390,21 +390,82 @@ di mana pun.
 
 ## 7. nginx
 
-Config siap pakai untuk kedua host ada di [`../deploy/nginx/`](../deploy/nginx/),
-berikut README pemasangan dan perintah ujinya. Tiga hal di dalamnya yang paling
-mudah keliru kalau ditulis ulang dari ingatan:
+Berkas confignya **di luar repo** (`deploy/` di-gitignore — isinya path dan
+hostname mesin sungguhan). Yang ditulis di sini alasannya, supaya bisa disusun
+ulang dari nol kalau berkasnya hilang.
+
+Dua host, satu aplikasi, satu `root`:
+
+| Host | Melayani |
+|---|---|
+| `fed-bo.pborado.com` | Backoffice — semuanya |
+| `fed-api.pborado.com` | **Hanya `/api`**, sisanya 404 |
+
+Kerangka host API — bagian yang membuat pembatasannya benar-benar bekerja:
+
+```nginx
+server {
+    server_name fed-api.pborado.com;
+    root /home/oredo/dev_html/dwf-backend/public;
+    client_max_body_size 1M;
+
+    location / { return 404; }
+
+    location ^~ /api/ {
+        try_files $uri /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        internal;
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;   # cocokkan: ls /run/php/
+    }
+}
+```
+
+**`internal` bukan pengerasan tambahan, ia syaratnya.** Tanpa baris itu,
+`location / { return 404; }` bisa dilewati begitu saja dengan meminta
+`/index.php?…`, dan seluruh backoffice terbuka lewat nama yang seharusnya cuma
+melayani API.
+
+Host backoffice memakai `try_files $uri $uri/ /index.php?$query_string` biasa,
+ditambah blok `^~ /storage/` untuk media (cache `immutable`, dan
+`location ~ \.php$ { return 403; }` di dalamnya).
+
+Tiga hal yang paling mudah keliru kalau ditulis ulang dari ingatan:
 
 - **`root` menunjuk `public/`, bukan akar project.** Menunjuk akar berarti
   `.env`, `storage/`, dan `vendor/` bisa diunduh siapa pun — dan aplikasinya
   tetap jalan, jadi tidak ada satu pun galat yang memberi tahu.
-- **`client_max_body_size` harus di atas 10 MB.** Bawaan nginx 1 MB, dan itu
-  menolak unggahan dokumen sebelum Laravel melihatnya; yang terlihat pemakainya
-  cuma "413" tanpa penjelasan dari layar mana pun. PHP juga:
+- **`client_max_body_size` di host backoffice harus di atas 10 MB.** Bawaan
+  nginx 1 MB, dan itu menolak unggahan dokumen sebelum Laravel melihatnya; yang
+  terlihat pemakainya cuma "413" tanpa penjelasan dari layar mana pun. PHP juga:
   `upload_max_filesize` ≥ 10M dan `post_max_size` ≥ 12M.
-- **Handler PHP diberi `internal`.** Ia hanya bisa dicapai lewat rewrite
-  `try_files`, tidak bisa diminta langsung sebagai `/index.php`. Di host API itu
-  bukan pengerasan tambahan melainkan syarat: tanpa itu,
-  `location / { return 404; }` bisa dilewati dengan meminta `/index.php?…`.
+- **CORS TIDAK disetel di nginx.** Laravel yang mengaturnya lewat
+  `CORS_ALLOWED_ORIGINS`; menambahkannya di kedua tempat menghasilkan dua header
+  `Access-Control-Allow-Origin`, yang ditolak browser dengan pesan yang menunjuk
+  ke arah salah.
+
+`APP_URL` menunjuk host **backoffice**, bukan host API — ia yang membangun URL
+gambar dan unduhan dokumen di response API, dan juga redirect login, tautan
+undangan, serta reset sandi. Menyetelnya ke host API demi kerapian membuat
+ketiganya menunjuk host yang membalas 404.
+
+Membuktikan pemisahannya bekerja:
+
+```bash
+curl -si https://fed-api.pborado.com/api/v1/news | head -1   # 200
+curl -si https://fed-api.pborado.com/login       | head -1   # 404  ← yang penting
+curl -si https://fed-api.pborado.com/index.php   | head -1   # 404  ← `internal`
+curl -si https://fed-bo.pborado.com/.env         | head -1   # 403
+```
+
+Baris kedua dan ketiga yang membuktikannya. Kalau `/login` di host API membalas
+200, `internal` tidak terpasang.
+
+TLS lewat `certbot --nginx -d fed-bo.pborado.com -d fed-api.pborado.com`,
+dijalankan SESUDAH blok HTTP-nya hidup — certbot yang menulis bagian TLS-nya,
+dan dua sumber untuk hal yang sama adalah dua tempat yang bisa berbeda pendapat.
 
 ---
 
