@@ -542,6 +542,13 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
 - **Ikon lewat Phosphor (`@phosphor-icons/vue`).** Untuk sidebar, tambahkan
   namanya ke peta di `resources/js/Components/Sidebar/NavIcon.vue` — peta
   eksplisit, bukan impor dinamis, supaya bundel tidak menarik 9.000 ikon.
+- **Formulir turnamen bisa mengirim ~1086 input dan 51 berkas sekaligus** —
+  50 ofisial × 5 field, 200 baris jadwal × 4 field, plus foto masing-masing.
+  Keduanya MELEWATI bawaan PHP (`max_input_vars` 1000, `max_file_uploads` 20),
+  dan PHP tidak menolak: ia memotong diam-diam. Yang terlihat orangnya turnamen
+  yang tersimpan dengan sebagian jadwalnya hilang. Angka servernya dicatat di
+  `docs/PRODUCTION.md` §8 — kalau `max:` di `TournamentRequest` dinaikkan,
+  angka itu ikut naik.
 - **Tes jalan di PostgreSQL** (`dwf_backoffice_testing`), bukan sqlite memori.
   Kalau `php artisan test` mengeluh soal koneksi, database itu belum dibuat:
   `createdb dwf_backoffice_testing`.

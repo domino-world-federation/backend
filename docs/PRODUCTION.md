@@ -469,9 +469,7 @@ dan dua sumber untuk hal yang sama adalah dua tempat yang bisa berbeda pendapat.
 
 ---
 
-## 8. Kalau situsnya tidak mau menyala
-
-Urut dari yang paling sering, dan tiap gejala menunjuk sebab yang berbeda.
+## 8. PHP
 
 ### PHP: versi dan ekstensi
 
@@ -503,18 +501,124 @@ barunya versi CLI-nya.
 unggahan gambar ditolak dengan pesan yang menyebut ukuran, bukan menyebut
 ekstensi yang hilang.
 
-Sesudah dipasang, `php.ini` FPM-nya perlu dinaikkan — bawaannya di bawah batas
-dokumen 10 MB:
-
-```ini
-; /etc/php/8.4/fpm/php.ini
-upload_max_filesize = 10M
-post_max_size = 12M
-```
-
 Beberapa versi PHP bisa hidup berdampingan. Yang menentukan mana yang dipakai
 adalah `fastcgi_pass` di config nginx — bukan `php -v`, yang menunjukkan versi
 CLI dan bisa berbeda dari versi FPM.
+
+### Setelan PHP yang harus diubah
+
+Bawaan PHP disetel untuk shared hosting tahun 2010. Empat di antaranya **gagal
+diam-diam** di aplikasi ini — tidak ada galat, tidak ada log, cuma data yang
+tiba tidak utuh.
+
+```ini
+; /etc/php/8.4/fpm/php.ini
+```
+
+#### Yang gagal DIAM-DIAM kalau dibiarkan
+
+| Setelan | Bawaan | Pakai | Kenapa |
+|---|---|---|---|
+| `max_input_vars` | 1000 | **3000** | Satu formulir Add Tournament bisa mengirim ~1086 input |
+| `max_file_uploads` | 20 | **60** | Satu turnamen bisa mengirim 51 berkas |
+| `upload_max_filesize` | 2M | **10M** | Batas dokumen di `config/dwf.php` 10 MB |
+| `post_max_size` | 8M | **12M** | Harus di atas `upload_max_filesize` + field lain |
+
+**`max_input_vars` yang paling berbahaya.** Formulir turnamen mengizinkan 50
+ofisial × 5 field, 200 baris jadwal × 4 field, plus ~36 field dasar — 1086 di
+kasus terburuk, melewati bawaan 1000. Dan PHP **tidak menolak**: ia memotong
+array POST-nya diam-diam. Yang terlihat orangnya adalah turnamen yang tersimpan
+dengan sebagian jadwalnya hilang, tanpa satu pun pesan, dan tanpa cara menebak
+kenapa.
+
+**`max_file_uploads`** persis sama sifatnya: 50 foto ofisial + gambar hero = 51
+berkas, dan berkas ke-21 dan seterusnya dibuang tanpa suara.
+
+#### Kecepatan
+
+```ini
+opcache.enable=1
+opcache.memory_consumption=192
+opcache.interned_strings_buffer=16
+opcache.max_accelerated_files=20000
+opcache.validate_timestamps=0
+
+realpath_cache_size=4096K
+realpath_cache_ttl=600
+
+memory_limit=256M
+```
+
+`max_accelerated_files=20000` karena `app/` + `vendor/` berisi **9.148 berkas
+PHP**. Bawaannya 10000 — cukup hari ini, dan diam-diam berhenti cukup begitu
+ada beberapa paket lagi. Yang terjadi saat penuh bukan galat melainkan cache
+yang berhenti menerima berkas baru, jadi sebagian aplikasi cepat dan sisanya
+tidak.
+
+**`validate_timestamps=0` adalah pertukaran, bukan kemenangan gratis.** Dengan
+itu PHP berhenti memeriksa apakah berkasnya berubah — jadi **kode baru tidak
+akan terpakai sampai FPM di-restart**. Itu harus masuk skrip deploy:
+
+```bash
+sudo systemctl reload php8.4-fpm
+```
+
+Lupa satu kali berarti deploy yang "berhasil" tapi situsnya tetap menjalankan
+versi lama, dan tidak ada satu pun tanda yang memberi tahu. Kalau belum ada
+skrip deploy yang bisa dipercaya, biarkan `validate_timestamps=1` dulu.
+
+**JIT sengaja tidak dinyalakan.** Ia menolong perhitungan numerik yang panjang,
+bukan aplikasi web yang menghabiskan waktunya di I/O dan database. Untuk beban
+seperti ini ia sering netral dan kadang merugikan.
+
+#### Keamanan
+
+```ini
+expose_php=Off
+display_errors=Off
+display_startup_errors=Off
+log_errors=On
+```
+
+`display_errors=On` di produksi mencetak jejak tumpukan — berikut isi variabel
+di dalamnya — ke halaman yang dilihat pengunjung.
+
+`cgi.fix_pathinfo=0` **tidak perlu** di sini, walau hampir setiap panduan
+menyebutnya. Yang dilindunginya adalah nginx yang meneruskan sembarang path ke
+PHP; config di §7 sudah menutup itu dari arah lain lewat `try_files` dan
+`internal`.
+
+#### Pool FPM
+
+```ini
+; /etc/php/8.4/fpm/pool.d/www.conf
+pm = dynamic
+pm.max_children = 20        ; RAM tersedia ÷ ~50 MB per proses
+pm.start_servers = 4
+pm.min_spare_servers = 2
+pm.max_spare_servers = 6
+pm.max_requests = 500       ; daur ulang worker, menahan kebocoran memori
+```
+
+`pm.max_children` adalah satu-satunya angka yang harus dihitung, bukan disalin:
+kalikan dengan ~50 MB dan hasilnya tidak boleh melebihi RAM yang benar-benar
+bebas. Terlalu besar berarti server mulai swap di bawah beban — yang jauh lebih
+buruk daripada permintaan yang antre.
+
+Sesudah semuanya:
+
+```bash
+sudo systemctl restart php8.4-fpm
+php -i | grep -E 'max_input_vars|max_file_uploads|upload_max_filesize|opcache.enable'
+```
+
+Periksa lewat `php -i` **milik FPM**, bukan CLI — keduanya membaca `php.ini`
+yang berbeda (`/etc/php/8.4/fpm/` vs `/etc/php/8.4/cli/`). Cara paling pasti:
+buat `phpinfo()` sementara, lihat lewat browser, lalu hapus.
+
+---
+
+## 9. Kalau situsnya tidak mau menyala
 
 ### `502 Bad Gateway` di host backoffice
 
@@ -595,7 +699,7 @@ belum menunjuk ke mana pun.
 
 ---
 
-## 9. Yang HARUS dijalankan tiap deploy
+## 10. Yang HARUS dijalankan tiap deploy
 
 ```bash
 php artisan migrate --force
@@ -604,7 +708,15 @@ php artisan db:seed --class=AccessSeeder   # kalau ada modul/izin baru
 php artisan storage:link                    # lihat §2
 php artisan config:cache && php artisan route:cache && php artisan view:cache
 bun install && bun run build
+
+sudo systemctl reload php8.4-fpm            # WAJIB, lihat di bawah
 ```
+
+**Reload FPM bukan pelengkap kalau `opcache.validate_timestamps=0`** (§8).
+Dengan setelan itu PHP berhenti memeriksa apakah berkasnya berubah, jadi kode
+baru tidak akan terpakai sampai worker-nya diganti. Lupa satu kali berarti
+deploy yang "berhasil" tapi situsnya tetap menjalankan versi lama — dan tidak
+ada satu pun tanda yang memberi tahu.
 
 **`AccessSeeder` aman dijalankan berulang** dan wajib dijalankan setiap kali ada
 modul baru — izin dibangkitkan dari `App\Support\Access::MODULES`. Kalau lupa,
@@ -619,7 +731,7 @@ mencentangnya lagi satu per satu. Polanya di
 
 ---
 
-## 10. Daftar IP — cara mengunci diri sendiri
+## 11. Daftar IP — cara mengunci diri sendiri
 
 `EnforceIpWhitelist` meloloskan siapa pun yang **tidak disasar** aturan mana
 pun, jadi tabel kosong berarti tidak ada yang dibatasi. Yang berbahaya adalah
@@ -639,7 +751,7 @@ Kalau terlanjur terkunci, satu-satunya jalan adalah menyunting tabel
 
 ---
 
-## 11. Skala: satu server vs beberapa
+## 12. Skala: satu server vs beberapa
 
 Belum diuji di lebih dari satu server. Yang perlu diperiksa lebih dulu kalau
 nanti ditambah:
@@ -656,7 +768,7 @@ nanti ditambah:
 
 ---
 
-## 12. Situs publik menunggu satu nilai
+## 13. Situs publik menunggu satu nilai
 
 `landing-page-nuxt` membaca API ini lewat `NUXT_PUBLIC_API_BASE_URL`. Nilainya
 harus menunjuk `https://domain-backoffice/api/v1`, dan domain situs publiknya
