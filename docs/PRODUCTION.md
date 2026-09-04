@@ -74,11 +74,37 @@ nama acak menahan TEBAKAN, bukan tautan yang sudah beredar.
 
 **Memindahkan media ke folder dan host sendiri** (`MEDIA_ROOT` + `MEDIA_URL`):
 
-```dotenv
-MEDIA_ROOT=/var/www/dwf/media            # gambar publik
-MEDIA_URL=https://media.dwf-domino.org   # dari mana browser mengambilnya
-MEDIA_PRIVATE_ROOT=/var/www/dwf/private  # DOKUMEN — di luar MEDIA_ROOT
+Susunan yang dipakai:
+
 ```
+/home/oredo/dwf-media/
+├── public/     ← disajikan fed-pub-media.pborado.com, nginx statis
+└── private/    ← dokumen; TIDAK pernah disajikan nginx
+```
+
+```dotenv
+MEDIA_ROOT=/home/oredo/dwf-media/public
+MEDIA_URL=https://fed-pub-media.pborado.com
+MEDIA_PRIVATE_ROOT=/home/oredo/dwf-media/private
+```
+
+**Tidak ada FTP dan tidak ada langkah pindah.** Aplikasinya menulis LANGSUNG ke
+folder itu — `MEDIA_ROOT` adalah root disk `public` Laravel, jadi unggahan dari
+backoffice mendarat di sana pada saat disimpan. Yang perlu dipastikan cuma
+izinnya: PHP-FPM (`www-data`) harus bisa menulis ke **keduanya**.
+
+```bash
+sudo mkdir -p /home/oredo/dwf-media/public /home/oredo/dwf-media/private
+sudo chown -R oredo:www-data /home/oredo/dwf-media
+sudo find /home/oredo/dwf-media -type d -exec chmod 2775 {} \;
+```
+
+`private/` **bersebelahan** dengan `public/`, bukan di dalamnya. Kalau
+tertukar, aplikasi menolak boot — lihat peringatan di bawah.
+
+`php artisan storage:link` tidak lagi diperlukan dalam susunan ini: symlink
+`public/storage` hanya berguna kalau media disajikan dari host aplikasi, dan di
+sini ia disajikan host sendiri.
 
 > **`MEDIA_PRIVATE_ROOT` wajib DI LUAR `MEDIA_ROOT`.** Kalau ia berada di
 > dalamnya, symlink `public/storage` menjadikan setiap dokumen bisa diunduh
@@ -150,8 +176,9 @@ mengandalkan penghapusan di disk.
 Bentuk yang dituju:
 
 ```
-https://cms.dwf-domino.org      aplikasi + API + unduhan dokumen
-https://media.dwf-domino.org    gambar saja, nginx statis, tanpa PHP
+https://fed-bo.pborado.com         aplikasi + unduhan dokumen
+https://fed-api.pborado.com        API publik saja (/api)
+https://fed-pub-media.pborado.com  gambar saja, nginx statis, tanpa PHP
 ```
 
 1. **DNS** — A/CNAME `media.dwf-domino.org` ke server yang sama tidak apa-apa;
@@ -178,8 +205,14 @@ server {
 }
 ```
 
-4. **`.env` aplikasi**: `MEDIA_URL=https://media.dwf-domino.org`. Sudah diuji —
-   API langsung mengirim `https://media.dwf-domino.org/tournaments/….webp`.
+4. **`.env` aplikasi**: `MEDIA_URL=https://fed-pub-media.pborado.com`. Sudah
+   diuji — API langsung mengirim
+   `https://fed-pub-media.pborado.com/tournaments/….webp`.
+
+   Dan `/storage/` di host backoffice diubah jadi `404`: kalau ia tetap
+   melayani, berkas unggahan bisa dicapai dari DUA origin, dan yang satu origin
+   aplikasi — yang justru dipisahkan supaya berkas orang tidak pernah berjalan
+   di sana.
 5. **CORS tidak perlu ditambah.** `<img src>` tidak menuntut CORS. Yang
    menuntutnya cuma font dan `fetch()`, dan tidak satu pun dari media ini
    diambil begitu.
@@ -711,6 +744,38 @@ memanggil `trustProxies(at: \'*\')` untuk itu — sah karena PHP-FPM di sini
 hanya mendengarkan soket Unix. Kalau ia dipindah ke TCP yang bisa dijangkau
 dari luar, daftar itu harus jadi alamat proxy yang sebenarnya: header palsu
 dari luar akan dipercaya bulat-bulat.
+
+### `Unable to create a directory` / 500 setelah menulis berkas
+
+**Dua pengguna sama-sama perlu menulis ke `storage/`,** dan itu yang membuat
+perbaikan naifnya berputar:
+
+- **PHP-FPM** berjalan sebagai `www-data` dan menulis cache, sesi, log, serta
+  setiap unggahan.
+- **`php artisan`** berjalan sebagai pengguna deploy Anda, dan menulis hal yang
+  sama saat menjalankan perintah.
+
+Memberikan kepemilikan ke salah satunya mematahkan yang lain. `chown www-data`
+membuat `php artisan` gagal dengan `UnableToCreateDirectory`; mengembalikannya
+ke pengguna deploy membuat situsnya 500 pada unggahan pertama.
+
+Jawabannya grup bersama, sekali:
+
+```bash
+sudo usermod -aG www-data oredo
+sudo chown -R oredo:www-data storage bootstrap/cache
+sudo find storage bootstrap/cache -type d -exec chmod 2775 {} \;
+sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
+```
+
+`2775` itu **setgid**: berkas dan folder baru mewarisi grup `www-data`
+sendiri, jadi susunannya tidak rusak lagi setiap kali salah satu pihak membuat
+sesuatu. Tanpa bit itu, perbaikannya bertahan sampai unggahan berikutnya.
+
+`usermod` baru berlaku setelah **login ulang** — `groups` yang memastikannya.
+
+Kalau `MEDIA_ROOT` dan `MEDIA_PRIVATE_ROOT` dipakai (§3), keduanya butuh
+perlakuan yang sama; `storage/` bukan lagi satu-satunya tempat menulis.
 
 ### CORS ditolak walau domainnya sudah didaftarkan
 

@@ -549,6 +549,12 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   yang tersimpan dengan sebagian jadwalnya hilang. Angka servernya dicatat di
   `docs/PRODUCTION.md` §8 — kalau `max:` di `TournamentRequest` dinaikkan,
   angka itu ikut naik.
+- **`storage/` ditulis DUA pengguna: `www-data` (PHP-FPM) dan pengguna deploy
+  (`php artisan`).** Memberikan kepemilikan ke salah satunya mematahkan yang
+  lain, dan perbaikannya terasa berputar: `chown www-data` membuat artisan
+  gagal, mengembalikannya membuat unggahan 500. Jawabannya grup bersama dengan
+  bit setgid (`2775`) supaya berkas baru mewarisi grupnya — lengkapnya di
+  `docs/PRODUCTION.md` §9.
 - **Tes jalan di PostgreSQL** (`dwf_backoffice_testing`), bukan sqlite memori.
   Kalau `php artisan test` mengeluh soal koneksi, database itu belum dibuat:
   `createdb dwf_backoffice_testing`.

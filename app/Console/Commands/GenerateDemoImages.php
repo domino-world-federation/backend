@@ -44,6 +44,10 @@ class GenerateDemoImages extends Command
             return self::FAILURE;
         }
 
+        if (! $this->storageIsWritable()) {
+            return self::FAILURE;
+        }
+
         $specs = config('dwf.uploads.image_specs');
         $filled = 0;
 
@@ -71,6 +75,45 @@ class GenerateDemoImages extends Command
         $this->info("{$filled} gambar dibuat.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Memeriksa lebih dulu apakah disknya bisa ditulis pengguna INI.
+     *
+     * Tanpa ini yang keluar `UnableToCreateDirectory` dari Flysystem — benar,
+     * tapi ia menyebut PATH-nya dan bukan sebabnya, jadi yang membacanya
+     * mencari folder yang hilang alih-alih izin yang salah.
+     *
+     * Sebabnya hampir selalu sama: `storage/` dimiliki `www-data` supaya
+     * PHP-FPM bisa menulis unggahan, dan `php artisan` dijalankan sebagai
+     * pengguna deploy. Keduanya perlu menulis ke sana, jadi jawabannya grup
+     * bersama — bukan memindahkan kepemilikan bolak-balik.
+     */
+    private function storageIsWritable(): bool
+    {
+        $root = config('filesystems.disks.public.root');
+
+        if (is_writable($root)) {
+            return true;
+        }
+
+        $user = function_exists('posix_getpwuid') && function_exists('posix_geteuid')
+            ? (posix_getpwuid(posix_geteuid())['name'] ?? '?')
+            : get_current_user();
+
+        $this->error("Tidak bisa menulis ke {$root} sebagai pengguna '{$user}'.");
+        $this->newLine();
+        $this->line('  PHP-FPM dan `php artisan` sama-sama perlu menulis ke sana.');
+        $this->line('  Pakai grup bersama, bukan memindahkan kepemilikan bolak-balik:');
+        $this->newLine();
+        $this->line("    sudo usermod -aG www-data {$user}");
+        $this->line('    sudo chown -R '.$user.':www-data storage bootstrap/cache');
+        $this->line('    sudo find storage bootstrap/cache -type d -exec chmod 2775 {} \;');
+        $this->line('    sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;');
+        $this->newLine();
+        $this->line('  `usermod` baru berlaku setelah login ulang.');
+
+        return false;
     }
 
     /**
