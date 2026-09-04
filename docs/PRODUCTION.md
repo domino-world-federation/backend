@@ -712,6 +712,29 @@ hanya mendengarkan soket Unix. Kalau ia dipindah ke TCP yang bisa dijangkau
 dari luar, daftar itu harus jadi alamat proxy yang sebenarnya: header palsu
 dari luar akan dipercaya bulat-bulat.
 
+### CORS ditolak walau domainnya sudah didaftarkan
+
+```
+The 'Access-Control-Allow-Origin' header has a value
+'https://fed-web.pborado.com/' that is not equal to the supplied origin.
+```
+
+Bacalah dua nilainya berdampingan: yang satu berakhir **garis miring**. Sebuah
+origin tidak pernah punya path, dan browser membandingkannya sebagai string
+mentah — jadi `https://situs.com/` dan `https://situs.com` adalah dua hal
+berbeda, walau terlihat sama.
+
+`config/cors.php` sekarang membuang garis miring dan spasi di ujung, jadi yang
+terlanjur terketik tetap bekerja. Sesudah mengubah `.env`:
+
+```bash
+php artisan config:clear
+```
+
+Muncul saat NAVIGASI di dalam situs, bukan saat memuat halaman pertama:
+pengambilan pertama terjadi di server Nuxt (server ke server, tanpa CORS), yang
+berikutnya di browser.
+
 ### `500`, bukan 502
 
 Kalau sudah lewat FPM tapi membalas 500, tiga sebab paling sering:

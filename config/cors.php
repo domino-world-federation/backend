@@ -25,7 +25,25 @@ return [
      * bukan lubang yang tidak terlihat di mana pun.
      */
     'allowed_origins' => array_values(array_filter(
-        array_map('trim', explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))),
+        array_map(
+            /*
+             * Spasi DAN garis miring di ujung dibuang.
+             *
+             * Sebuah "origin" tidak pernah punya path — `https://situs.com/`
+             * bukan origin, dan browser membandingkannya sebagai string mentah.
+             * Satu garis miring yang tidak sengaja terketik menghasilkan
+             * penolakan yang menyebut kedua nilai itu berdampingan dan terlihat
+             * identik bagi mata:
+             *
+             *   The 'Access-Control-Allow-Origin' header has a value
+             *   'https://situs.com/' that is not equal to the supplied origin.
+             *
+             * Membuangnya di sini lebih baik daripada menuliskan aturannya di
+             * `.env.example` dan berharap dibaca.
+             */
+            static fn (string $origin): string => rtrim(trim($origin), '/'),
+            explode(',', (string) env('CORS_ALLOWED_ORIGINS', '')),
+        ),
     )),
 
     'allowed_origins_patterns' => [],
