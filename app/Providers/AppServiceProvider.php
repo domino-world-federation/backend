@@ -10,6 +10,7 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Foundation\DevCommands;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
@@ -29,10 +30,47 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->forceHttpsWhenSiteIsHttps();
         $this->configureDevCommand();
         $this->recordAuthActivity();
         $this->stampActivityWithOrigin();
         $this->refusePrivateFilesInsidePublicMedia();
+    }
+
+    /**
+     * Membangun URL dengan `https` kalau situsnya memang `https`.
+     *
+     * Laravel menurunkan skema dari REQUEST, dan nginx bicara ke PHP-FPM lewat
+     * soket biasa — jadi kalau `fastcgi_param HTTPS` tidak sampai, aplikasi
+     * mengira setiap permintaan datang lewat http walau pengunjungnya
+     * mengetik https.
+     *
+     * Akibatnya tidak kelihatan sampai ada REDIRECT. Halaman biasa memakai
+     * path relatif dan tetap benar; yang patah adalah `redirect()->route(...)`,
+     * yang mengirim `Location: http://…`. Browser memblokirnya sebagai mixed
+     * content, dan yang terlihat pemakainya cuma "Network error" saat menekan
+     * Login — bukan satu kata pun tentang skema.
+     *
+     * Dibaca dari `APP_URL`, bukan dari flag terpisah: satu nilai yang sudah
+     * harus benar demi hal lain (URL gambar di API, tautan surel undangan),
+     * jadi tidak ada keadaan baru yang bisa berbeda pendapat. Di lokal
+     * `APP_URL` http, jadi ini tidak menyala.
+     *
+     * Ini JARING PENGAMAN, bukan pengganti config server yang benar. Yang
+     * seharusnya memberi tahu Laravel adalah `fastcgi_param HTTPS on;` di blok
+     * TLS nginx — lihat docs/PRODUCTION.md §9.
+     *
+     * `public` supaya bisa diuji langsung. Menguji lewat `APP_URL` tidak bisa
+     * diandalkan: Laravel memuat `.env` dengan penulis IMUTABEL, jadi nilai
+     * pertama yang masuk proses mengunci sisanya — tesnya lolos sendirian dan
+     * gagal di suite penuh, tergantung tes mana yang menyalakan aplikasi lebih
+     * dulu.
+     */
+    public function forceHttpsWhenSiteIsHttps(): void
+    {
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
     }
 
     /**

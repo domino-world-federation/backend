@@ -38,6 +38,24 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', EnforceIpWhitelist::class);
 
         $middleware->redirectGuestsTo('/login');
+
+        /*
+         * Mempercayai header `X-Forwarded-*` dari proxy di depan.
+         *
+         * Belum dibutuhkan selama nginx yang mengakhiri TLS di mesin yang sama
+         * — di susunan itu skema datang lewat `fastcgi_param HTTPS`. Ia jadi
+         * WAJIB begitu ada CDN atau load balancer di depan: tanpa ini Laravel
+         * mengabaikan `X-Forwarded-Proto`, mengira semuanya http, dan tiap
+         * `redirect()->route(...)` mengirim `Location: http://` yang diblokir
+         * browser sebagai mixed content.
+         *
+         * `at: '*'` sah HANYA karena aplikasi ini tidak pernah terbuka
+         * langsung ke internet — nginx satu-satunya yang bicara ke PHP-FPM,
+         * lewat soket Unix. Kalau suatu saat FPM mendengarkan di TCP yang bisa
+         * dijangkau siapa pun, daftar ini harus jadi alamat proxy yang
+         * sebenarnya: header palsu dari luar akan dipercaya bulat-bulat.
+         */
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

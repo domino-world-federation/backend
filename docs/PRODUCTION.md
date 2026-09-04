@@ -662,6 +662,56 @@ php artisan about --only=environment
 php artisan db:show | head -5
 ```
 
+### Mixed content: "Network error" saat menekan Login
+
+Gejalanya di konsol browser:
+
+```
+Mixed Content: The page at 'https://fed-bo.pborado.com/login' was loaded over
+HTTPS, but requested an insecure XMLHttpRequest endpoint
+'http://fed-bo.pborado.com/two-factor/setup'. This request has been blocked.
+```
+
+**Aplikasi tidak tahu permintaannya lewat TLS.** nginx yang mengakhiri TLS lalu
+bicara ke PHP-FPM lewat soket biasa; kalau skemanya tidak ikut diteruskan,
+Laravel mengira semuanya http.
+
+Dan itu tidak kelihatan sampai ada REDIRECT. Halaman biasa memakai path relatif
+dan tetap benar — yang patah `redirect()->route(...)`, yang mengirim
+`Location: http://…`. Browser memblokirnya, dan yang tersisa di layar cuma
+"Network error" tanpa satu kata pun tentang skema.
+
+Dua hal, dan keduanya sebaiknya ada:
+
+**1. nginx meneruskan skemanya** — perbaikan yang sebenarnya. Di dalam blok
+`location ~ \.php$`:
+
+```nginx
+fastcgi_param HTTPS $https if_not_empty;
+```
+
+`if_not_empty` yang membuatnya aman dipasang di blok port 80 sekaligus:
+`$https` kosong di sana, jadi paramnya tidak dikirim.
+
+**2. `APP_URL` memakai `https://`** — jaring pengamannya. `AppServiceProvider`
+memanggil `URL::forceScheme('https')` kalau `APP_URL` diawali `https://`, jadi
+URL yang dibangun tetap benar bahkan kalau config server salah. Di lokal
+`APP_URL` http, jadi ini tidak menyala.
+
+```dotenv
+APP_URL=https://fed-bo.pborado.com
+```
+
+Sesudah mengubah `.env`: `php artisan config:clear` (atau `config:cache` lagi) —
+tanpa itu nilai lamanya masih dipakai.
+
+**Kalau nanti ada CDN atau load balancer di depan**, skemanya datang sebagai
+header `X-Forwarded-Proto`, bukan `fastcgi_param`. `bootstrap/app.php` sudah
+memanggil `trustProxies(at: \'*\')` untuk itu — sah karena PHP-FPM di sini
+hanya mendengarkan soket Unix. Kalau ia dipindah ke TCP yang bisa dijangkau
+dari luar, daftar itu harus jadi alamat proxy yang sebenarnya: header palsu
+dari luar akan dipercaya bulat-bulat.
+
 ### `500`, bukan 502
 
 Kalau sudah lewat FPM tapi membalas 500, tiga sebab paling sering:
