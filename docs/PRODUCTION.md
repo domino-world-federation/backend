@@ -418,7 +418,7 @@ server {
     location ~ \.php$ {
         internal;
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;   # cocokkan: ls /run/php/
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;   # cocokkan: ls /run/php/
     }
 }
 ```
@@ -469,7 +469,133 @@ dan dua sumber untuk hal yang sama adalah dua tempat yang bisa berbeda pendapat.
 
 ---
 
-## 8. Yang HARUS dijalankan tiap deploy
+## 8. Kalau situsnya tidak mau menyala
+
+Urut dari yang paling sering, dan tiap gejala menunjuk sebab yang berbeda.
+
+### PHP: versi dan ekstensi
+
+**Wajib PHP 8.3+.** `composer.json` menuntut `"php": "^8.3"` dan Laravel 13 di
+atasnya. PHP 8.2 bukan "agak lama" — `composer install` menolak jalan di sana
+kecuali dipaksa, dan yang dipaksa akan gagal saat dijalankan, bukan saat
+dipasang.
+
+Ubuntu bawaan sering hanya sampai 8.1 atau 8.2, jadi PPA-nya yang dipakai:
+
+Yang dipakai server ini: **PHP 8.4**.
+
+```bash
+sudo apt install php8.4-fpm php8.4-pgsql php8.4-mbstring php8.4-xml \
+                 php8.4-curl php8.4-zip php8.4-gd php8.4-bcmath php8.4-intl
+sudo systemctl enable --now php8.4-fpm
+
+ls /run/php/          # WAJIB memunculkan php8.4-fpm.sock
+```
+
+**PHP 8.4 terpasang tidak sama dengan php8.4-fpm berjalan.** Paket CLI dan
+paket FPM terpisah, dan `php -v` cuma memberi tahu soal yang pertama. Yang
+menentukan apa yang melayani web adalah soket yang ada di `/run/php/` — kalau
+di sana hanya ada `php8.2-fpm.sock`, maka 8.2 yang melayani, seberapa pun
+barunya versi CLI-nya.
+
+**`php8.4-gd` bukan opsional.** Aturan validasi `dimensions:` di Add News
+(minimal 1920×800, rasio 12:5) membacanya lewat GD; tanpa ekstensi itu, tiap
+unggahan gambar ditolak dengan pesan yang menyebut ukuran, bukan menyebut
+ekstensi yang hilang.
+
+Sesudah dipasang, `php.ini` FPM-nya perlu dinaikkan — bawaannya di bawah batas
+dokumen 10 MB:
+
+```ini
+; /etc/php/8.4/fpm/php.ini
+upload_max_filesize = 10M
+post_max_size = 12M
+```
+
+Beberapa versi PHP bisa hidup berdampingan. Yang menentukan mana yang dipakai
+adalah `fastcgi_pass` di config nginx — bukan `php -v`, yang menunjukkan versi
+CLI dan bisa berbeda dari versi FPM.
+
+### `502 Bad Gateway` di host backoffice
+
+502 berarti nginx SAMPAI ke PHP-FPM tapi tidak mendapat jawaban yang sah. Ia
+hampir tidak pernah berarti aplikasinya salah — aplikasi yang salah membalas
+500. Yang salah biasanya sambungan ke FPM-nya.
+
+```bash
+sudo tail -50 /var/log/nginx/fed-bo.error.log   # atau /var/log/nginx/error.log
+```
+
+Baris terakhirnya yang menjawab, dan ketiganya berbeda sebab:
+
+| Pesan di log | Sebabnya |
+|---|---|
+| `connect() to unix:/run/php/phpX.Y-fpm.sock failed (2: No such file or directory)` | Soketnya tidak ada — versi di config tidak sama dengan yang terpasang |
+| `... failed (13: Permission denied)` | Soketnya ada, tapi pengguna nginx tidak boleh membacanya |
+| `upstream prematurely closed connection` | PHP mati di tengah jalan — lihat log FPM, bukan log nginx |
+
+**Yang pertama paling sering**, dan cara memastikannya satu perintah:
+
+```bash
+ls /run/php/                        # soket yang BENAR-BENAR ada
+sudo systemctl status php8.4-fpm
+```
+
+Cocokkan hasilnya dengan `fastcgi_pass` di KEDUA berkas config — host
+backoffice dan host API. Mengganti satu saja meninggalkan yang lain tetap 502.
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Aplikasinya sendiri sehat?
+
+Melewati nginx sama sekali — kalau ini gagal, masalahnya bukan di nginx:
+
+```bash
+cd /home/oredo/dev_html/dwf-backend
+php artisan about --only=environment
+php artisan db:show | head -5
+```
+
+### `500`, bukan 502
+
+Kalau sudah lewat FPM tapi membalas 500, tiga sebab paling sering:
+
+```bash
+tail -50 storage/logs/laravel.log
+
+ls vendor/ >/dev/null || composer install --no-dev --optimize-autoloader
+grep -q '^APP_KEY=base64:' .env || php artisan key:generate
+sudo chown -R www-data:www-data storage bootstrap/cache
+```
+
+Yang terakhir yang paling sering terlewat: PHP-FPM berjalan sebagai
+`www-data`, dan Laravel menulis ke `storage/` dan `bootstrap/cache` pada tiap
+permintaan. Berkas yang dimiliki pengguna deploy membuatnya 500 di permintaan
+pertama — dan pesannya ada di log Laravel, bukan di log nginx.
+
+### `404` di host API
+
+**Untuk `/` itu BENAR** — host API hanya melayani `/api`, dan `location / {
+return 404; }` yang melakukannya. Ujilah pathnya, bukan domainnya:
+
+```bash
+curl -si https://fed-api.pborado.com/api/v1/news | head -1   # 200 = sehat
+curl -si https://fed-api.pborado.com/login       | head -1   # 404 = pembatasan bekerja
+```
+
+Kalau `/api/v1/news` juga 404, barulah ada yang salah — periksa `server_name`,
+lalu pastikan `root` menunjuk `public/` dan bukan akar project.
+
+### Nama domainnya sendiri tidak ketemu
+
+Bukan nginx. `dig +short fed-api.pborado.com` — kalau kosong, DNS-nya yang
+belum menunjuk ke mana pun.
+
+---
+
+## 9. Yang HARUS dijalankan tiap deploy
 
 ```bash
 php artisan migrate --force
@@ -493,7 +619,7 @@ mencentangnya lagi satu per satu. Polanya di
 
 ---
 
-## 9. Daftar IP — cara mengunci diri sendiri
+## 10. Daftar IP — cara mengunci diri sendiri
 
 `EnforceIpWhitelist` meloloskan siapa pun yang **tidak disasar** aturan mana
 pun, jadi tabel kosong berarti tidak ada yang dibatasi. Yang berbahaya adalah
@@ -513,7 +639,7 @@ Kalau terlanjur terkunci, satu-satunya jalan adalah menyunting tabel
 
 ---
 
-## 10. Skala: satu server vs beberapa
+## 11. Skala: satu server vs beberapa
 
 Belum diuji di lebih dari satu server. Yang perlu diperiksa lebih dulu kalau
 nanti ditambah:
@@ -530,7 +656,7 @@ nanti ditambah:
 
 ---
 
-## 11. Situs publik menunggu satu nilai
+## 12. Situs publik menunggu satu nilai
 
 `landing-page-nuxt` membaca API ini lewat `NUXT_PUBLIC_API_BASE_URL`. Nilainya
 harus menunjuk `https://domain-backoffice/api/v1`, dan domain situs publiknya
