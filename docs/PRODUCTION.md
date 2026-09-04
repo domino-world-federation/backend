@@ -837,7 +837,61 @@ belum menunjuk ke mana pun.
 
 ---
 
-## 10. Yang HARUS dijalankan tiap deploy
+## 10. Mesin pencari
+
+**`robots.txt` tidak mencegah pengindeksan.** Ia mencegah PERAYAPAN. URL yang
+diblokir di sana tetap bisa muncul di hasil pencarian — tanpa cuplikan, tapi
+muncul — kalau ada situs lain yang menautkannya. Yang benar-benar menahan
+sebuah halaman adalah `noindex`.
+
+Keduanya juga saling melemahkan kalau dipakai sendiri-sendiri: perayap yang
+dilarang MERAYAP tidak akan pernah membaca `noindex` di halamannya. Jadi
+keduanya dipasang bersama.
+
+### Backoffice, API, dan host media — tertutup SELAMANYA
+
+Tidak ada satu pun halaman di ketiganya yang berguna di hasil pencarian, dan
+halaman login yang terindeks cuma mengundang percobaan masuk.
+
+- `public/robots.txt` menolak seluruh perayap.
+- Ketiga blok nginx mengirim `X-Robots-Tag: noindex, nofollow, noarchive`
+  dengan `always` — supaya ia ikut pada respons galat juga: halaman 404 dan 500
+  sama tidak bergunanya di hasil pencarian, dan `add_header` tanpa `always`
+  hanya berlaku untuk 2xx dan 3xx.
+
+Ini bukan setelan sementara. Tidak ada keadaan di mana backoffice pantas
+terindeks.
+
+### Situs publik — tertutup SAMPAI diumumkan
+
+Satu sakelar, di `ecosystem.config.cjs`:
+
+```js
+NUXT_PUBLIC_ALLOW_INDEXING: "false",   // "true" saat peluncuran
+```
+
+Selama `false`: tiap halaman membawa `<meta name="robots" content="noindex,
+nofollow, noarchive">`, dan `/robots.txt` menolak semuanya. Selama itu pula
+**server mengatakannya di log tiap restart** — satu baris yang jauh lebih murah
+daripada percakapan yang dimulai dengan "kenapa situsnya tidak ketemu di
+Google".
+
+Bawaannya tertutup karena kedua kegagalannya tidak sama beratnya: lupa membuka
+berarti kehilangan trafik, yang terlihat di Search Console dalam hitungan hari
+dan pulih penuh; lupa menutup berarti isi yang belum jadi masuk indeks, dan
+mengeluarkannya butuh permintaan penghapusan dan berminggu-minggu.
+
+Saat peluncuran, itu satu-satunya yang perlu diubah:
+
+```bash
+pm2 restart dwf-nuxt --update-env
+curl -s https://fed-web.pborado.com/robots.txt        # Disallow: kosong
+curl -s https://fed-web.pborado.com/ | grep -c 'name="robots"'   # 0
+```
+
+---
+
+## 11. Yang HARUS dijalankan tiap deploy
 
 ```bash
 php artisan migrate --force
@@ -869,7 +923,7 @@ mencentangnya lagi satu per satu. Polanya di
 
 ---
 
-## 11. Daftar IP — cara mengunci diri sendiri
+## 12. Daftar IP — cara mengunci diri sendiri
 
 `EnforceIpWhitelist` meloloskan siapa pun yang **tidak disasar** aturan mana
 pun, jadi tabel kosong berarti tidak ada yang dibatasi. Yang berbahaya adalah
@@ -889,7 +943,7 @@ Kalau terlanjur terkunci, satu-satunya jalan adalah menyunting tabel
 
 ---
 
-## 12. Skala: satu server vs beberapa
+## 13. Skala: satu server vs beberapa
 
 Belum diuji di lebih dari satu server. Yang perlu diperiksa lebih dulu kalau
 nanti ditambah:
@@ -906,7 +960,7 @@ nanti ditambah:
 
 ---
 
-## 13. Situs publik menunggu satu nilai
+## 14. Situs publik menunggu satu nilai
 
 `landing-page-nuxt` membaca API ini lewat `NUXT_PUBLIC_API_BASE_URL`. Nilainya
 harus menunjuk `https://domain-backoffice/api/v1`, dan domain situs publiknya

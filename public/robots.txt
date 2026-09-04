@@ -1,2 +1,14 @@
+# Backoffice DWF — TIDAK untuk diindeks, selamanya.
+#
+# Ini portal admin. Tidak ada satu pun halaman di sini yang berguna di hasil
+# pencarian, dan halaman login yang terindeks cuma mengundang percobaan masuk.
+#
+# Berkas ini SENDIRI tidak cukup: `Disallow` menahan PERAYAPAN, bukan
+# PENGINDEKSAN. URL yang diblokir di sini tetap bisa muncul di hasil pencarian
+# — tanpa cuplikan, tapi muncul — kalau ada yang menautkannya dari luar.
+#
+# Yang benar-benar menahan `X-Robots-Tag: noindex, nofollow`, dikirim nginx di
+# ketiga host (lihat deploy/nginx/). Keduanya dipasang: yang ini menghentikan
+# perayapnya lebih dulu, yang itu menutup celah kalau ia tetap datang.
 User-agent: *
-Disallow:
+Disallow: /
