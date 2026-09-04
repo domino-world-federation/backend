@@ -61,7 +61,7 @@ class PublicController extends Controller
 
     public function news(Request $request): JsonResponse
     {
-        $limit = min(max((int) $request->integer('limit', 12), 1), 48);
+        $limit = $this->limit($request, default: 12, max: 48);
 
         $articles = NewsArticle::query()
             ->with('category:id,name')
@@ -105,7 +105,7 @@ class PublicController extends Controller
                 fn ($q) => $q->where('category', $request->string('category')),
             )
             ->latest('published_at')
-            ->when($request->filled('limit'), fn ($q) => $q->limit(min((int) $request->integer('limit'), 48)))
+            ->limit($this->limit($request, default: 24, max: 48))
             ->get();
 
         return $this->list(DocumentResource::bare($documents));
@@ -119,7 +119,7 @@ class PublicController extends Controller
             ->with('event:id,name')
             ->live()
             ->ordered()
-            ->when($request->filled('limit'), fn ($q) => $q->limit(min((int) $request->integer('limit'), 60)))
+            ->limit($this->limit($request, default: 24, max: 60))
             ->get();
 
         return $this->list(GalleryItemResource::bare($items));
@@ -146,29 +146,34 @@ class PublicController extends Controller
     // ------------------------------------------------------------- FAQ
 
     /**
-     * Tanpa `?page=`, seluruh daftar keluar — itu yang dibaca `/page/faq`, yang
-     * mengelompokkannya sendiri per kategori.
+     * Tanpa `?placement=`, seluruh daftar keluar — itu yang dibaca `/page/faq`,
+     * yang mengelompokkannya sendiri per kategori.
      *
-     * DENGAN `?page=`, urutannya diambil dari `faq_placements.position`, BUKAN
+     * Namanya `placement`, BUKAN `page`: `page` adalah nama universal untuk
+     * "halaman ke berapa", dan orang pertama yang menambahkan pagination di
+     * sini akan menabraknya. Yang dimaksud memang penempatan — tabelnya pun
+     * bernama `faq_placements`.
+     *
+     * DENGAN `?placement=`, urutannya diambil dari `faq_placements.position`, BUKAN
      * `faqs.position`. Itu inti perbaikan 2026-09-03: peringkat di Home dan
      * peringkat di Domino adalah dua angka yang berbeda, dan mengurutkan salah
      * satu tidak boleh menggeser yang lain.
      */
     public function faqs(Request $request): JsonResponse
     {
-        $page = $request->string('page')->toString();
+        $placement = $this->enum($request, 'placement', Faq::PAGES);
 
         $faqs = Faq::query()
             ->with('category:id,slug,name')
-            // Dikualifikasi: cabang `?page=` melakukan join, dan kolom tanpa
+            // Dikualifikasi: cabang `?placement=` melakukan join, dan kolom tanpa
             // nama tabel di dalam join adalah galat "ambiguous" yang menunggu
             // kolom bernama sama ditambahkan di tabel sebelah.
             ->where('faqs.is_active', true)
             ->when(
-                $page !== '',
+                $placement !== '',
                 fn ($q) => $q
                     ->join('faq_placements', 'faq_placements.faq_id', '=', 'faqs.id')
-                    ->where('faq_placements.page', $page)
+                    ->where('faq_placements.page', $placement)
                     ->orderBy('faq_placements.position')
                     ->select('faqs.*'),
                 fn ($q) => $q->orderBy('faqs.position'),
@@ -246,12 +251,24 @@ class PublicController extends Controller
         return response()->json(['hero' => $hero, 'closing' => $closing]);
     }
 
-    /** Kontak dan tautan sosial — pasangan kunci-nilai, bukan daftar. */
+    /**
+     * Kontak dan tautan sosial — pasangan kunci-nilai, bukan daftar.
+     *
+     * Kuncinya diubah ke camelCase agar sama dengan SELURUH API. Di database
+     * ia snake_case (`primary_email`) karena itu kolom; yang dibaca situs
+     * publik `primaryEmail`, sama seperti `publishedAt` dan `fileUrl` di mana
+     * pun. Satu response yang berbeda gayanya memaksa pemakainya mengingat
+     * pengecualian.
+     *
+     * Nilai kosong DIHILANGKAN, bukan dikirim string kosong (§5.4): footer bisa
+     * memakai `??` tanpa memeriksa dua keadaan.
+     */
     public function settings(): JsonResponse
     {
         return response()->json(
             SiteSetting::query()->where('group', SiteSetting::GROUP_CONTACT)->pluck('value', 'key')
                 ->reject(fn ($value) => blank($value))
+                ->mapWithKeys(fn (string $value, string $key) => [str($key)->camel()->toString() => $value])
                 ->all(),
         );
     }
@@ -264,7 +281,7 @@ class PublicController extends Controller
 
         // Disaring SETELAH query: `registration` diturunkan dari tanggal dan
         // tidak punya kolom untuk di-`where` (lihat `Tournament`).
-        $filter = $request->string('registration')->toString();
+        $filter = $this->enum($request, 'registration', Tournament::REGISTRATION_STATES);
 
         if ($filter !== '') {
             $tournaments = $tournaments->filter(
@@ -292,6 +309,10 @@ class PublicController extends Controller
      * Yang paling dekat akan datang, bukan kolom "highlighted": sorotan yang
      * dipatok tangan akan menunjuk turnamen yang sudah lewat begitu tidak ada
      * yang ingat menggesernya.
+     *
+     * Bentuknya `ShowcaseEvent`, SAMA dengan `/tournaments/showcase` — itu yang
+     * diterima `Hero.vue` di situs publik. Sebelumnya ia mengirim `Tournament`
+     * penuh, bentuk yang berbeda untuk komponen yang sama.
      */
     public function highlightedTournament(): JsonResponse
     {
@@ -300,9 +321,9 @@ class PublicController extends Controller
             ->orderBy('starts_on')
             ->first();
 
-        return $tournament === null
-            ? response()->json(null)
-            : response()->json((new TournamentResource($tournament))->resolve());
+        return response()->json(
+            $tournament === null ? null : $this->showcaseEvent($tournament),
+        );
     }
 
     /** `FeaturedEvent` — enam field untuk countdown beranda. */
@@ -336,22 +357,36 @@ class PublicController extends Controller
             ->limit(6)
             ->get();
 
-        return $this->list($tournaments->map(function (Tournament $t) {
-            $card = (new TournamentResource($t))->resolve();
+        return $this->list($tournaments->map(fn (Tournament $t) => $this->showcaseEvent($t))->all());
+    }
 
-            return array_filter([
-                'id' => $card['id'],
-                'slug' => $t->slug,
-                'name' => $t->name,
-                'dateLabel' => $card['dateLabel'],
-                'location' => $t->location,
-                'summary' => str($t->overview)->stripTags()->limit(200)->toString(),
-                'imageUrl' => $card['imageUrl'] ?? null,
-                'imageAlt' => $t->name,
-                'registrationLabel' => $card['registrationLabel'] ?? '',
-                'detailsUrl' => "/tournaments/{$t->slug}",
-            ], static fn ($v) => $v !== null);
-        })->all());
+    /**
+     * Bentuk `ShowcaseEvent` — SATU tempat, dipakai `/tournaments/showcase`
+     * DAN `/tournaments/highlighted`.
+     *
+     * Keduanya menggambar kartu yang sama; sebelum ini `highlighted` mengirim
+     * `Tournament` penuh sementara `Hero.vue` di situs publik menerima
+     * `ShowcaseEvent`. Bentuk yang berbeda untuk komponen yang sama adalah
+     * ketidakcocokan yang tidak akan ketahuan sampai halamannya dirender.
+     *
+     * @return array<string, mixed>
+     */
+    private function showcaseEvent(Tournament $t): array
+    {
+        $card = (new TournamentResource($t))->resolve();
+
+        return array_filter([
+            'id' => $card['id'],
+            'slug' => $t->slug,
+            'name' => $t->name,
+            'dateLabel' => $card['dateLabel'],
+            'location' => $t->location,
+            'summary' => str($t->overview)->stripTags()->limit(200)->toString(),
+            'imageUrl' => $card['imageUrl'] ?? null,
+            'imageAlt' => $t->name,
+            'registrationLabel' => $card['registrationLabel'] ?? '',
+            'detailsUrl' => "/tournaments/{$t->slug}",
+        ], static fn ($v) => $v !== null);
     }
 
     // ------------------------------------------------ Results & winners
@@ -373,8 +408,8 @@ class PublicController extends Controller
         $federations = MemberFederation::query()
             ->active()
             ->when(
-                $request->string('tier')->toString() !== '',
-                fn ($q) => $q->where('tier', $request->string('tier')),
+                ($tier = $this->enum($request, 'tier', array_keys(config('dwf.membership_tiers')))) !== '',
+                fn ($q) => $q->where('tier', $tier),
             )
             ->ordered()
             ->get();
@@ -384,8 +419,7 @@ class PublicController extends Controller
 
     public function stats(Request $request): JsonResponse
     {
-        $scope = $request->string('scope')->toString();
-        $scope = in_array($scope, FederationStat::SCOPES, true) ? $scope : FederationStat::SCOPE_HOME;
+        $scope = $this->enum($request, 'scope', FederationStat::SCOPES) ?: FederationStat::SCOPE_HOME;
 
         return $this->list(FederationStatResource::bare(
             FederationStat::query()->where('scope', $scope)->active()->ordered()->get(),
@@ -461,6 +495,47 @@ class PublicController extends Controller
      *
      * @param  array<int, mixed>  $items
      */
+    /**
+     * `?limit=` dijepit ke rentang yang masuk akal — satu aturan untuk semua daftar.
+     *
+     * Sebelum ini tiap endpoint menuliskannya sendiri dan hasilnya berbeda-beda:
+     * ada yang punya bawaan, ada yang tidak, dan `min((int) $x, 48)` meloloskan
+     * NOL dan angka negatif — `limit(0)` mengembalikan daftar kosong, yang
+     * terbaca seperti "tidak ada isinya" padahal permintaannya yang salah.
+     */
+    /**
+     * Nilai penyaring yang tidak dikenal DITOLAK, bukan diabaikan.
+     *
+     * Ini beda perlakuan yang disengaja, dan garisnya jelas:
+     *
+     *   - Penyaring BERDAFTAR TERTUTUP (`scope`, `tier`, `registration`,
+     *     `placement`) — salah ketik = 422. `?scope=member` (kurang satu huruf)
+     *     dulu diam-diam membalas statistik BERANDA: data yang masuk akal,
+     *     dari daftar yang salah, tanpa satu pun tanda.
+     *   - Penyaring BERISI TEKS BEBAS (`category`, `slug`, `q`) — nilainya
+     *     diketik orang di CMS, jadi yang tidak cocok memang wajar
+     *     mengembalikan daftar kosong. Itu jawaban, bukan galat.
+     *
+     * @param  array<int, string>  $allowed
+     */
+    private function enum(Request $request, string $key, array $allowed): string
+    {
+        $value = $request->string($key)->toString();
+
+        abort_if(
+            $value !== '' && ! in_array($value, $allowed, true),
+            422,
+            "The {$key} field must be one of: ".implode(', ', $allowed).'.',
+        );
+
+        return $value;
+    }
+
+    private function limit(Request $request, int $default, int $max): int
+    {
+        return min(max((int) $request->integer('limit', $default), 1), $max);
+    }
+
     private function list(array $items): JsonResponse
     {
         return response()->json(array_values($items));

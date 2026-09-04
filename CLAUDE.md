@@ -6,6 +6,7 @@ juga menampung API publik yang dikonsumsi [`../landing-page-nuxt`](../landing-pa
 Baca [README.md](README.md) untuk cara menjalankannya,
 [docs/DESIGN-TOKENS.md](docs/DESIGN-TOKENS.md) sebelum menulis komponen,
 [docs/PROGRESS.md](docs/PROGRESS.md) untuk status modul, dan
+[docs/API.md](docs/API.md) sebelum menyentuh `routes/api.php`, dan
 **[docs/PRODUCTION.md](docs/PRODUCTION.md) sebelum menyentuh server** — isinya
 hal-hal yang gagal DIAM-DIAM di produksi: cron yang lupa dipasang, symlink
 `storage` yang mati, `.env` yang kosong tanpa galat, dan perintah yang tidak
@@ -198,6 +199,15 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   `null`) sambil MEMBIARKAN `false`, `0`, dan `''`. `array_filter` tanpa
   callback akan membuang ketiganya juga, dan `0` adalah jawaban sah untuk
   "berapa peserta".
+- **Konvensi API publik ada di [docs/API.md](docs/API.md), dan dijaga
+  `ApiConventionTest`.** Sembilan aturan yang berlaku di SELURUH endpoint —
+  camelCase, array telanjang, `id` string, field opsional dihilangkan, `?limit=`
+  yang dijepit, dan satu bentuk galat. Endpoint ke-30 yang ditulis dengan gaya
+  sendiri gagal di tes itu, bukan di halaman situs publik yang tiba-tiba kosong.
+- **Pesan galat API tidak menyebut isi perut aplikasi.** Bawaan Laravel
+  membalas `No query results for model [App\Models\NewsArticle]` — bahkan
+  dengan `APP_DEBUG=false`. Penyeragamannya di `bootstrap/app.php`, dibatasi
+  `api/*` supaya halaman galat Inertia backoffice tidak ikut jadi JSON.
 - **Daftar API mengembalikan array TELANJANG, bukan `{ data: [...] }`.**
   `client.ts` di situs publik membacanya begitu; pembungkus bawaan Laravel akan
   menghasilkan `response.map is not a function` di setiap halaman sekaligus.
@@ -438,6 +448,38 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   berkas acak bukan kontrol akses: ia menahan tebakan, bukan tautan yang sudah
   beredar. Modul baru yang berkasnya punya Visibility harus ikut `local`, dan
   `StoredFile::put(..., disk: 'local')` yang mengarahkannya.
+- **Gambar publik akan disajikan dari DOMAIN SENDIRI di produksi**
+  (`MEDIA_URL`, mis. `media.dwf-domino.org`) — origin terpisah, supaya berkas
+  unggahan tidak pernah berjalan di origin aplikasi. Dokumen TIDAK ikut: ia
+  tunduk pada sakelar Visibility dan keluar lewat `MediaController`, jadi situs
+  publik memang punya dua asal berkas. Konsekuensi yang mudah terlewat ada di
+  repo sebelah: `@nuxt/image` sekarang `provider: "none"` sehingga host media
+  mana pun bekerja, tapi begitu IPX dinyalakan lagi host itu WAJIB masuk
+  `image.domains` — kalau tidak, setiap gambar CMS 403 sekaligus sementara aset
+  bawaan tetap tampil, yang terbaca seperti backend yang rusak.
+- **Nama berkas unggahan acak, dan penggantian SELALU menulis nama baru.**
+  `StoredFile::put()` memakai `hashName()` (40 karakter) lalu membuang path
+  lama. Konsekuensinya bukan cuma "tidak bisa ditebak": satu URL selalu berisi
+  hal yang sama SELAMANYA, jadi gambar publik boleh di-cache `immutable` setahun
+  penuh. Jangan pernah menggantinya jadi nama berbasis slug — slug berubah saat
+  judul disunting, dan cache setahun akan menyajikan gambar lama sampai TTL
+  habis. Dokumen dikecualikan (`no-store`, ada tesnya): berkas ter-cache tetap
+  terunduh setelah dokumennya diturunkan.
+- **Batas gambar 1 MB, bukan 2 MB seperti tertulis di wireframe.** Situs publik
+  memakai `provider: "none"` di `@nuxt/image`, jadi tidak ada yang mengecilkan
+  apa pun: byte yang diunggah adalah byte yang dikirim ke setiap pengunjung.
+  Angkanya diukur, bukan ditebak — catatannya di `config/dwf.php`. Naikkan lagi
+  hanya setelah IPX benar-benar hidup.
+- **Logo partner STATIS di situs publik; menunya sudah dibuang dari sidebar.**
+  Layar `/blocks`, tabel `partners`, dan `/api/v1/partners` masih ada dan masih
+  bekerja — cuma tidak ditaut. Mengembalikannya satu baris di `Navigation`.
+  Jangan menambahkan lagi baris partner ke kartu "Dikelola di tempat lain" atau
+  ke widget Dashboard: keduanya akan menjanjikan bahwa menyunting di sana
+  mengubah halaman.
+- **`php artisan dwf:demo-images` yang mengisi gambar contoh, bukan seeder.**
+  Seeder tidak pernah menanam berkas biner. Perintah itu menolak jalan di
+  produksi, dan gambarnya berlabel "CONTOH" supaya tidak ada yang membiarkannya
+  tayang.
 - **Gambar WAJIB WebP, di semua modul** (`dwf.uploads.image_mimes`). `mimes:webp`
   membaca mime asli lewat fileinfo, jadi `.png` yang diganti namanya tetap
   ditolak. `accept="image/webp"` di komponennya cuma menyaring dialog berkas —
@@ -501,6 +543,14 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
 - **`vue-tsc` butuh TypeScript 5.** TypeScript 7 (port native) menghapus
   subpath `./lib/tsc` yang dipakai `vue-tsc`, dan `bun run typecheck` mati
   dengan `ERR_PACKAGE_PATH_NOT_EXPORTED`. `typescript` sengaja dipin ke `^5`.
+- **Database produksi dipasang dengan `php artisan dwf:install`, BUKAN
+  `db:seed`.** Yang kedua memang membuat akun admin — dan sekaligus menanam
+  berita contoh, turnamen, dokumen, pesan kontak, dan aturan daftar IP. Di
+  produksi itu bukan awal yang bersih melainkan pekerjaan menghapus.
+  `dwf:install` mengerjakan tiga hal yang wajib ada sebelum satu orang pun bisa
+  masuk (izin, super admin pertama, baris SEO bawaan `*`), aman diulang, dan
+  **tidak pernah menimpa sandi admin yang sudah ada** — sandi di `.env` server
+  bisa jauh lebih tua daripada yang dipakai orangnya. Ada tesnya.
 - **Kredensial admin tidak pernah ditulis di kode.** Seeder membacanya dari
   `DWF_ADMIN_EMAIL` / `DWF_ADMIN_PASSWORD` dan menolak jalan kalau kosong.
 

@@ -149,12 +149,17 @@ class BlockController extends Controller
             'year' => ['required', 'string', 'max:16'],
             'title' => ['required', 'string', 'max:160'],
             'summary' => ['required', 'string', 'max:600'],
+            // WAJIB saat membuat, alasan yang sama dengan logo partner:
+            // `MilestoneCard` di situs publik menggambar `<NuxtImg :src>` tanpa
+            // penjagaan, jadi tonggak tanpa gambar jadi gambar rusak.
             'image' => [
-                'nullable', 'image',
+                $milestone === null ? 'required' : 'nullable', 'image',
                 'mimes:'.implode(',', $uploads['image_mimes']),
                 'max:'.$uploads['image_max_kb'],
             ],
-            'image_alt' => ['nullable', 'string', 'max:200'],
+            // Alt WAJIB: gambarnya bermakna (foto tonggak sejarah), bukan
+            // hiasan, dan kontrak `HeritageMilestone` menuntutnya ada.
+            'image_alt' => ['required', 'string', 'max:200'],
             'is_active' => ['required', 'boolean'],
         ], attributes: [
             'year' => __('backoffice.blocks.milestone_year'),

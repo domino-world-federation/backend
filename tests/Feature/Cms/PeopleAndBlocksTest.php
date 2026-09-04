@@ -31,27 +31,50 @@ class PeopleAndBlocksTest extends TestCase
 
     // ------------------------------------------------------ Executive Board
 
-    public function test_a_board_member_can_be_added_without_a_portrait(): void
+    /**
+     * Potret WAJIB saat menambah anggota — membalik perilaku sebelumnya.
+     *
+     * `BoardCard` di situs publik menggambar `<NuxtImg :src="member.portraitUrl">`
+     * TANPA penjagaan, dan `types.ts` menyatakan `portraitUrl` wajib. Anggota
+     * tanpa potret karena itu bukan "kartu tanpa gambar", melainkan gambar
+     * rusak — persis alasan yang sudah dipakai logo partner.
+     *
+     * Boleh kosong saat MENYUNTING: membetulkan salah ketik nama tidak
+     * seharusnya menuntut unggah ulang potretnya.
+     */
+    public function test_a_board_member_needs_a_portrait(): void
     {
+        Storage::fake('public');
+
         $this->actingAs($this->actor())->post('/people', [
             'name' => 'Robbi Darwis',
             'role' => 'President',
             'is_active' => true,
+        ])->assertSessionHasErrors('portrait');
+
+        $this->actingAs($this->actor())->post('/people', [
+            'name' => 'Robbi Darwis',
+            'role' => 'President',
+            'is_active' => true,
+            'portrait' => UploadedFile::fake()->image('robbi.webp', 800, 800),
         ])->assertSessionHasNoErrors();
 
         $member = BoardMember::query()->sole();
 
-        $this->assertNull($member->portrait_path);
+        $this->assertNotNull($member->portrait_path);
         $this->assertSame(1, $member->position);
     }
 
     /** Kartunya merender dua baris kalau namanya memuat baris baru. */
     public function test_a_board_member_name_may_span_two_lines(): void
     {
+        Storage::fake('public');
+
         $this->actingAs($this->actor())->post('/people', [
             'name' => "Maria\nSantos",
             'role' => 'Vice President',
             'is_active' => true,
+            'portrait' => UploadedFile::fake()->image('maria.webp', 800, 800),
         ])->assertSessionHasNoErrors();
 
         $this->assertSame("Maria\nSantos", BoardMember::query()->sole()->name);
@@ -207,11 +230,15 @@ class PeopleAndBlocksTest extends TestCase
     /** "1990s" sama sahnya dengan "1974" — tahunnya penanda, bukan angka. */
     public function test_a_milestone_year_may_be_a_decade(): void
     {
+        Storage::fake('public');
+
         $this->actingAs($this->actor())->post('/blocks/heritage', [
             'year' => '1990s',
             'title' => 'Expansion across Asia',
             'summary' => 'Member federations doubled in a decade.',
             'is_active' => true,
+            'image' => UploadedFile::fake()->image('asia.webp', 1200, 900),
+            'image_alt' => 'Delegasi federasi Asia pada kongres 1994',
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('1990s', HeritageMilestone::query()->sole()->year);
@@ -221,9 +248,13 @@ class PeopleAndBlocksTest extends TestCase
     {
         $actor = $this->actor();
 
+        Storage::fake('public');
+
         foreach (['1974', '1998', '2026'] as $year) {
             $this->actingAs($actor)->post('/blocks/heritage', [
                 'year' => $year, 'title' => "T{$year}", 'summary' => 'Ringkasan.', 'is_active' => true,
+                'image' => UploadedFile::fake()->image("m{$year}.webp", 1200, 900),
+                'image_alt' => "Tonggak {$year}",
             ]);
         }
 

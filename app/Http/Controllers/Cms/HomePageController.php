@@ -64,11 +64,15 @@ class HomePageController extends Controller
             // tujuannya. Dicetak, bukan disembunyikan: pertanyaan pertama orang
             // yang membuka layar ini adalah "kenapa statistiknya tidak ada",
             // dan jawabannya lebih berguna daripada ketiadaannya.
+            //
+            // Deret logo partner TIDAK ada di daftar ini sejak 2026-09-03: ia
+            // konten statis di situs publik, jadi menautkannya ke `/blocks`
+            // akan menjanjikan bahwa menyuntingnya di sana mengubah halaman —
+            // dan itu tidak lagi benar.
             'elsewhere' => [
                 ['key' => 'stats', 'href' => '/federations/stats'],
                 ['key' => 'featured_event', 'href' => '/tournaments'],
                 ['key' => 'news', 'href' => '/news'],
-                ['key' => 'partners', 'href' => '/blocks'],
                 ['key' => 'faq', 'href' => '/faq/pages'],
             ],
         ]);

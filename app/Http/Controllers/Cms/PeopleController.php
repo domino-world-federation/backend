@@ -75,8 +75,13 @@ class PeopleController extends Controller
             // Baris baru DIIZINKAN: kartunya merender nama dua baris kalau ada.
             'name' => ['required', 'string', 'max:160'],
             'role' => ['required', 'string', 'max:120'],
+            // WAJIB saat membuat, dengan alasan yang sama seperti logo partner:
+            // `BoardCard` di situs publik menggambar `<NuxtImg :src>` tanpa
+            // penjagaan, jadi anggota tanpa potret jadi gambar rusak — bukan
+            // kartu tanpa gambar. Boleh kosong saat MENYUNTING supaya
+            // membetulkan salah ketik nama tidak menuntut unggah ulang.
             'portrait' => [
-                'nullable', 'image',
+                $member === null ? 'required' : 'nullable', 'image',
                 'mimes:'.implode(',', $uploads['image_mimes']),
                 'max:'.$uploads['image_max_kb'],
             ],

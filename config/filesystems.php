@@ -46,16 +46,49 @@ return [
          */
         'local' => [
             'driver' => 'local',
-            'root' => storage_path('app/private'),
+            // `MEDIA_PRIVATE_ROOT` pasangan `MEDIA_ROOT` di bawah: kalau media
+            // dipindah keluar direktori aplikasi, dokumen ikut — kalau tidak,
+            // justru berkas yang paling perlu dijaga yang tertinggal di dalam
+            // rilis dan hilang tiap deploy bergaya rilis-simbolik.
+            //
+            // WAJIB di luar `MEDIA_ROOT`. Kalau ia berada DI DALAMNYA, symlink
+            // `public/storage` menjadikan tiap dokumen bisa diunduh siapa pun
+            // tanpa satu pun pemeriksaan — `AppServiceProvider` menolak boot
+            // kalau itu terjadi.
+            'root' => env('MEDIA_PRIVATE_ROOT', storage_path('app/private')),
             'serve' => false,
             'throw' => false,
             'report' => false,
         ],
 
+        /*
+         * Media yang memang untuk dilihat.
+         *
+         * Letak dan URL-nya BISA DIPINDAH lewat `.env`, dan keduanya menjawab
+         * hal yang berbeda:
+         *
+         *   `MEDIA_ROOT` — di mana bytenya duduk. Menaruhnya di luar direktori
+         *   aplikasi (mis. `/var/www/dwf-media`) membuat deploy bergaya rilis-
+         *   simbolik tidak pernah menyentuhnya, dan backup media lepas dari
+         *   backup kode.
+         *
+         *   `MEDIA_URL` — dari mana browser mengambilnya. Mengarahkannya ke
+         *   HOSTNAME LAIN (mis. `https://media.dwf-domino.org`) menaruh berkas
+         *   unggahan di origin yang berbeda dari aplikasinya: berkas jahat yang
+         *   lolos ke sana berjalan di origin tanpa sesi dan tanpa hak apa pun.
+         *   Itu yang dilakukan `raw.githubusercontent.com`.
+         *
+         *   PATH yang berbeda di host yang SAMA (`/media` menggantikan
+         *   `/storage`) tidak menambah keamanan satu pun — origin-nya tetap
+         *   sama. Yang menolong cuma hostname berbeda.
+         *
+         * Dokumen TIDAK ikut ke sini: ia tunduk pada sakelar Visibility dan
+         * keluar lewat `MediaController`. Host statis tidak bisa memeriksanya.
+         */
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'root' => env('MEDIA_ROOT', storage_path('app/public')),
+            'url' => rtrim(env('MEDIA_URL', rtrim(env('APP_URL', 'http://localhost'), '/').'/storage'), '/'),
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
@@ -87,8 +120,17 @@ return [
     |
     */
 
+    /*
+     * Symlink yang dibuat `php artisan storage:link`.
+     *
+     * Mengikuti `MEDIA_ROOT`, jadi ia tetap menunjuk tempat yang benar kalau
+     * medianya dipindah. Kalau media disajikan dari HOST TERPISAH, symlink ini
+     * jadi tidak terpakai — biarkan saja, ia tidak mengganggu; yang menyajikan
+     * berkasnya adalah host itu, dan `MEDIA_URL` yang memberi tahu aplikasi ke
+     * mana harus menunjuk.
+     */
     'links' => [
-        public_path('storage') => storage_path('app/public'),
+        public_path('storage') => env('MEDIA_ROOT', storage_path('app/public')),
     ],
 
 ];

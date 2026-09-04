@@ -307,4 +307,22 @@ class DocumentTest extends TestCase
         Storage::disk('local')->assertExists($path);
         Storage::disk('public')->assertMissing($path);
     }
+
+    /**
+     * Berkas dokumen tidak boleh disimpan cache mana pun.
+     *
+     * Berkas yang tersimpan tetap terunduh SETELAH dokumennya diturunkan, dan
+     * itu membatalkan seluruh guna pemeriksaan status di `MediaController`.
+     * Bedakan dari gambar publik, yang justru DIANJURKAN di-cache selamanya:
+     * nama berkasnya acak dan tidak pernah dipakai ulang, jadi satu URL selalu
+     * berisi hal yang sama.
+     */
+    public function test_a_document_download_is_never_cached(): void
+    {
+        $document = $this->documentWithFile();
+
+        $this->get("/media/documents/{$document->id}")
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private');
+    }
 }

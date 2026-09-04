@@ -7,8 +7,6 @@ use App\Models\Document;
 use App\Models\GalleryEvent;
 use App\Models\IpWhitelistRule;
 use App\Models\LegalPage;
-use App\Models\NewsArticle;
-use App\Models\NewsCategory;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Support\Access;
@@ -28,8 +26,6 @@ class DatabaseSeeder extends Seeder
 
         $user = $this->admin();
 
-        $this->newsCategories();
-        $this->news($user);
         $this->documents();
         $this->gallery();
         $this->legalPages();
@@ -72,49 +68,6 @@ class DatabaseSeeder extends Seeder
         $user->syncRoles([Access::SUPER_ADMIN]);
 
         return $user;
-    }
-
-    private function newsCategories(): void
-    {
-        foreach (['Tournament', 'DWF', 'Federation', 'Development'] as $index => $name) {
-            NewsCategory::query()->updateOrCreate(
-                ['slug' => Str::slug($name)],
-                ['name' => $name, 'is_active' => true, 'position' => $index + 1],
-            );
-        }
-    }
-
-    private function news(User $user): void
-    {
-        if (NewsArticle::query()->exists()) {
-            return;
-        }
-
-        $categories = NewsCategory::query()->pluck('id', 'slug');
-
-        $rows = [
-            ['Madrid, Singapore & Mexico City host the 2026 World Championship', 'tournament', 'published', true, 2],
-            ['DWF publishes updated international tournament standards', 'dwf', 'published', false, 9],
-            ['Referee workshop series returns for the 2026 season', 'development', 'published', false, 17],
-            ['Three new national federations join the DWF', 'federation', 'published', false, 24],
-            ['Community programme reaches 40 cities', 'development', 'published', false, 33],
-            ['Draft: partnership with global broadcast network', 'dwf', 'draft', false, null],
-            ['Scheduled: 2026 qualification calendar', 'tournament', 'scheduled', false, -6],
-        ];
-
-        foreach ($rows as [$title, $slug, $status, $highlight, $days]) {
-            NewsArticle::query()->create([
-                'news_category_id' => $categories[$slug],
-                'author_id' => $user->id,
-                'title' => $title,
-                'slug' => Str::slug($title),
-                'excerpt' => Str::limit(strip_tags($title), 120),
-                'body' => '<p>'.$title.'. Isi contoh untuk pengembangan lokal.</p>',
-                'is_highlighted' => $highlight,
-                'status' => $status,
-                'published_at' => $days === null ? null : now()->subDays($days),
-            ]);
-        }
     }
 
     private function documents(): void

@@ -6,7 +6,6 @@ use App\Models\ContactMessage;
 use App\Models\Document;
 use App\Models\FederationStat;
 use App\Models\NewsArticle;
-use App\Models\Partner;
 use App\Models\SiteSetting;
 use App\Models\Tournament;
 use Carbon\CarbonImmutable;
@@ -145,7 +144,6 @@ final class DashboardData
     public function landingSections(): array
     {
         $highlighted = NewsArticle::query()->live()->where('is_highlighted', true)->count();
-        $partners = Partner::query()->where('is_active', true)->count();
         $stats = FederationStat::query()->where('scope', 'home')->where('is_active', true)->count();
         // Aturan yang SAMA dengan `PublicController::featuredEvent()`: kartu
         // hitung mundur memilih turnamen tayang terdekat yang belum lewat,
@@ -195,7 +193,20 @@ final class DashboardData
                     : __('backoffice.section_status.no_highlight'),
                 'href' => '/news?status=published',
             ],
-            $count('federation-strip', 'Federation Strip', $partners, '/blocks'),
+            /*
+             * Deret logo partner jadi konten STATIS di situs publik
+             * (keputusan 2026-09-03), jadi tidak ada yang bisa "diisi" untuk
+             * membuatnya siap. Barisnya tetap dicetak — menghilangkannya
+             * membuat orang mencari bagian yang hilang — tapi tanpa tautan dan
+             * tanpa status yang menjanjikan sesuatu bisa dikerjakan.
+             */
+            [
+                'key' => 'federation-strip',
+                'label' => 'Federation Strip',
+                'status' => 'unknown',
+                'note' => __('backoffice.section_status.static_note'),
+                'href' => null,
+            ],
             [
                 'key' => 'closing-cta',
                 'label' => 'Closing CTA',

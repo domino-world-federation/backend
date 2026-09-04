@@ -181,7 +181,7 @@ class FaqTest extends TestCase
         $this->actingAs(User::factory()->superAdmin()->create())
             ->put('/faq/pages', ['page' => 'home', 'ids' => [$b->id, $a->id]]);
 
-        $body = $this->getJson('/api/v1/faqs?page=home')->assertOk()->json();
+        $body = $this->getJson('/api/v1/faqs?placement=home')->assertOk()->json();
 
         $this->assertSame([(string) $b->id, (string) $a->id], array_column($body, 'id'));
     }
@@ -213,7 +213,7 @@ class FaqTest extends TestCase
     {
         $this->make(['home'], active: false);
 
-        $this->assertSame([], $this->getJson('/api/v1/faqs?page=home')->assertOk()->json());
+        $this->assertSame([], $this->getJson('/api/v1/faqs?placement=home')->assertOk()->json());
     }
 
     /** @return array<int, int> */

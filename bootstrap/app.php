@@ -8,6 +8,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -41,4 +43,53 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        /*
+         * Satu bentuk galat untuk seluruh API publik: `{ "message": "…" }`,
+         * dan untuk 422 ditambah `errors` bawaan Laravel.
+         *
+         * Ada dua alasan, dan yang kedua yang membuatnya perlu:
+         *
+         *   1. Konsistensi. Pemakainya menulis satu penanganan galat, bukan
+         *      satu per endpoint.
+         *   2. Pesan bawaan Laravel MEMBOCORKAN isi perut aplikasi — dan ini
+         *      terjadi bahkan dengan `APP_DEBUG=false`. Meminta berita yang
+         *      tidak ada membalas "No query results for model
+         *      [App\Models\NewsArticle]", yang memberi tahu dunia nama kelas,
+         *      namespace, dan bahwa ini Laravel dengan route model binding.
+         *      Bukan lubang, tapi tidak ada satu pun alasan mengirimkannya.
+         *
+         * Hanya untuk `api/*`. Backoffice memakai halaman galat Inertia-nya
+         * sendiri, dan menyeragamkannya ke JSON akan mengubahnya jadi teks
+         * mentah di layar orang.
+         */
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $status = $e->getStatusCode();
+
+            /*
+             * Pesan yang DIKARANG framework diganti; pesan yang kita tulis
+             * sendiri dibiarkan.
+             *
+             * Yang di daftar ini lahir dari Laravel dan tidak pernah berguna
+             * bagi pemakainya — 404 dari route model binding malah membocorkan
+             * nama kelas. Sisanya (mis. 422 dari `abort_if` penyaring) memuat
+             * kalimat yang justru dibutuhkan: "must be one of: home, members".
+             * Menelannya jadi "Unprocessable Content" membuat orang menebak.
+             */
+            $generated = [
+                404 => 'Not found.',
+                405 => 'Method not allowed.',
+                429 => 'Too many requests.',
+                500 => 'Server error.',
+            ];
+
+            return response()->json([
+                'message' => $generated[$status]
+                    ?? ($e->getMessage() ?: (Response::$statusTexts[$status] ?? 'Error.')),
+            ], $status, $e->getHeaders());
+        });
     })->create();

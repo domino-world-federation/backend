@@ -74,7 +74,10 @@ class HomePageTest extends TestCase
 
         $settings = $this->getJson('/api/v1/settings')->assertOk()->json();
 
-        $this->assertArrayHasKey('primary_email', $settings);
+        // Kuncinya camelCase di API walau snake_case di database — sama
+        // dengan seluruh endpoint lain.
+        $this->assertArrayHasKey('primaryEmail', $settings);
+        $this->assertArrayNotHasKey('heroHeadline', $settings);
         $this->assertArrayNotHasKey('hero_headline', $settings);
     }
 

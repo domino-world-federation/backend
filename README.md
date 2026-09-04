@@ -121,6 +121,7 @@ menulis layar baru.
 | `bun run typecheck` | `vue-tsc --noEmit` — TypeScript strict |
 | `php artisan test` | PHPUnit, jalan di `dwf_backoffice_testing` |
 | `php artisan db:seed --class=AccessSeeder` | Sinkronkan peran & izin setelah menambah modul |
+| `php artisan dwf:install` | **Pemasangan di database KOSONG** — izin, super admin pertama, baris SEO bawaan. Tanpa data contoh; itu bedanya dari `db:seed` |
 | `php artisan dwf:2fa:reset {email}` | Reset 2FA sebuah akun — jalan keluar saat ponsel **dan** kode pemulihan hilang |
 | `php artisan editor:prune --dry-run` | Sebutkan gambar editor yang tidak dirujuk HTML mana pun. Tanpa `--dry-run` ia membuangnya; dijadwalkan mingguan |
 | `php artisan storage:link` | **Wajib tiap deploy dan tiap mesin.** Symlink-nya absolut dan tidak ikut git — lihat [docs/PRODUCTION.md](docs/PRODUCTION.md) §2 |
@@ -165,6 +166,7 @@ lang/
 docs/
 ├─ DESIGN-TOKENS.md         token + sumber Figma tiap nilai
 ├─ PROGRESS.md              status modul, penyimpangan wireframe, pekerjaan terbuka
+├─ API.md                   referensi /api/v1 — konvensi, tiap endpoint, bentuk galat
 └─ PRODUCTION.md            yang gagal DIAM-DIAM di server — baca sebelum deploy
 ```
 

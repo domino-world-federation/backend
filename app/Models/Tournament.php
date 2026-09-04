@@ -183,6 +183,12 @@ class Tournament extends Model
      * Turnamen tanpa tanggal pendaftaran sama sekali dianggap `closed`:
      * pendaftaran yang tidak pernah dibuka memang tidak menerima siapa pun.
      */
+    /**
+     * Keadaan pendaftaran yang mungkin — daftarnya di sini, bukan diketik ulang
+     * di controller yang menyaringnya.
+     */
+    public const REGISTRATION_STATES = ['open', 'upcoming', 'ongoing', 'closed'];
+
     public function getRegistrationStateAttribute(): string
     {
         $start = $this->registration_starts_on;

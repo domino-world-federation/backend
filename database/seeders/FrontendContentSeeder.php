@@ -10,6 +10,8 @@ use App\Models\FaqPlacement;
 use App\Models\FederationStat;
 use App\Models\HeritageMilestone;
 use App\Models\MemberFederation;
+use App\Models\NewsArticle;
+use App\Models\NewsCategory;
 use App\Models\OlympicResult;
 use App\Models\PageMeta;
 use App\Models\Partner;
@@ -17,6 +19,7 @@ use App\Models\SiteSetting;
 use App\Models\StandingCommittee;
 use App\Models\SubCommittee;
 use App\Models\Tournament;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -66,6 +69,7 @@ class FrontendContentSeeder extends Seeder
         $this->pageMeta();
         $this->faqs();
         $this->homeCopy();
+        $this->news();
     }
 
     /**
@@ -602,5 +606,93 @@ class FrontendContentSeeder extends Seeder
             'closing_cta' => 'Get In Touch',
             'closing_cta_url' => '/contact',
         ], SiteSetting::GROUP_HOME);
+    }
+
+    /**
+     * Berita dan kategorinya.
+     *
+     * Disalin dari `MOCK_NEWS` di `../landing-page-nuxt/app/lib/api/mock/index.ts`
+     * — sebelas artikel, enam kategori — supaya penukaran mock → API tidak
+     * mengubah satu kata pun yang terbaca di halaman. Judul, kutipan, slug, dan
+     * tanggal terbitnya sama persis; slug ikut apa adanya karena ia yang jadi
+     * URL, dan URL yang berubah adalah tautan yang mati.
+     *
+     * Sebelum ini beritanya disemai `DatabaseSeeder` dengan tujuh judul karangan
+     * dan empat kategori yang tidak ada satu pun di mock. Akibatnya penyaring
+     * kategori di `/news/all` menampilkan daftar yang berbeda dari yang
+     * dirancang halamannya.
+     *
+     * Dua baris TAMBAHAN yang tidak ada di mock — satu draft dan satu
+     * terjadwal — supaya layar daftar di backoffice memperlihatkan keempat
+     * keadaan Visibility, bukan cuma "published". Keduanya tidak akan pernah
+     * muncul di situs publik, dan itu justru yang diuji.
+     *
+     * Gambarnya TIDAK ditanam di sini: `php artisan dwf:demo-images` yang
+     * membuatnya, terpisah karena ia menulis berkas biner dan hanya berguna di
+     * lingkungan contoh.
+     */
+    private function news(): void
+    {
+        $author = User::query()->orderBy('id')->first();
+
+        $categories = collect(['Tournament', 'Governance', 'Development', 'Federation', 'Ranking', 'Officiating'])
+            ->mapWithKeys(fn (string $name, int $index) => [
+                $name => NewsCategory::query()->updateOrCreate(
+                    ['slug' => Str::slug($name)],
+                    ['name' => $name, 'is_active' => true, 'position' => $index + 1],
+                )->id,
+            ]);
+
+        // [slug, judul, kutipan, kategori, terbit, disorot]
+        $rows = [
+            ['world-championship-qualifiers-conclude', 'World Championship Qualifiers Conclude in Jakarta', 'Sixty-four players advance to the main draw after three days of continental qualifying.', 'Tournament', '2026-08-12 10:00', true],
+            ['new-refereeing-standard-published', 'New Refereeing Standard Published for 2027', 'The updated rulebook clarifies scoring disputes and introduces a revised timing protocol.', 'Governance', '2026-08-08 09:30', false],
+            ['digital-learning-portal-100k-users', 'Digital Learning Portal Reaches 100K Users Milestone', 'The free tuition platform passes a hundred thousand registered learners in its first full year.', 'Development', '2026-08-06 09:00', false],
+            ['three-federations-join-dwf', 'Three National Federations Join DWF', 'Membership passes eighty-four as domino continues its expansion across three continents.', 'Federation', '2026-07-29 14:15', false],
+            ['youth-development-programme-launch', 'Youth Development Programme Launches', 'A structured pathway for players under eighteen begins in twelve member nations.', 'Development', '2026-07-21 08:00', true],
+            ['annual-congress-summary', 'Annual Congress Summary and Resolutions', 'Delegates approved the revised statutes and confirmed the 2027 competition calendar.', 'Federation', '2026-07-10 11:45', true],
+            ['world-ranking-system-revised', 'World Ranking System Revised for Next Season', 'Points now decay over twelve months, so a title defended counts for more than a title held.', 'Ranking', '2026-06-28 13:20', true],
+            ['referee-certification-intake-opens', 'Referee Certification Intake Opens Worldwide', 'Applications are open in every member federation, with the first assessments held in October.', 'Officiating', '2026-06-15 07:00', true],
+            ['oceania-school-participation-up-40-percent', 'Oceania Region Sees 40% Increase in School Participation', 'Partner schools across the region report their strongest intake since the youth pathway opened.', 'Development', '2026-03-06 08:00', true],
+            ['new-equipment-standards-2025-championships', 'New Equipment Standards Released for 2025 Championships', 'Tile dimensions, weight tolerance and table surfaces are specified for every sanctioned event.', 'Development', '2025-03-14 10:30', false],
+            ['grade-a-referee-seminar-registration', 'Registration Opens for Grade A Referee Seminar', 'Continental referees may apply for the elite assessment, held over four days with a written exam.', 'Development', '2025-02-22 09:00', false],
+        ];
+
+        foreach ($rows as [$slug, $title, $excerpt, $category, $publishedAt, $highlight]) {
+            NewsArticle::query()->updateOrCreate(['slug' => $slug], [
+                'news_category_id' => $categories[$category],
+                'author_id' => $author?->id,
+                'title' => $title,
+                'excerpt' => $excerpt,
+                'body' => "<p>{$excerpt}</p><p>Isi contoh untuk pengembangan lokal. Ganti sebelum tayang.</p>",
+                'is_highlighted' => $highlight,
+                'status' => 'published',
+                'published_at' => $publishedAt,
+            ]);
+        }
+
+        // Dua keadaan yang tidak ada di mock, supaya layar daftar backoffice
+        // memperlihatkan lebih dari satu warna pil Visibility.
+        NewsArticle::query()->updateOrCreate(['slug' => 'draft-broadcast-partnership'], [
+            'news_category_id' => $categories['Federation'],
+            'author_id' => $author?->id,
+            'title' => 'Draft: partnership with a global broadcast network',
+            'excerpt' => 'Belum siap tayang — dipakai untuk melihat keadaan Draft di layar daftar.',
+            'body' => '<p>Isi contoh untuk pengembangan lokal.</p>',
+            'is_highlighted' => false,
+            'status' => 'draft',
+            'published_at' => null,
+        ]);
+
+        NewsArticle::query()->updateOrCreate(['slug' => 'scheduled-2027-qualification-calendar'], [
+            'news_category_id' => $categories['Tournament'],
+            'author_id' => $author?->id,
+            'title' => 'Scheduled: 2027 qualification calendar',
+            'excerpt' => 'Terjadwal — dipakai untuk melihat keadaan Scheduled di layar daftar.',
+            'body' => '<p>Isi contoh untuk pengembangan lokal.</p>',
+            'is_highlighted' => false,
+            'status' => 'scheduled',
+            'published_at' => now()->addWeeks(2),
+        ]);
     }
 }

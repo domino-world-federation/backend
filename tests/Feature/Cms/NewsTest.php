@@ -484,4 +484,47 @@ class NewsTest extends TestCase
         $this->assertArrayNotHasKey('portrait_image_path', $article->getAttributes());
         $this->assertNotNull($article->hero_image_path);
     }
+
+    /**
+     * Batas ukuran gambar 1 MB, bukan 2 MB.
+     *
+     * Diturunkan 2026-09-03 karena situs publik memakai `provider: "none"` di
+     * `@nuxt/image` — tidak ada yang mengecilkan gambar, jadi byte yang
+     * diunggah adalah byte yang dikirim ke setiap pengunjung. Diukur dengan
+     * `cwebp`: hero 1920x800 muat lapang di bawah 1 MB bahkan pada q95;
+     * yang ditolak adalah 4K yang belum dikecilkan.
+     */
+    public function test_an_image_over_the_size_cap_is_refused(): void
+    {
+        Storage::fake('public');
+        $category = NewsCategory::factory()->create();
+
+        $tooBig = UploadedFile::fake()->image('hero.webp', 1920, 800)->size(1500);
+
+        $this->actingAs(User::factory()->superAdmin()->create())->post('/news', [
+            'news_category_id' => $category->id,
+            'title' => 'Gambar terlalu berat',
+            'body' => '<p>Isi.</p>',
+            'posting' => 'now',
+            'hero' => $tooBig,
+            'landscape' => UploadedFile::fake()->image('landscape.webp', 1600, 900),
+        ])->assertSessionHasErrors('hero');
+    }
+
+    /** Dan yang di bawah batas tetap lolos — supaya batasnya bukan sekadar penolakan. */
+    public function test_an_image_within_the_cap_is_accepted(): void
+    {
+        Storage::fake('public');
+        $category = NewsCategory::factory()->create();
+
+        $this->actingAs(User::factory()->superAdmin()->create())->post('/news', [
+            'news_category_id' => $category->id,
+            'title' => 'Gambar pas',
+            'body' => '<p>Isi.</p>',
+            'posting' => 'now',
+            'is_highlighted' => false,
+            'hero' => UploadedFile::fake()->image('hero.webp', 1920, 800)->size(900),
+            'landscape' => UploadedFile::fake()->image('landscape.webp', 1600, 900)->size(400),
+        ])->assertSessionHasNoErrors();
+    }
 }

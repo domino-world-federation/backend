@@ -11,6 +11,7 @@ use Illuminate\Foundation\DevCommands;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
@@ -31,6 +32,38 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDevCommand();
         $this->recordAuthActivity();
         $this->stampActivityWithOrigin();
+        $this->refusePrivateFilesInsidePublicMedia();
+    }
+
+    /**
+     * Menolak boot kalau berkas privat berada DI DALAM folder media publik.
+     *
+     * Keduanya bisa dipindah lewat `.env` (`MEDIA_ROOT` dan
+     * `MEDIA_PRIVATE_ROOT`), dan salah setel di sana bukan galat yang
+     * kelihatan — ia menjadikan SETIAP dokumen bisa diunduh siapa pun lewat
+     * symlink `public/storage`, tanpa satu pun pemeriksaan status tayang.
+     * Aplikasinya tetap jalan, layarnya tetap normal, dan tidak ada yang tahu
+     * sampai ada yang menemukan URL-nya.
+     *
+     * Karena itu ia dibuat berisik: lebih baik aplikasi menolak menyala
+     * daripada menyala dengan seluruh dokumennya terbuka.
+     */
+    private function refusePrivateFilesInsidePublicMedia(): void
+    {
+        $public = realpath((string) config('filesystems.disks.public.root'));
+        $private = realpath((string) config('filesystems.disks.local.root'));
+
+        if ($public === false || $private === false) {
+            return;
+        }
+
+        if ($private === $public || str_starts_with($private.DIRECTORY_SEPARATOR, $public.DIRECTORY_SEPARATOR)) {
+            throw new RuntimeException(
+                "Berkas privat ({$private}) berada di dalam media publik ({$public}). "
+                .'Setiap dokumen akan bisa diunduh siapa pun lewat symlink public/storage. '
+                .'Setel MEDIA_PRIVATE_ROOT ke folder DI LUAR MEDIA_ROOT.'
+            );
+        }
     }
 
     /**

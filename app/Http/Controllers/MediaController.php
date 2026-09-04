@@ -39,6 +39,22 @@ class MediaController extends Controller
 
         abort_unless(Storage::disk('local')->exists($document->file_path), 404);
 
-        return Storage::disk('local')->download($document->file_path, $document->downloadName());
+        /*
+         * TIDAK BOLEH di-cache — dan ini disetel dengan sengaja, bukan
+         * dibiarkan kebetulan benar.
+         *
+         * Sebelum baris ini, headernya `no-cache, private` yang datang dari
+         * middleware sesi: benar hasilnya, tapi karena alasan yang tidak ada
+         * hubungannya, dan hilang begitu route ini pindah ke luar grup `web`.
+         *
+         * Berkas yang tersimpan di cache tetap terunduh SETELAH dokumennya
+         * diturunkan — yang membatalkan seluruh guna pemeriksaan di atas.
+         * `no-store` melarang menyimpannya sama sekali, termasuk oleh proxy
+         * perantara.
+         */
+        return Storage::disk('local')
+            ->download($document->file_path, $document->downloadName(), [
+                'Cache-Control' => 'private, no-store, max-age=0',
+            ]);
     }
 }

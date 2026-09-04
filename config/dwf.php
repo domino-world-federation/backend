@@ -147,8 +147,32 @@ return [
          */
         'image_mimes' => ['webp'],
 
-        // "Maximum 2 MB" di layar Add News (`252:4480`).
-        'image_max_kb' => 2048,
+        /*
+         * 1 MB, bukan 2 MB seperti label di layar Add News (`252:4480`).
+         *
+         * Angkanya diturunkan karena satu fakta di situs publik: ia memakai
+         * `provider: "none"` di `@nuxt/image` (CPU server produksinya di bawah
+         * x86-64-v2, sharp menolak jalan), jadi TIDAK ADA yang mengecilkan
+         * gambar. Byte yang diunggah adalah byte yang dikirim ke setiap
+         * pengunjung.
+         *
+         * Diukur dengan `cwebp` pada gambar seperti-foto (derau, jadi ini batas
+         * ATAS — foto sungguhan mengompres lebih baik):
+         *
+         *   1920 × 800  q82  412 KB   q95  679 KB
+         *   3840 × 1600 q82 1634 KB   q95 2702 KB
+         *   1600 × 900  q82  382 KB   q95  631 KB
+         *   400 × 400   q82   43 KB   q95   72 KB
+         *
+         * Jadi 1 MB memuat hero 1920×800 pada mutu tertinggi dengan lapang,
+         * dan MENOLAK 4K yang belum dikecilkan — yang memang benar ditolak
+         * selama tidak ada pipeline: browser mengunduh seluruh 1,6 MB itu cuma
+         * untuk menampilkannya pada 1920.
+         *
+         * Naikkan lagi begitu IPX hidup kembali; saat itu yang diunggah tidak
+         * lagi sama dengan yang dikirim.
+         */
+        'image_max_kb' => 1024,
 
         // Batas bawah untuk gambar yang tidak punya slot berukuran tetap
         // (galeri, press release, kategori).
