@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cms;
 use App\Http\Controllers\Controller;
 use App\Models\GalleryEvent;
 use App\Models\GalleryItem;
+use App\Models\Tournament;
 use App\Support\Csv;
 use App\Support\Media\StoredFile;
 use Carbon\CarbonImmutable;
@@ -157,6 +158,7 @@ class GalleryController extends Controller
         return Inertia::render('Gallery/Form', [
             'item' => null,
             'events' => $this->eventOptions(),
+            'tournaments' => $this->tournamentOptions(),
         ]);
     }
 
@@ -200,12 +202,14 @@ class GalleryController extends Controller
                 'alt' => $gallery->alt,
                 'eventId' => $gallery->gallery_event_id,
                 'eventType' => $gallery->event?->type,
+                'tournamentId' => $gallery->event?->tournament_id,
                 'slug' => $gallery->slug,
                 'status' => $gallery->status,
                 'publishedAt' => $gallery->published_at?->format('Y-m-d\TH:i'),
                 'url' => StoredFile::url($gallery->path),
             ],
             'events' => $this->eventOptions(),
+            'tournaments' => $this->tournamentOptions(),
         ]);
     }
 
@@ -274,13 +278,27 @@ class GalleryController extends Controller
     }
 
     /**
-     * Layar Add Gallery memberi dua jalan: memilih event yang sudah ada, atau
-     * mengetik nama event baru. Keduanya berakhir di baris `gallery_events`
-     * yang sama — nama event tidak pernah disimpan ulang sebagai teks bebas di
-     * tiap aset, supaya "Madrid 2026" dan "Madrid 2026 " tidak jadi dua event.
+     * Ke mana aset ini ditempelkan.
+     *
+     * DUA jalan yang berbeda, bukan satu dengan syarat:
+     *
+     * — **Tournament** selalu menunjuk turnamen yang sudah ada. Tidak ada
+     *   "New" di sana, dan itu permintaan pemilik repo 2026-09-04 yang
+     *   memperbaiki hal nyata: mengetik nama turnamen di layar galeri
+     *   menghasilkan turnamen kedua yang cuma ada di galeri — tidak punya
+     *   tanggal, tidak punya venue, tidak pernah ikut berubah saat yang asli
+     *   diganti nama. Turnamen dibuat di modul Tournaments, satu tempat.
+     *
+     * — **Event** tetap dua jalan. Acara galeri tidak punya modul sendiri;
+     *   membuang "New" di sana berarti tidak ada satu pun layar yang bisa
+     *   melahirkannya.
      */
     private function resolveEvent(array $data): GalleryEvent
     {
+        if ($data['type'] === 'tournament') {
+            return GalleryEvent::forTournament(Tournament::findOrFail($data['tournament_id'] ?? null));
+        }
+
         if (($data['event_mode'] ?? 'existing') === 'existing') {
             return GalleryEvent::findOrFail($data['gallery_event_id'] ?? null);
         }
@@ -298,15 +316,49 @@ class GalleryController extends Controller
         $uploads = config('dwf.uploads');
         $kind = $request->string('kind')->toString();
 
+        /*
+         * Kedua field acara diikat ke `type`, bukan cuma ke `event_mode`.
+         *
+         * Layar Add Gallery memulai dengan `event_mode: 'new'` — bawaan untuk
+         * Event — dan tidak membuangnya saat orang memilih Tournament; field-nya
+         * cuma berhenti digambar. Dengan `required_if:event_mode,new` yang
+         * polos, formulir turnamen menuntut `event_name` yang tidak punya kotak
+         * di layar: yang dilihat orangnya tombol Publish yang tidak melakukan
+         * apa-apa, dan pesan galatnya menempel pada field tak terlihat.
+         *
+         * Diperbaiki di server, bukan dengan membersihkan keadaan formulir di
+         * Vue: aturan yang benar tetap benar untuk permintaan yang tidak datang
+         * dari layar itu. Ada tesnya, yang mengirim persis muatan formulirnya.
+         */
+        $type = $request->string('type')->toString();
+        $mode = $request->string('event_mode')->toString();
+        $isEvent = $type === 'event';
+
         $mimes = $kind === 'video' ? $uploads['video_mimes'] : $uploads['image_mimes'];
         $maxKb = $kind === 'video' ? $uploads['video_max_kb'] : $uploads['image_max_kb'];
 
         return $request->validate([
             'type' => ['required', Rule::in(GalleryEvent::TYPES)],
             'kind' => ['required', Rule::in(GalleryItem::KINDS)],
-            'event_mode' => ['required', Rule::in(['new', 'existing'])],
-            'gallery_event_id' => ['required_if:event_mode,existing', 'nullable', 'integer', 'exists:gallery_events,id'],
-            'event_name' => ['required_if:event_mode,new', 'nullable', 'string', 'max:160'],
+
+            // Turnamen: satu field, dan wajib menunjuk baris yang ada.
+            // SEMUA status ikut — draft sekalipun. Galeri disiapkan sebelum
+            // turnamennya tayang, dan daftar yang cuma memuat yang sudah
+            // tayang berarti fotonya baru bisa diunggah setelah halamannya
+            // dibuka umum.
+            'tournament_id' => ['required_if:type,tournament', 'nullable', 'integer', 'exists:tournaments,id'],
+
+            // Acara: dua jalan, seperti sebelumnya. `required_if:type,event`
+            // yang membuat ketiganya diam saat yang dipilih turnamen.
+            'event_mode' => ['required_if:type,event', 'nullable', Rule::in(['new', 'existing'])],
+            'gallery_event_id' => [
+                Rule::requiredIf($isEvent && $mode === 'existing'),
+                'nullable', 'integer', 'exists:gallery_events,id',
+            ],
+            'event_name' => [
+                Rule::requiredIf($isEvent && $mode === 'new'),
+                'nullable', 'string', 'max:160',
+            ],
             'alt' => ['nullable', 'string', 'max:200'],
             'slug' => ['nullable', 'string', 'max:200'],
             'posting' => ['required', Rule::in(['now', 'schedule', 'draft'])],
@@ -318,6 +370,7 @@ class GalleryController extends Controller
                 'max:'.$maxKb,
             ],
         ], attributes: [
+            'tournament_id' => 'turnamen',
             'gallery_event_id' => 'event',
             'event_name' => 'nama event',
             'asset' => 'berkas aset',
@@ -325,11 +378,46 @@ class GalleryController extends Controller
         ]);
     }
 
-    /** @return array<int, array{value: int, label: string, type: string}> */
+    /**
+     * Pilihan untuk tipe "Event" saja.
+     *
+     * Album turnamen tidak ikut: yang dipilih orang di sana adalah TURNAMENnya
+     * (lihat `tournamentOptions()`), dan albumnya lahir dari pilihan itu. Kalau
+     * keduanya dikirim, layar akan punya dua daftar yang mengaku menjawab
+     * pertanyaan yang sama.
+     *
+     * @return array<int, array{value: int, label: string, type: string}>
+     */
     private function eventOptions(): array
     {
-        return GalleryEvent::query()->orderBy('name')->get(['id', 'name', 'type'])
+        return GalleryEvent::query()
+            ->where('type', 'event')
+            ->orderBy('name')
+            ->get(['id', 'name', 'type'])
             ->map(fn (GalleryEvent $e) => ['value' => $e->id, 'label' => $e->name, 'type' => $e->type])
+            ->all();
+    }
+
+    /**
+     * Turnamen yang bisa dipilih — SEMUA status, tanpa kecuali.
+     *
+     * Tidak ada `->live()` di sini dan itu disengaja: galeri justru disiapkan
+     * sebelum turnamennya tayang. Menyaringnya berarti foto baru bisa diunggah
+     * setelah halaman turnamennya dibuka umum, dan urutan kerja yang benar
+     * justru kebalikannya.
+     *
+     * Terbaru di atas: yang sedang dikerjakan orang hampir selalu yang paling
+     * dekat tanggalnya, bukan yang paling awal abjadnya.
+     *
+     * @return array<int, array{value: int, label: string}>
+     */
+    private function tournamentOptions(): array
+    {
+        return Tournament::query()
+            ->orderByDesc('starts_on')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Tournament $t) => ['value' => $t->id, 'label' => $t->name])
             ->all();
     }
 }

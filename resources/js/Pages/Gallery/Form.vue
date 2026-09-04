@@ -21,12 +21,14 @@ const props = defineProps<{
         alt: string | null
         eventId: number
         eventType: string | null
+        tournamentId: number | null
         slug: string
         status: string
         publishedAt: string | null
         url: string | null
     } | null
     events: Array<{ value: number; label: string; type: string }>
+    tournaments: Array<{ value: number; label: string }>
 }>()
 
 const { t } = useI18n()
@@ -38,6 +40,7 @@ const form = useForm({
     type: props.item?.eventType ?? 'event',
     event_mode: isEdit ? 'existing' : 'new',
     gallery_event_id: props.item?.eventId ?? null,
+    tournament_id: props.item?.tournamentId ?? null,
     event_name: '',
     kind: props.item?.kind ?? 'image',
     alt: props.item?.alt ?? '',
@@ -62,11 +65,23 @@ watch([scheduleDate, scheduleTime], ([date, time]) => {
     form.published_at = date && time ? `${date}T${time}` : ''
 })
 
-/** Hanya event bertipe sama yang boleh dipilih — Event dan Tournament tidak
- *  bercampur di satu daftar. */
+/**
+ * Turnamen dipilih, tidak pernah diketik.
+ *
+ * Baris ini dulu punya "New / Existing" seperti Event. Yang dihasilkannya:
+ * nama turnamen sebagai teks bebas di galeri, tanpa tanggal, tanpa venue, dan
+ * tidak ikut berubah saat turnamen aslinya diganti nama — dua daftar turnamen
+ * berdampingan yang sama-sama terlihat benar. Turnamen lahir di modul
+ * Tournaments; layar ini menunjuknya. Ada tesnya di sisi server, jadi
+ * mengirim `event_mode: new` bersama `type: tournament` pun tidak melakukan
+ * apa pun.
+ */
+const isTournament = computed(() => form.type === 'tournament')
+
+/** Hanya acara — album turnamen tidak ikut dikirim server. */
 const eventOptions = computed(() =>
     props.events
-        .filter((event) => event.type === form.type)
+        .filter((event) => event.type === 'event')
         .map((event) => ({ value: event.value, label: event.label })),
 )
 
@@ -114,18 +129,31 @@ function submit(posting: 'now' | 'schedule' | 'draft'): void {
                     </div>
                 </FormRow>
 
-                <!-- Labelnya mengikuti jenis yang dipilih. Desain `478:6930`
-                     MEMBUANG baris ini seluruhnya saat Tournament dipilih dan
-                     hanya menyisakan satu dropdown — itu berarti turnamen baru
-                     tidak akan pernah bisa dibuat dari layar ini. Barisnya
-                     dipertahankan; yang mengikuti desain adalah kata-katanya. -->
+                <!-- Satu baris, dua isi.
+
+                     Turnamen: satu dropdown, tanpa "New". Turnamen dibuat di
+                     modulnya sendiri — mengetiknya di sini melahirkan turnamen
+                     kedua yang cuma ada di galeri.
+
+                     Acara: tetap New / Existing. Acara galeri tidak punya modul
+                     sendiri, jadi kalau baris ini juga menuntut yang sudah ada,
+                     tidak ada satu pun layar yang bisa melahirkannya. -->
                 <FormRow
-                    :label="form.type === 'tournament' ? t('gallery.tournament_name') : t('gallery.event_name')"
-                    :description="t('gallery.event_name_hint')"
+                    :label="isTournament ? t('gallery.tournament_name') : t('gallery.event_name')"
+                    :description="isTournament ? t('gallery.tournament_name_hint') : t('gallery.event_name_hint')"
                     required
                 >
                     <template #default="{ id }">
-                        <div class="flex flex-col gap-4">
+                        <SelectField
+                            v-if="isTournament"
+                            :id="id"
+                            v-model="form.tournament_id"
+                            :options="tournaments"
+                            :placeholder="t('gallery.select_tournament')"
+                            :error="form.errors.tournament_id"
+                        />
+
+                        <div v-else class="flex flex-col gap-4">
                             <div class="flex items-center gap-6">
                                 <AppRadio
                                     v-model="form.event_mode"

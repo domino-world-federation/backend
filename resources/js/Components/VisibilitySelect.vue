@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, type ComponentPublicInstance } from 'vue'
+import { Link } from '@inertiajs/vue3'
 import {
     PhArchive,
+    PhArrowRight,
     PhCaretDown,
     PhCheck,
     PhEyeSlash,
@@ -17,9 +19,16 @@ import { FADE, SPRING_SNAP } from '@/motion'
  * yang membuka pilihan status.
  *
  * Statusnya diubah DI TEMPAT karena itu yang paling sering dilakukan pada satu
- * artikel setelah ia jadi: menayangkan, menarik kembali, mengembalikan ke draft.
- * Membuka formulir penuh untuk memindahkan satu kata berarti setiap perubahan
- * status ikut membawa risiko mengubah isinya tanpa sadar.
+ * artikel setelah ia jadi: menayangkan, menarik kembali dari peredaran,
+ * menjadwalkan. Membuka formulir penuh untuk memindahkan satu kata berarti
+ * setiap perubahan status ikut membawa risiko mengubah isinya tanpa sadar.
+ *
+ * `draft` TIDAK ikut, dan itu bukan kelalaian. Ia satu-satunya keadaan yang
+ * bukan tujuan melainkan akibat: ia lahir dari tombol "Save Draft" di dalam
+ * formulir, bersama isi yang baru saja diketik. Jadi barisnya di menu ini
+ * TAUTAN ke formulir itu, bukan pilihan — dan ia cuma muncul pada baris yang
+ * memang draft, karena "Edit Draft" pada tulisan yang sudah tayang adalah
+ * janji tentang naskah yang tidak ada.
  *
  * Panelnya di-teleport ke `<body>`, alasannya sama persis dengan `RowMenu`:
  * pembungkus `DataTable` memakai `overflow-x-auto`, dan itu mengurung sumbu Y
@@ -30,6 +39,9 @@ const props = defineProps<{
     value: string
     /** Judul artikelnya — dipakai untuk label pembaca layar. */
     name: string
+    /** Formulirnya. Baris "Edit Draft" menuju ke sini, dan tanpa alamat ini ia
+     *  tidak digambar sama sekali. */
+    editHref?: string
     /** Waktu tayang terjadwal, dicetak di bawah label. */
     scheduledFor?: string | null
     /** `scheduled` hanya bisa dipilih kalau jadwalnya masih di depan. */
@@ -42,21 +54,30 @@ const emit = defineEmits<{ select: [status: string] }>()
 const { t } = useI18n()
 
 /**
- * Empat keadaan, empat ikon, empat kata.
+ * Empat keadaan yang bisa DITAMPILKAN, tiga yang bisa DIPILIH.
  *
  * `status` adalah yang dikirim ke server; `key` adalah yang dibaca dari server.
  * Keduanya berbeda untuk satu keadaan saja — `posted` ditulis `published` di
  * kolom database — dan pemetaannya dikunci di sini supaya tidak ada yang
  * menebaknya di tempat lain.
+ *
+ * Pemisahan STATES/SELECTABLE-lah yang membuat baris draft tetap punya ikon dan
+ * kata saat dicetak di tombolnya, tanpa ikut jadi tujuan yang bisa diklik.
+ * Sisi server memakai daftar yang sama lewat `QUICK_STATUSES`.
  */
-const OPTIONS = [
+const STATES = [
     { key: 'posted', status: 'published', icon: PhGlobe },
     { key: 'scheduled', status: 'scheduled', icon: PhTimer },
     { key: 'draft', status: 'draft', icon: PhArchive },
     { key: 'unpublished', status: 'unpublished', icon: PhEyeSlash },
 ] as const
 
-const current = computed(() => OPTIONS.find((o) => o.key === props.value) ?? OPTIONS[2])
+const SELECTABLE = STATES.filter((o) => o.key !== 'draft')
+
+const current = computed(() => STATES.find((o) => o.key === props.value) ?? STATES[2])
+
+/** Tautan "Edit Draft" hanya untuk baris yang memang draft. */
+const showEditDraft = computed(() => props.value === 'draft' && Boolean(props.editHref))
 
 const open = ref(false)
 const root = ref<HTMLElement | null>(null)
@@ -176,7 +197,7 @@ const scheduleLabel = computed(() => {
             "
             :aria-label="t('news.change_visibility', { name })"
             :aria-expanded="open"
-            aria-haspopup="listbox"
+            aria-haspopup="menu"
             :disabled="disabled"
             :while-press="disabled ? undefined : { scale: 0.96 }"
             :transition="SPRING_SNAP"
@@ -207,7 +228,7 @@ const scheduleLabel = computed(() => {
                     v-if="open"
                     key="panel"
                     :ref="bindPanel"
-                    role="listbox"
+                    role="menu"
                     class="z-50 border border-cool-20 bg-surface py-1 shadow-editor"
                     :style="{ ...style, transformOrigin: flipped ? 'bottom left' : 'top left' }"
                     :initial="{ opacity: 0, scale: 0.94, y: flipped ? 4 : -4 }"
@@ -216,11 +237,11 @@ const scheduleLabel = computed(() => {
                     :transition="SPRING_SNAP"
                 >
                     <button
-                        v-for="option in OPTIONS"
+                        v-for="option in SELECTABLE"
                         :key="option.key"
                         type="button"
-                        role="option"
-                        :aria-selected="option.key === current.key"
+                        role="menuitemradio"
+                        :aria-checked="option.key === current.key"
                         class="flex w-full items-center gap-2 px-3 py-2 text-left text-body-s transition-colors"
                         :class="
                             option.key === 'scheduled' && !canSchedule && option.key !== current.key
@@ -247,6 +268,23 @@ const scheduleLabel = computed(() => {
                             <PhCheck :size="16" aria-hidden="true" />
                         </motion.span>
                     </button>
+
+                    <!-- Bukan pilihan status: ia membuka formulirnya. Dipisah
+                         garis supaya bedanya terlihat sebelum diklik, bukan
+                         sesudah halamannya berpindah. -->
+                    <template v-if="showEditDraft">
+                        <div class="my-1 border-t border-cool-20" role="separator" />
+                        <Link
+                            :href="editHref!"
+                            role="menuitem"
+                            class="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-body-s text-cool-90 transition-colors hover:bg-cool-10"
+                            @click="close"
+                        >
+                            <PhArchive :size="18" aria-hidden="true" class="shrink-0" />
+                            <span class="flex-1">{{ t('news.edit_draft') }}</span>
+                            <PhArrowRight :size="16" aria-hidden="true" class="shrink-0 text-cool-60" />
+                        </Link>
+                    </template>
                 </motion.div>
             </AnimatePresence>
         </Teleport>

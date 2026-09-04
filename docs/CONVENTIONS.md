@@ -149,6 +149,25 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   pertanyaan NONAKTIF tetap memakai slotnya — membalik aturan lama; halamannya
   digambar utuh sekarang, dan daftar lima baris dengan penghitung "3 dari 3"
   adalah layar yang membantah dirinya sendiri.
+- **`draft` TIDAK bisa disetel dari daftar.** `QUICK_STATUSES` di keempat modul
+  sengaja tidak memuatnya, dan `visibility()` memvalidasi dengan daftar itu —
+  jadi bukan cuma disembunyikan di layar. Draft satu-satunya keadaan yang bukan
+  tujuan melainkan akibat: ia lahir dari tombol "Save Draft" di dalam formulir,
+  bersama isi yang baru diketik. Bisa dipilih dari daftar berarti ada jalan
+  menarik tulisan tayang kembali jadi draft tanpa seorang pun membuka isinya;
+  yang untuk itu namanya `unpublished`. Baris "Edit Draft" di `VisibilitySelect`
+  adalah TAUTAN ke formulirnya, dan cuma digambar pada baris yang memang draft.
+  `QuickStatusTest` menyapu keempat modul, termasuk yang kelima nanti.
+- **Aset galeri bertipe turnamen MENUNJUK turnamennya**
+  (`gallery_events.tournament_id`, unik). Tidak ada "New" di sana: turnamen
+  lahir di modul Tournaments, dan mengetiknya di layar galeri menghasilkan
+  turnamen kedua yang cuma ada di galeri. Pakai `GalleryEvent::forTournament()`
+  — ia yang menyalin ulang nama dan tanggal dari turnamennya sambil MEMPERTAHANKAN
+  slug (label boleh ikut berubah, alamat publik tidak). Tipe "Event" tetap punya
+  New/Existing, karena acara galeri tidak punya modul sendiri. Dan aturan
+  validasi field acara diikat ke `type`, bukan ke `event_mode` saja: formulirnya
+  tetap mengirim `event_mode` lama saat Tournament dipilih, dan tanpa itu
+  `event_name` dituntut untuk field yang tidak digambar.
 - **Empat modul memakai kosakata status yang SAMA** — News, Gallery, Documents,
   dan (lewat `VisibilitySelect`) apa pun sesudahnya: `draft`, `scheduled`,
   `published`, `unpublished`, plus `visibility` yang menurunkannya jadi kunci

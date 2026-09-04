@@ -189,6 +189,7 @@ function destroy(): void {
                         :name="row.name"
                         :scheduled-for="row.scheduledFor"
                         :can-schedule="row.canSchedule"
+                        :edit-href="`/tournaments/${row.id}/edit`"
                         @select="setVisibility(row as Row, $event)"
                     />
                 </template>

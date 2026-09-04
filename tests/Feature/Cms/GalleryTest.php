@@ -4,10 +4,12 @@ namespace Tests\Feature\Cms;
 
 use App\Models\GalleryEvent;
 use App\Models\GalleryItem;
+use App\Models\Tournament;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 class GalleryTest extends TestCase
@@ -20,10 +22,10 @@ class GalleryTest extends TestCase
         $user = User::factory()->superAdmin()->create();
 
         $payload = [
-            'type' => 'tournament',
+            'type' => 'event',
             'kind' => 'image',
             'event_mode' => 'new',
-            'event_name' => 'Madrid Qualifier 2026',
+            'event_name' => 'DWF Community Day 2026',
             'posting' => 'now',
             'asset' => UploadedFile::fake()->image('a.webp', 800, 600),
         ];
@@ -31,7 +33,170 @@ class GalleryTest extends TestCase
         $this->actingAs($user)->post('/gallery', $payload)->assertRedirect('/gallery');
 
         $this->assertSame(1, GalleryEvent::query()->count());
-        $this->assertSame('tournament', GalleryEvent::first()->type);
+        $this->assertSame('event', GalleryEvent::first()->type);
+    }
+
+    // ------------------------------------------ album turnamen (2026-09-04)
+
+    /**
+     * Aset turnamen menempel pada TURNAMENnya, bukan pada nama yang diketik.
+     */
+    public function test_a_tournament_asset_attaches_to_the_tournament(): void
+    {
+        Storage::fake('public');
+        $tournament = Tournament::factory()->create(['name' => 'London International Domino Open']);
+
+        $this->actingAs(User::factory()->superAdmin()->create())->post('/gallery', [
+            'type' => 'tournament',
+            'kind' => 'image',
+            'tournament_id' => $tournament->id,
+            'posting' => 'now',
+            'asset' => UploadedFile::fake()->image('a.webp', 800, 600),
+        ])->assertRedirect('/gallery');
+
+        $album = GalleryEvent::query()->sole();
+
+        $this->assertSame($tournament->id, $album->tournament_id);
+        $this->assertSame('tournament', $album->type);
+        $this->assertSame($tournament->name, $album->name, 'Nama album disalin dari turnamennya.');
+        $this->assertSame($tournament->id, GalleryItem::query()->sole()->event->tournament_id);
+    }
+
+    /**
+     * Nama turnamen TIDAK bisa diketik dari layar galeri.
+     *
+     * Ini yang diperbaiki: mengetiknya melahirkan turnamen kedua yang cuma ada
+     * di galeri — tanpa tanggal, tanpa venue, dan tidak ikut berubah saat yang
+     * asli diganti nama. Ditolak di server, bukan cuma disembunyikan di layar,
+     * jadi permintaan yang dirakit tangan pun tidak bisa menembusnya.
+     */
+    public function test_a_tournament_cannot_be_typed_in_by_name(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->post('/gallery', [
+                'type' => 'tournament',
+                'kind' => 'image',
+                'event_mode' => 'new',
+                'event_name' => 'Turnamen Karangan Sendiri',
+                'posting' => 'now',
+                'asset' => UploadedFile::fake()->image('a.webp', 800, 600),
+            ])
+            ->assertSessionHasErrors('tournament_id');
+
+        $this->assertSame(0, GalleryEvent::query()->count());
+    }
+
+    /**
+     * PERSIS yang dikirim formulirnya, `event_mode` dan semua.
+     *
+     * Tes di atas mengirim payload yang bersih, dan itu membuatnya buta: layar
+     * Add Gallery memulai dengan `event_mode: 'new'` (bawaan untuk Event) dan
+     * TIDAK membuangnya saat orang memilih Tournament — field-nya cuma tidak
+     * digambar. Aturan `required_if:event_mode,new` karena itu menuntut
+     * `event_name` yang tidak ada kotaknya di layar: yang dilihat orangnya
+     * tombol Publish yang tidak melakukan apa-apa, dengan pesan galat yang
+     * menempel pada field yang tak terlihat.
+     *
+     * Karena itu kedua field acara diikat ke `type`, bukan cuma ke
+     * `event_mode`.
+     */
+    public function test_the_form_payload_for_a_tournament_is_accepted_as_is(): void
+    {
+        Storage::fake('public');
+        $tournament = Tournament::factory()->create();
+
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->post('/gallery', [
+                'type' => 'tournament',
+                'kind' => 'image',
+                'tournament_id' => $tournament->id,
+
+                // Sisa keadaan formulir yang ikut terkirim.
+                'event_mode' => 'new',
+                'event_name' => '',
+                'gallery_event_id' => null,
+
+                'posting' => 'now',
+                'asset' => UploadedFile::fake()->image('a.webp', 800, 600),
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/gallery');
+
+        $this->assertSame($tournament->id, GalleryEvent::query()->sole()->tournament_id);
+    }
+
+    /** Satu turnamen, satu album — berapa kali pun diunggahi. */
+    public function test_two_uploads_share_one_tournament_album(): void
+    {
+        Storage::fake('public');
+        $tournament = Tournament::factory()->create();
+        $user = User::factory()->superAdmin()->create();
+
+        foreach (['a.webp', 'b.webp'] as $name) {
+            $this->actingAs($user)->post('/gallery', [
+                'type' => 'tournament',
+                'kind' => 'image',
+                'tournament_id' => $tournament->id,
+                'posting' => 'now',
+                'asset' => UploadedFile::fake()->image($name, 800, 600),
+            ])->assertSessionHasNoErrors();
+        }
+
+        $this->assertSame(1, GalleryEvent::query()->count());
+        $this->assertSame(2, GalleryItem::query()->count());
+    }
+
+    /**
+     * Judul album mengikuti turnamennya, alamatnya tidak.
+     *
+     * Dua janji sekaligus, dan keduanya disengaja: nama punya satu sumber, tapi
+     * slug adalah alamat publik album itu — alamat yang bergeser tiap judul
+     * disunting adalah tautan yang mati di tempat orang menyimpannya.
+     */
+    public function test_the_album_follows_the_tournament_name_but_keeps_its_slug(): void
+    {
+        Storage::fake('public');
+        $tournament = Tournament::factory()->create(['name' => 'Nama Lama']);
+        $user = User::factory()->superAdmin()->create();
+
+        $upload = fn (string $file) => $this->actingAs($user)->post('/gallery', [
+            'type' => 'tournament',
+            'kind' => 'image',
+            'tournament_id' => $tournament->id,
+            'posting' => 'now',
+            'asset' => UploadedFile::fake()->image($file, 800, 600),
+        ])->assertSessionHasNoErrors();
+
+        $upload('a.webp');
+        $slug = GalleryEvent::query()->sole()->slug;
+
+        $tournament->update(['name' => 'Nama Baru']);
+        $upload('b.webp');
+
+        $album = GalleryEvent::query()->sole();
+        $this->assertSame('Nama Baru', $album->name);
+        $this->assertSame($slug, $album->slug);
+    }
+
+    /**
+     * SEMUA turnamen bisa dipilih, apa pun statusnya.
+     *
+     * Galeri justru disiapkan sebelum turnamennya tayang; daftar yang cuma
+     * memuat yang sudah tayang berarti fotonya baru bisa diunggah setelah
+     * halamannya dibuka umum, dan urutan kerjanya justru kebalikannya.
+     */
+    public function test_a_draft_tournament_can_still_be_chosen(): void
+    {
+        Tournament::factory()->create(['name' => 'Masih Draft', 'status' => 'draft']);
+
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->get('/gallery/create')
+            ->assertInertia(fn (AssertableInertia $p) => $p
+                ->component('Gallery/Form')
+                ->where('tournaments.0.label', 'Masih Draft')
+            );
     }
 
     public function test_choosing_existing_reuses_the_event(): void

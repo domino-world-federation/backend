@@ -194,6 +194,7 @@ function exportHref(): string {
                         :name="row.title"
                         :scheduled-for="row.scheduledFor"
                         :can-schedule="row.canSchedule"
+                        :edit-href="`/news/${row.id}/edit`"
                         @select="setVisibility(row as Row, $event)"
                     />
                 </template>

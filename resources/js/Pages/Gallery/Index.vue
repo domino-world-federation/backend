@@ -204,6 +204,7 @@ function destroy(): void {
                         :name="row.alt ?? String(row.id)"
                         :scheduled-for="row.scheduledFor"
                         :can-schedule="row.canSchedule"
+                        :edit-href="`/gallery/${row.id}/edit`"
                         @select="setVisibility(row as Item, $event)"
                     />
                 </template>

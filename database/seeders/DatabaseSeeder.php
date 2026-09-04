@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\GalleryEvent;
 use App\Models\IpWhitelistRule;
 use App\Models\SiteSetting;
+use App\Models\Tournament;
 use App\Models\User;
 use App\Support\Access;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -98,13 +99,33 @@ class DatabaseSeeder extends Seeder
         }
     }
 
+    /**
+     * Album galeri contoh.
+     *
+     * Yang bertipe `tournament` MENUNJUK turnamen sungguhan, tidak lagi mengeja
+     * namanya sendiri — kalau tidak, data contohnya berbentuk yang formulirnya
+     * sendiri sudah tidak bisa menghasilkan lagi, dan orang pertama yang
+     * menyuntingnya akan diminta memilih turnamen yang menurut layar belum
+     * pernah dipilih.
+     *
+     * Turnamennya disemai `FrontendContentSeeder`, yang jalan SESUDAH ini —
+     * jadi pada `db:seed` pertama daftarnya masih kosong dan album turnamen
+     * dilewati. Menjalankan `db:seed` sekali lagi melengkapinya. Itu pilihan
+     * yang sengaja: memindahkan urutannya berarti angka contoh di sini menimpa
+     * angka yang benar-benar dipakai situs publik, dan itu kerusakan yang jauh
+     * lebih sulit dilihat.
+     */
     private function gallery(): void
     {
-        foreach ([['Madrid Qualifier 2026', 'tournament'], ['DWF Community Day', 'event']] as $index => [$name, $type]) {
-            GalleryEvent::query()->updateOrCreate(
-                ['slug' => Str::slug($name)],
-                ['name' => $name, 'type' => $type, 'held_on' => now()->subMonths($index + 1)->toDateString()],
-            );
+        GalleryEvent::query()->updateOrCreate(
+            ['slug' => Str::slug('DWF Community Day')],
+            ['name' => 'DWF Community Day', 'type' => 'event', 'held_on' => now()->subMonths(2)->toDateString()],
+        );
+
+        $tournament = Tournament::query()->orderBy('id')->first();
+
+        if ($tournament !== null) {
+            GalleryEvent::forTournament($tournament);
         }
     }
 

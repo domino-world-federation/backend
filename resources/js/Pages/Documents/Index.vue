@@ -181,6 +181,7 @@ function destroy(): void {
                         :name="row.title"
                         :scheduled-for="row.scheduledFor"
                         :can-schedule="row.canSchedule"
+                        :edit-href="`/documents/${row.id}/edit`"
                         @select="setVisibility(row as Row, $event)"
                     />
                 </template>

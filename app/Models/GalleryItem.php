@@ -47,11 +47,24 @@ class GalleryItem extends Model
         self::STATUS_UNPUBLISHED,
     ];
 
-    /** Status yang bisa disetel langsung dari kartu di daftar. */
+    /**
+     * Status yang bisa disetel LANGSUNG dari daftar — dan `draft` sengaja tidak
+     * termasuk.
+     *
+     * Draft bukan tujuan yang dipilih, melainkan keadaan yang lahir dari satu
+     * tombol: "Save Draft" di dalam formulirnya. Membuatnya bisa dipilih dari
+     * daftar berarti ada dua jalan menuju satu keadaan, dan yang lewat daftar
+     * itu jalan yang tidak pernah membuka isinya — menarik tulisan yang sudah
+     * tayang kembali jadi draft tanpa seorang pun membacanya lebih dulu.
+     * Menarik dari peredaran tetap bisa, dan namanya `unpublished`.
+     *
+     * Ditegakkan di sini, bukan cuma disembunyikan di layar: `visibility()`
+     * memvalidasi dengan daftar ini, jadi permintaan yang dirakit tangan pun
+     * ditolak 422. `QuickStatusTest` menyapu keempat modul.
+     */
     public const QUICK_STATUSES = [
         self::STATUS_PUBLISHED,
         self::STATUS_UNPUBLISHED,
-        self::STATUS_DRAFT,
         self::STATUS_SCHEDULED,
     ];
 
