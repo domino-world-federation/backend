@@ -817,6 +817,39 @@ Yang terakhir yang paling sering terlewat: PHP-FPM berjalan sebagai
 permintaan. Berkas yang dimiliki pengguna deploy membuatnya 500 di permintaan
 pertama — dan pesannya ada di log Laravel, bukan di log nginx.
 
+### Layar menampilkan KUNCI, bukan kalimat
+
+Gejalanya: daftar Legal Pages menulis `legal.names.privacy-policy`, tombol
+menulis `news.field_title`. Terjadi 2026-09-04 sesudah deploy.
+
+**Ini hampir selalu FPM yang belum di-reload, bukan terjemahan yang hilang.**
+Alasannya ada di §8: `opcache.validate_timestamps=0` membuat PHP berhenti
+memeriksa apakah berkasnya berubah — dan berkas bahasa (`lang/{en,id}/*.php`)
+adalah berkas PHP biasa, jadi ia ikut membeku bersama sisa aplikasi. Aset Vue
+TIDAK ikut membeku: ia berkas statis yang disajikan nginx langsung. Jadi
+sesudah `git pull` + `bun run build` tanpa reload, yang berjalan adalah
+**layar baru di atas kamus lama** — dan kunci yang baru lahir tidak ada di
+kamus itu.
+
+Bentuk kegagalannya khas dan layak dihafal: **JS-nya terbaca baru, PHP-nya
+terbaca lama.** Kalau yang muncul justru tampilan versi sebelumnya, itu
+sebaliknya — asetnya yang belum ter-build.
+
+```bash
+sudo systemctl reload php8.4-fpm
+```
+
+Kalau sesudah reload masih mencetak kunci, barulah terjemahannya memang belum
+ada. Periksa di server:
+
+```bash
+php artisan tinker --execute="print_r(array_keys(trans('backoffice.legal.names')));"
+```
+
+Kosong atau kurang satu berarti `lang/` belum ikut ter-pull. `git log -1` di
+server, cocokkan dengan commit yang Anda kira sudah tayang — bukan dengan
+commit yang ada di mesin Anda.
+
 ### `404` di host API
 
 **Untuk `/` itu BENAR** — host API hanya melayani `/api`, dan `location / {

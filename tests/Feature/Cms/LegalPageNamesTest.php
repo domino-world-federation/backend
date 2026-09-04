@@ -3,6 +3,9 @@
 namespace Tests\Feature\Cms;
 
 use App\Http\Controllers\Cms\LegalPageController;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use Tests\TestCase;
@@ -23,6 +26,8 @@ use Tests\TestCase;
  */
 class LegalPageNamesTest extends TestCase
 {
+    use RefreshDatabase;
+
     /**
      * @return array<string, array{string}>
      */
@@ -63,6 +68,27 @@ class LegalPageNamesTest extends TestCase
                 "Ada dua halaman hukum dengan nama identik di lang/{$locale}."
             );
         }
+    }
+
+    /**
+     * Kamusnya benar-benar SAMPAI ke layarnya.
+     *
+     * Dua tes di atas memeriksa berkas bahasanya. Yang ini memeriksa jalur
+     * lengkapnya — `Lang::get('backoffice')` di `HandleInertiaRequests` sampai
+     * ke props yang dibaca `t()`. Bedanya penting: layar yang mencetak
+     * `legal.names.cookie-policy` apa adanya berarti KAMUSNYA yang tidak
+     * datang, bukan kuncinya yang salah, dan keduanya diperbaiki di tempat yang
+     * sama sekali berbeda.
+     */
+    public function test_the_names_reach_the_screen(): void
+    {
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->get('/legal-pages')
+            ->assertInertia(fn (AssertableInertia $p) => $p
+                ->component('Legal/Index')
+                ->has('translations.legal.names', count($this->titles()))
+                ->where('translations.legal.names.cookie-policy', trans('backoffice.legal.names.cookie-policy'))
+            );
     }
 
     /**
