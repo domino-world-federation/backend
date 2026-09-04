@@ -21,6 +21,13 @@ class LegalPageController extends Controller
      * publik (`/page/{key}`), jadi menambah baris di sini tanpa halamannya ada
      * di sana menghasilkan menu yang berujung 404. Barisnya dibuat sendiri saat
      * pertama dibuka — lihat `pageFor()`.
+     *
+     * Judul di sini hanya isi awal kolom `title` (yang dibaca situs publik) dan
+     * BUKAN yang tampil di backoffice: layarnya dua bahasa, jadi ia memakai
+     * `backoffice.legal.names.<kunci>`. Menambah kunci di sini berarti menambah
+     * terjemahannya di `lang/{en,id}` juga — `LegalPageNamesTest` gagal kalau
+     * salah satunya ketinggalan, karena yang terjadi tanpa tes itu bukan galat
+     * melainkan halaman yang menyebut dirinya dengan nama halaman lain.
      */
     private const TITLES = [
         'privacy-policy' => 'Privacy Policy',
@@ -31,13 +38,14 @@ class LegalPageController extends Controller
     public function index(): Response
     {
         return Inertia::render('Legal/Index', [
-            'pages' => collect(self::TITLES)
-                ->map(function (string $title, string $key) {
+            // Yang dipakai dari TITLES di sini cuma KUNCInya: namanya
+            // diterjemahkan layarnya sendiri lewat `backoffice.legal.names`.
+            'pages' => collect(array_keys(self::TITLES))
+                ->map(function (string $key) {
                     $page = LegalPage::query()->where('key', $key)->withCount('blocks')->first();
 
                     return [
                         'key' => $key,
-                        'title' => $title,
                         'slug' => $page?->slug ?? $key,
                         'blocks' => $page?->blocks_count ?? 0,
                         'lastUpdatedAt' => $page?->last_updated_at?->toDateString(),
@@ -58,7 +66,6 @@ class LegalPageController extends Controller
         return Inertia::render('Legal/Form', [
             'page' => [
                 'key' => $page->key,
-                'title' => self::TITLES[$key],
                 'slug' => $page->slug,
                 'lastUpdatedAt' => $page->last_updated_at?->toDateString(),
                 // Baris "Last Modified · nama · waktu" di bawah judul
@@ -152,7 +159,7 @@ class LegalPageController extends Controller
             $page->touch();
         });
 
-        return back()->with('success', __('backoffice.legal.saved', ['page' => self::TITLES[$key]]));
+        return back()->with('success', __('backoffice.legal.saved', ['page' => __('backoffice.legal.names.'.$key)]));
     }
 
     private function pageFor(string $key): LegalPage

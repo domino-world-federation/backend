@@ -11,7 +11,6 @@ import { formatDate } from '@/utils/format'
 defineProps<{
     pages: Array<{
         key: string
-        title: string
         slug: string
         blocks: number
         lastUpdatedAt: string | null
@@ -43,7 +42,7 @@ const { t } = useI18n()
                         class="flex items-center gap-3 py-4 transition-colors hover:bg-cool-10"
                     >
                         <span class="flex min-w-0 flex-1 flex-col gap-1">
-                            <span class="text-body-m text-cool-90">{{ t(page.key === 'terms' ? 'legal.terms' : 'legal.privacy') }}</span>
+                            <span class="text-body-m text-cool-90">{{ t(`legal.names.${page.key}`) }}</span>
                             <span class="text-body-xs text-cool-60">
                                 {{
                                     t('legal.summary', {

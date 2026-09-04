@@ -939,10 +939,13 @@ return [
 
     'legal' => [
         'title' => 'Halaman Hukum',
-        'intro' => 'Dua halaman tetap. Isinya blok judul + deskripsi yang bisa ditambah, dinonaktifkan, dan diurutkan.',
+        'intro' => 'Tiga halaman tetap. Isinya blok judul + deskripsi yang bisa ditambah, dinonaktifkan, dan diurutkan.',
         'pages' => 'Halaman',
-        'privacy' => 'Kebijakan Privasi',
-        'terms' => 'Syarat & Ketentuan',
+        'names' => [
+            'privacy-policy' => 'Kebijakan Privasi',
+            'terms' => 'Syarat & Ketentuan',
+            'cookie-policy' => 'Kebijakan Cookie',
+        ],
         'summary' => '/:slug · :count blok · terakhir diperbarui :date',
         'data' => 'Data :page',
         'last_updated' => 'Terakhir Diperbarui',

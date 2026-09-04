@@ -18,7 +18,8 @@ import { formatDateTime } from '@/utils/format'
 import { FADE, RISE, SPRING_SNAP } from '@/motion'
 
 /**
- * Privacy Policy dan Terms & Conditions — Figma `258:8086` / `258:8144`.
+ * Privacy Policy, Terms & Conditions, dan Cookie Policy — Figma `258:8086` /
+ * `258:8144`; yang ketiga memakai layar yang sama tanpa wireframe sendiri.
  *
  * Bentuknya identik, jadi satu layar dengan `key` yang berbeda. Isinya bukan
  * satu badan tulisan melainkan DERET BLOK judul+deskripsi yang bisa ditambah,
@@ -35,7 +36,6 @@ interface Block {
 const props = defineProps<{
     page: {
         key: string
-        title: string
         slug: string
         lastUpdatedAt: string | null
         lastModifiedBy: string | null
@@ -46,7 +46,20 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const pageTitle = computed(() => t(props.page.key === 'terms' ? 'legal.terms' : 'legal.privacy'))
+/**
+ * Namanya dicari lewat KUNCI halamannya, bukan dipilih dengan syarat.
+ *
+ * Dulu di sini ada `key === 'terms' ? terms : privacy` — dua halaman, satu
+ * ternary, benar sampai halaman ketiga lahir. Cookie Policy jatuh ke cabang
+ * `else` dan tiap layarnya menulis "Kebijakan Privasi" di judul, breadcrumb,
+ * judul kartu, dan label tiap bloknya sekaligus. Tidak ada galat: yang salah
+ * cuma namanya. Halaman keempat akan melakukan hal yang sama.
+ *
+ * Dengan pencarian kunci, halaman yang terjemahannya belum ditulis menampilkan
+ * `legal.names.<kunci>` apa adanya — jelek, dan justru itu gunanya: ia tidak
+ * bisa disangka nama halaman lain. `LegalPageNamesTest` menahannya lebih dulu.
+ */
+const pageTitle = computed(() => t(`legal.names.${props.page.key}`))
 
 /** Keadaan formulir sesuai APA YANG TERSIMPAN sekarang. */
 function seed() {

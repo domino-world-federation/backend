@@ -938,10 +938,13 @@ return [
 
     'legal' => [
         'title' => 'Legal Pages',
-        'intro' => 'Two fixed pages. Their content is title + description blocks you can add, deactivate, and reorder.',
+        'intro' => 'Three fixed pages. Their content is title + description blocks you can add, deactivate, and reorder.',
         'pages' => 'Pages',
-        'privacy' => 'Privacy Policy',
-        'terms' => 'Terms & Conditions',
+        'names' => [
+            'privacy-policy' => 'Privacy Policy',
+            'terms' => 'Terms & Conditions',
+            'cookie-policy' => 'Cookie Policy',
+        ],
         'summary' => '/:slug · :count blocks · last updated :date',
         'data' => ':page Data',
         'last_updated' => 'Last Updated',
