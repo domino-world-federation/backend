@@ -9,6 +9,7 @@ use App\Models\FaqCategory;
 use App\Models\FaqPlacement;
 use App\Models\FederationStat;
 use App\Models\HeritageMilestone;
+use App\Models\LegalPage;
 use App\Models\MemberFederation;
 use App\Models\NewsArticle;
 use App\Models\NewsCategory;
@@ -70,6 +71,7 @@ class FrontendContentSeeder extends Seeder
         $this->faqs();
         $this->homeCopy();
         $this->news();
+        $this->legalPages();
     }
 
     /**
@@ -694,5 +696,90 @@ class FrontendContentSeeder extends Seeder
             'status' => 'scheduled',
             'published_at' => now()->addWeeks(2),
         ]);
+    }
+
+    /**
+     * Halaman hukum berikut klausanya.
+     *
+     * Privacy Policy dan Terms disalin dari `content/privacy/sections.ts` dan
+     * `content/terms/sections.ts` di situs publik — delapan dan sembilan klausa,
+     * kata per kata — supaya penukaran naskah statis → API tidak mengubah satu
+     * kalimat pun yang dibaca orang.
+     *
+     * Cookie Policy TIDAK ada di sana: halamannya baru, dan naskahnya ditulis di
+     * sini. Isinya menggambarkan apa yang benar-benar dilakukan aplikasi ini —
+     * cookie sesi dan token anti-pemalsuan, tanpa satu pun pelacak — bukan
+     * salinan kebijakan orang lain. **Tetap harus dibaca penasihat hukum
+     * sebelum tayang**, seperti kedua halaman lainnya.
+     *
+     * Alamat surel yang dulu jadi field `email` terpisah di situs publik
+     * dilipat jadi tautan `mailto:` di dalam HTML-nya: kolom `description`
+     * memang HTML sejak blok halaman hukum naik dari teks polos, dan satu
+     * field lebih sedikit berarti satu hal lebih sedikit yang bisa lupa
+     * dirender.
+     *
+     * Klausanya DIGANTI, bukan ditambahkan — `delete()` dulu, alasan yang sama
+     * dengan `stats()`: menjalankan seeder dua kali tidak boleh menghasilkan
+     * dokumen hukum dengan tiap pasal tercetak dua kali.
+     */
+    private function legalPages(): void
+    {
+        $documents = [
+            'privacy-policy' => [
+                ['Introduction', '<p>Welcome to the Domino World Federation (DWF) privacy center. This document explains our strict policies regarding the capture, processing, and preservation of personal details. DWF protects member information under Swiss and international regulatory criteria.</p>'],
+                ['Information We Collect', '<p>We register information during federation membership signups, tournament entry applications, rules certifications, and newsletters requests. This information comprises names, email coordinates, geographic location, associated national organizations, and anti-doping compliance profiles.</p>'],
+                ['How We Use Information', '<p>Collected parameters are utilized to organize globally sanctioned championships, audit competitive records, publish verified world rankings, verify referee credentials, and ensure anti-doping oversight through licensed sport centers.</p>'],
+                ['Data Sharing & Third Parties', '<p>Information is never shared with third-party marketing entities. Verified profiles may be communicated to member federations, regional organizers, and integrity panels exclusively for competitive authentication or fair-play reviews.</p>'],
+                ['Cookies & Tracking', '<p>The DWF web portal deploys technical tracking scripts to optimize browsing speed and analyze traffic statistics. You can control active cookie selections inside your web browser configuration at any time.</p>'],
+                ['Your Legal Rights', '<p>Under GDPR and Swiss Federal Law on Data Protection, registered subjects preserve complete rights to access, adjust, remove, or limit processing of their details. Contact our Swiss administrative desk to request records.</p>'],
+                ['Data Security', '<p>We deploy audited physical and electronic firewalls to neutralize unauthorized access. Access to sensitive athlete registration databases is restricted exclusively to authorized administrative directors.</p>'],
+                ['Contact Information', '<p>For all data protection requests, contact our secretariat at Maison du Sport International, Lausanne, Switzerland, or send an email directly to <a href="mailto:contact@dwf-domino.org">contact@dwf-domino.org</a>.</p>'],
+            ],
+            'terms' => [
+                ['Acceptance of Terms', '<p>By accessing, browsing, or utilizing the Domino World Federation (DWF) portal, you explicitly accept these unified terms of engagement. If you represent a member federation, your organization agrees to distribute these rules to registered competitive players.</p>'],
+                ['Member Federation Status', '<p>Federations accepted as Associate or Full Members must continuously adhere to DWF statutes, structural protocols, anti-doping audits, and administrative reports as managed through the executive office.</p>'],
+                ['Intellectual Property', '<p>All media assets, rulebook publications, official branding icons, tournament databases, global rankings, and the classic DWF geometric logos are the exclusive property of the Domino World Federation. Unauthorized distribution is prohibited.</p>'],
+                ['Code of Conduct', '<p>All practitioners, referees, and team delegates must maintain high integrity standards, ethical sportsmanship, and tactical respect. Fair play infractions are referred to the DWF Disciplinary Panel.</p>'],
+                ['Tournament Participation Rules', '<p>Registration for major events is managed through the federation portal. Upcoming entries are processed strictly within regional capacity guidelines. If no tournament is scheduled, registration routes are disabled automatically.</p>'],
+                ['Limitation of Liability', '<p>DWF acts as a regulatory authority and organizer of competitive rules. DWF accepts no liability for physical hazards, venue arrangements, or contract disputes managed by independent local tournament directors.</p>'],
+                ['Governing Law', '<p>These regulatory terms of service are governed exclusively by the laws of Switzerland. All litigation regarding federation rulings shall be brought before the competent courts of Lausanne.</p>'],
+                ['Changes to Terms', '<p>DWF reserves the right to modify these operational regulations. Modified terms will be published directly in the Resource Library with updated effective dates.</p>'],
+                ['Contact', '<p>If you have any questions regarding these rules, please submit an official request through our Swiss administrative desk or send inquiries directly to <a href="mailto:contact@dwf-domino.org">contact@dwf-domino.org</a>.</p>'],
+            ],
+            'cookie-policy' => [
+                ['What cookies are', '<p>A cookie is a small file a site asks your browser to keep. It lets the site recognise the same browser on a later visit — remembering a language choice, for instance, without asking again.</p>'],
+                ['What this site uses them for', '<p>This site sets cookies only where a page cannot work without one: keeping an administrator signed in to the backoffice, and holding the anti-forgery token that protects forms from being submitted from elsewhere. No cookie here follows anyone between sites.</p>'],
+                ['Cookies we do not set', '<p>There is no advertising cookie on this site, and no third-party tracker. Nothing measures a visitor across other people\'s sites, and nothing is sold or shared with a marketing network.</p>'],
+                ['Managing them', '<p>Every browser can list, block, and delete cookies for a site, and doing so for this one costs nothing except being asked to sign in again. The public pages read the same whether cookies are allowed or refused.</p>'],
+            ],
+        ];
+
+        $titles = [
+            'privacy-policy' => 'Privacy Policy',
+            'terms' => 'Terms & Conditions',
+            'cookie-policy' => 'Cookie Policy',
+        ];
+
+        foreach ($documents as $key => $blocks) {
+            $page = LegalPage::query()->updateOrCreate(
+                ['key' => $key],
+                [
+                    'title' => $titles[$key],
+                    'slug' => $key,
+                    'last_updated_at' => now()->toDateString(),
+                ],
+            );
+
+            $page->blocks()->delete();
+
+            foreach ($blocks as $index => [$title, $description]) {
+                $page->blocks()->create([
+                    'title' => $title,
+                    'description' => $description,
+                    'is_active' => true,
+                    'position' => $index + 1,
+                ]);
+            }
+        }
     }
 }

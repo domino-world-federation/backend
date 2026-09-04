@@ -6,7 +6,6 @@ use App\Models\ContactMessage;
 use App\Models\Document;
 use App\Models\GalleryEvent;
 use App\Models\IpWhitelistRule;
-use App\Models\LegalPage;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Support\Access;
@@ -28,7 +27,6 @@ class DatabaseSeeder extends Seeder
 
         $this->documents();
         $this->gallery();
-        $this->legalPages();
         $this->settings();
         $this->messages();
         $this->ipWhitelist($user);
@@ -107,25 +105,6 @@ class DatabaseSeeder extends Seeder
                 ['slug' => Str::slug($name)],
                 ['name' => $name, 'type' => $type, 'held_on' => now()->subMonths($index + 1)->toDateString()],
             );
-        }
-    }
-
-    private function legalPages(): void
-    {
-        foreach ([['privacy-policy', 'Privacy Policy'], ['terms', 'Terms & Conditions']] as [$key, $title]) {
-            $page = LegalPage::query()->updateOrCreate(
-                ['key' => $key],
-                ['title' => $title, 'slug' => $key, 'last_updated_at' => now()->toDateString()],
-            );
-
-            if ($page->blocks()->doesntExist()) {
-                $page->blocks()->create([
-                    'title' => $key === 'terms' ? 'Acceptance of Terms' : 'Information We Collect',
-                    'description' => '<p>Isi contoh untuk pengembangan lokal. Ganti sebelum tayang.</p>',
-                    'is_active' => true,
-                    'position' => 1,
-                ]);
-            }
         }
     }
 
