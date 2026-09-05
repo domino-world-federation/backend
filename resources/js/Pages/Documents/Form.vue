@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { useI18n } from '@/composables/useI18n'
+import type { DocumentCategory } from '@/types'
 
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import PageHeader from '@/Components/PageHeader.vue'
@@ -24,7 +25,7 @@ const props = defineProps<{
         fileName: string
         fileSize: string
     } | null
-    categories: string[]
+    categories: DocumentCategory[]
 }>()
 
 const { t } = useI18n()
@@ -41,6 +42,30 @@ const form = useForm({
 })
 
 const canSchedule = computed(() => form.posting === 'schedule')
+
+const selectedCategory = computed(() => props.categories.find((c) => c.value === form.category))
+
+/**
+ * Kalimat di bawah label Category.
+ *
+ * Tiga keadaan, dan yang ketiga yang paling penting: sebuah kategori bisa
+ * menyebut halaman yang belum punya rak dokumen sama sekali (Integrity,
+ * Members, About Us). Menyebutnya bersama halaman yang benar-benar
+ * menampilkannya akan membuat layar ini berjanji sesuatu yang belum benar —
+ * dan yang mengunggah baru tahu setelah membuka halamannya dan tidak menemukan
+ * apa-apa. Jadi keduanya diucapkan sebagai dua kalimat yang berbeda.
+ */
+const categoryHint = computed(() => {
+    const selected = selectedCategory.value
+
+    if (!selected) return t('documents.category_hint')
+
+    const appears = t('documents.category_appears', { pages: selected.pages.join(', ') })
+
+    return selected.planned.length === 0
+        ? appears
+        : `${appears} ${t('documents.category_planned', { pages: selected.planned.join(', ') })}`
+})
 
 /*
  * Jadwal dipecah jadi jam dan tanggal — dua kontrol seperti di desain
@@ -118,16 +143,24 @@ function submit(): void {
                     </template>
                 </FormRow>
 
+                <!-- Keterangan di bawah label ikut BERUBAH saat kategorinya
+                     dipilih, dan itu yang membuat kolom ini bisa dijawab.
+                     Sebelumnya ia berbunyi "Select category of document." —
+                     kalimat yang mengulang nama kolomnya dan tidak memberi tahu
+                     satu pun akibat dari memilih. Yang ingin diketahui orang
+                     yang sedang mengunggah adalah di halaman mana berkasnya akan
+                     muncul, dan itu pertanyaan yang jawabannya cuma ada di
+                     config/dwf.php. -->
                 <FormRow
                     :label="t('common.category')"
-                    :description="t('documents.category_hint')"
+                    :description="categoryHint"
                 >
                     <template #default="{ id }">
                         <SelectField
                             :id="id"
                             v-model="form.category"
-                            :options="categories.map((c) => ({ value: c, label: c }))"
-                            :placeholder="t('gallery.select_event')"
+                            :options="categories"
+                            :placeholder="t('documents.select_category')"
                             :error="form.errors.category"
                         />
                     </template>

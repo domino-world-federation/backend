@@ -93,19 +93,97 @@ return [
     ],
 
     /*
-     * Kategori dokumen untuk Press Releases.
+     * Kategori dokumen, dan di halaman mana tiap kategori muncul.
      *
      * Daftar tetap, bukan tabel: wireframe tidak punya layar CRUD untuk
      * kategori dokumen, dan membuatkannya berarti mengarang menu yang tidak
      * diminta. Kalau nanti perlu dikelola sendiri, pindahkan ke tabel dan
      * jaga nilainya tetap sama supaya baris lama tidak yatim.
+     *
+     * ── Kuncinya adalah yang TERSIMPAN, dan yang tayang ──
+     *
+     * Nilai kolom `documents.category` adalah kunci di bawah ini apa adanya,
+     * dan situs publik menyaring dengan string yang sama persis
+     * (`getResources("Rules & Regulations")`). Ia juga DICETAK: kartu dokumen
+     * menampilkannya sebagai baris kelabu kecil di atas judul. Jadi mengubah
+     * ejaan satu kunci berarti tiga hal sekaligus — baris lama jadi yatim,
+     * section di situs publik jadi kosong, dan tulisan di kartu ikut berubah.
+     * Ganti ejaan HANYA lewat migrasi yang ikut memindahkan barisnya, seperti
+     * `2026_09_05_150000_remap_document_categories`.
+     *
+     * ── Daftar halamannya bukan hiasan ──
+     *
+     * Ia dikirim ke layar Documents dan dicetak di bawah dropdown-nya, supaya
+     * orang yang mengunggah tahu di mana berkasnya akan muncul SEBELUM
+     * menyimpan. Sebelum ini kolom Category tidak memberi petunjuk apa pun
+     * tentang akibat memilihnya.
+     *
+     * Home menampilkan EMPAT dokumen terbaru tanpa menyaring kategori, jadi
+     * setiap kategori sampai ke sana — itu sebabnya hampir semuanya menyebut
+     * Home.
+     *
+     * ── `pages` dan `planned` dipisah, dan itu yang membuatnya jujur ──
+     *
+     * `pages` adalah halaman yang benar-benar menarik kategori ini hari ini.
+     * `planned` adalah halaman yang DIMINTA menampilkannya tapi belum punya rak
+     * dokumen sama sekali — Integrity, Members, dan About Us. Layarnya mencetak
+     * keduanya dengan kalimat yang berbeda.
+     *
+     * Menggabungkan keduanya jadi satu daftar akan membuat layar itu berjanji
+     * bahwa sebuah berkas akan muncul di halaman yang, hari ini, tidak
+     * menampilkannya — dan orang yang mengunggahnya baru tahu setelah membuka
+     * halamannya sendiri dan tidak menemukan apa-apa.
      */
     'document_categories' => [
-        'Annual Report',
-        'Media Release',
-        'Regulation',
-        'Tournament Toolkit',
-        'Partnership',
+        'Rules & Regulations' => [
+            'pages' => ['Domino', 'Tournaments', 'Home'],
+        ],
+        'Governance Documents' => [
+            'pages' => ['Governance', 'Home'],
+            'planned' => ['About Us'],
+        ],
+        'Integrity & Ethics' => [
+            'pages' => ['Home'],
+            'planned' => ['Integrity'],
+        ],
+        'Membership Documents' => [
+            'pages' => ['Home'],
+            'planned' => ['Members'],
+        ],
+        'Development Resources' => [
+            'pages' => ['Development', 'Home'],
+        ],
+        'Reports & Publications' => [
+            'pages' => ['News', 'Governance', 'Home'],
+        ],
+        /*
+         * "Tournaments", BUKAN "Tournament Detail" — dan bedanya penting bagi
+         * yang mengunggah.
+         *
+         * Rak yang menyaring kategori ada di halaman daftar turnamen. Halaman
+         * DETAIL sebuah turnamen menampilkan dokumen yang DILAMPIRKAN ke event
+         * itu dari layar Tournaments, apa pun kategorinya — mekanisme yang
+         * berbeda, lewat tabel `document_tournament`. Menulis "Tournament
+         * Detail" di sini akan membuat orang mengunggah dokumen dengan kategori
+         * ini lalu heran kenapa ia tidak muncul di halaman sebuah event: yang
+         * kurang bukan kategorinya, melainkan lampirannya.
+         */
+        'Tournament Documents' => [
+            'pages' => ['Tournaments'],
+        ],
+
+        /*
+         * Kategori kedelapan, di luar tujuh yang diminta.
+         *
+         * Halaman News punya DUA rak dokumen yang digambar desainer — Press
+         * Releases (`168:8475`) dan Publications (`168:8582`), dua desain kartu
+         * yang berbeda — dan satu kategori tidak bisa mengisi keduanya tanpa
+         * menampilkan isi yang sama dua kali. Keputusan pemilik repo,
+         * 2026-09-05.
+         */
+        'Media & Press Releases' => [
+            'pages' => ['News', 'Home'],
+        ],
     ],
 
     /*

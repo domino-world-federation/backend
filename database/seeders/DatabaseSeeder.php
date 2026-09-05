@@ -76,9 +76,9 @@ class DatabaseSeeder extends Seeder
         }
 
         $rows = [
-            ['DWF Annual Report 2025', 'Annual Report', 2_411_724],
-            ['International Tournament Standards v3', 'Regulation', 862_133],
-            ['Tournament Organiser Toolkit', 'Tournament Toolkit', 5_204_992],
+            ['DWF Annual Report 2025', 'Reports & Publications', 2_411_724],
+            ['International Tournament Standards v3', 'Rules & Regulations', 862_133],
+            ['Tournament Organiser Toolkit', 'Tournament Documents', 5_204_992],
         ];
 
         foreach ($rows as [$title, $category, $size]) {

@@ -566,7 +566,16 @@ return [
         'doc_title_hint' => 'Displayed on the Press Releases page.',
         'file' => 'Document File',
         'file_hint' => 'PDF only. Recommended size up to 5 MB, maximum 10 MB.',
-        'category_hint' => 'Select category of document.',
+        'select_category' => 'Select category',
+        /*
+         * Dua kalimat, bukan satu daftar. `category_appears` menyebut halaman
+         * yang benar-benar menampilkannya; `category_planned` menyebut yang
+         * diminta menampilkannya tapi belum punya rak dokumen. Menggabungkannya
+         * berarti layar ini berjanji sesuatu yang belum benar.
+         */
+        'category_hint' => 'Where the document appears is decided by its category.',
+        'category_appears' => 'Appears on: :pages.',
+        'category_planned' => 'Also planned for :pages, which has no document shelf yet.',
         'view' => 'View',
         'detail' => 'Document Detail',
         'download' => 'Download',

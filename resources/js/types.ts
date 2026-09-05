@@ -67,6 +67,21 @@ export interface SharedProps {
     [key: string]: unknown
 }
 
+/**
+ * Satu kategori dokumen, sebagaimana `DocumentCategories::options()` mengirimnya.
+ *
+ * `pages` adalah halaman yang benar-benar menarik kategori ini hari ini;
+ * `planned` yang diminta menampilkannya tapi belum punya rak dokumen. Keduanya
+ * terpisah karena layarnya mengucapkannya dengan kalimat yang berbeda — lihat
+ * `categoryHint` di `Pages/Documents/Form.vue`.
+ */
+export interface DocumentCategory {
+    value: string
+    label: string
+    pages: string[]
+    planned: string[]
+}
+
 /** Satu kolom `DataTable`. `width` ditulis apa adanya ke `style`, mis. `'40px'`. */
 export interface TableColumn {
     key: string

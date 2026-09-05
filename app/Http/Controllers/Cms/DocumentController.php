@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cms;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Support\Csv;
+use App\Support\DocumentCategories;
 use App\Support\Media\StoredFile;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,7 +28,7 @@ class DocumentController extends Controller
                 ->paginate(config('dwf.per_page'))
                 ->withQueryString()
                 ->through(fn (Document $d) => $this->row($d)),
-            'categories' => config('dwf.document_categories'),
+            'categories' => DocumentCategories::options(),
             'filters' => $filters,
         ]);
     }
@@ -170,7 +171,7 @@ class DocumentController extends Controller
     {
         return Inertia::render('Documents/Form', [
             'document' => null,
-            'categories' => config('dwf.document_categories'),
+            'categories' => DocumentCategories::options(),
         ]);
     }
 
@@ -203,7 +204,7 @@ class DocumentController extends Controller
                 'fileName' => $document->downloadName(),
                 'fileSize' => $document->file_size_label,
             ],
-            'categories' => config('dwf.document_categories'),
+            'categories' => DocumentCategories::options(),
         ]);
     }
 
@@ -246,7 +247,7 @@ class DocumentController extends Controller
 
         return $request->validate([
             'title' => ['required', 'string', 'max:200'],
-            'category' => ['nullable', Rule::in(config('dwf.document_categories'))],
+            'category' => ['nullable', Rule::in(DocumentCategories::names())],
 
             // "Publish Time: Now / Schedule" (`262:3449`). Tidak ada tombol
             // Save Draft di layar ini — berbeda dari Gallery — jadi draft hanya

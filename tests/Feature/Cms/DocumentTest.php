@@ -20,7 +20,7 @@ class DocumentTest extends TestCase
 
         $this->actingAs(User::factory()->superAdmin()->create())->post('/documents', [
             'title' => 'DWF Annual Report 2025',
-            'category' => 'Annual Report',
+            'category' => 'Reports & Publications',
             'posting' => 'now',
             'file' => UploadedFile::fake()->create('report.pdf', 512, 'application/pdf'),
         ])->assertRedirect('/documents');
@@ -128,7 +128,7 @@ class DocumentTest extends TestCase
 
         $this->actingAs(User::factory()->superAdmin()->create())->post('/documents', [
             'title' => 'Aturan 2027',
-            'category' => 'Regulation',
+            'category' => 'Rules & Regulations',
             'posting' => 'schedule',
             'published_at' => now()->addWeek()->format('Y-m-d\TH:i'),
             'file' => UploadedFile::fake()->create('a.pdf', 10, 'application/pdf'),
@@ -295,7 +295,7 @@ class DocumentTest extends TestCase
 
         $this->actingAs(User::factory()->superAdmin()->create())->post('/documents', [
             'title' => 'Laporan Rahasia',
-            'category' => 'Annual Report',
+            'category' => 'Reports & Publications',
             'posting' => 'now',
             'file' => UploadedFile::fake()->create('rahasia.pdf', 12, 'application/pdf'),
         ])->assertRedirect('/documents');

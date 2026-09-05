@@ -16,7 +16,7 @@ import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 import RowMenu from '@/Components/RowMenu.vue'
 import PersonStamp from '@/Components/PersonStamp.vue'
 import { useIndexFilters } from '@/composables/useIndexFilters'
-import type { Paginated, TableColumn } from '@/types'
+import type { DocumentCategory, Paginated, TableColumn } from '@/types'
 
 interface Row {
     id: number
@@ -37,7 +37,7 @@ interface Row {
 
 const props = defineProps<{
     documents: Paginated<Row>
-    categories: string[]
+    categories: DocumentCategory[]
     filters: { q: string; status: string; category: string }
 }>()
 
@@ -133,7 +133,7 @@ function destroy(): void {
                     key: 'category',
                     label: t('common.category'),
                     value: state.category,
-                    options: categories.map((c) => ({ value: c, label: c })),
+                    options: categories.map((c) => ({ value: c.value, label: c.label })),
                 },
             ]"
             @change="set"
