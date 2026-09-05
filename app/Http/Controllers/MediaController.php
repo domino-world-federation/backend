@@ -55,6 +55,20 @@ class MediaController extends Controller
         return Storage::disk('local')
             ->download($document->file_path, $document->downloadName(), [
                 'Cache-Control' => 'private, no-store, max-age=0',
+
+                /*
+                 * Berkas ini diunggah orang, dan ia keluar dari origin
+                 * APLIKASI — bukan dari host media statis, yang memasang header
+                 * ini sendiri di config nginx-nya.
+                 *
+                 * Tanpa `nosniff`, browser boleh mengabaikan `application/pdf`
+                 * dan menebak tipe dari isinya; berkas yang isinya HTML lalu
+                 * dirender sebagai halaman, berjalan di origin ini. Ia
+                 * berpasangan dengan `Content-Disposition: attachment` yang
+                 * sudah dipasang `download()`: yang satu menyuruh mengunduh,
+                 * yang lain melarang menebak.
+                 */
+                'X-Content-Type-Options' => 'nosniff',
             ]);
     }
 }

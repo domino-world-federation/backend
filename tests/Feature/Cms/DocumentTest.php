@@ -325,4 +325,24 @@ class DocumentTest extends TestCase
             ->assertOk()
             ->assertHeader('Cache-Control', 'max-age=0, no-store, private');
     }
+
+    /**
+     * Berkas yang diunggah orang keluar dari origin APLIKASI, jadi browser
+     * tidak boleh menebak tipenya.
+     *
+     * Host media statis memasang header ini di config nginx-nya; unduhan
+     * dokumen tidak lewat sana — ia lewat PHP, karena status tayangnya harus
+     * diperiksa tiap permintaan — jadi header yang sama harus dipasang di sini.
+     * Tanpa itu berkas yang isinya HTML bisa dirender sebagai halaman di origin
+     * ini, meski `Content-Disposition`-nya menyuruh mengunduh.
+     */
+    public function test_a_document_download_forbids_type_sniffing(): void
+    {
+        $document = $this->documentWithFile();
+
+        $this->get("/media/documents/{$document->id}")
+            ->assertOk()
+            ->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Content-Disposition', 'attachment; filename='.$document->downloadName());
+    }
 }
