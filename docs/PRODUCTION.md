@@ -1182,6 +1182,35 @@ Yang ditukar, dan sebaiknya disadari sejak awal:
 Ini setelan yang **cukup untuk sekarang** dan sepenuhnya bisa dibalik: pindah ke
 Resend nanti mengganti empat baris yang sama.
 
+**Berbayar, tanpa DNS, dan alamat pengirimnya tetap resmi: Postmark Sender
+Signature** (~$15/bulan). Ia memverifikasi **satu alamat surel**, bukan seluruh
+domain: Postmark mengirim tautan konfirmasi ke alamat itu, Anda klik, selesai.
+DKIM dianjurkan tapi **tidak wajib** untuk jalur ini.
+
+Syaratnya satu, dan mudah terlewat: alamat itu harus **benar-benar bisa
+menerima surel**, karena tautan konfirmasinya dikirim ke sana. `no-reply@` yang
+belum ada mailbox-nya tidak bisa diverifikasi — pakai alamat yang sudah hidup.
+
+Yang perlu disadari: tanpa DKIM, tanda tangannya tidak selaras dengan domain
+From. Kalau domain itu **sudah punya kebijakan DMARC** `quarantine` atau
+`reject`, surelnya justru akan ditolak — periksa dulu dengan
+`dig +short TXT _dmarc.<domain-anda>`. Kalau kosong, jalur ini bekerja, dan
+reputasi IP Postmark yang membawanya ke inbox.
+
+```bash
+MAIL_HOST=smtp.postmarkapp.com
+MAIL_PORT=587
+MAIL_SCHEME=tls
+MAIL_USERNAME=<server-token>     # token yang sama untuk username DAN password
+MAIL_PASSWORD=<server-token>
+MAIL_FROM_ADDRESS="<alamat-yang-diverifikasi>"
+```
+
+Dan yang paling rapi kalau domainnya **sudah punya layanan surel** (Workspace,
+Zoho, cPanel mail): pakai SMTP mailbox itu sendiri. Sudah dibayar, nol record
+DNS baru, dan alamat pengirimnya domain federasi — bukan gmail.com. Periksa
+dengan `dig +short MX <domain-anda>`; kalau ada isinya, jalur ini sudah terbuka.
+
 Alternatif tanpa DNS yang lain — **Brevo** memperbolehkan memverifikasi satu
 alamat pengirim lewat tautan di inbox, tanpa record apa pun. Ia bekerja, tapi
 lebih buruk daripada opsi di atas untuk kasus ini: From-nya domain Anda
