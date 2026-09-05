@@ -369,6 +369,14 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   pemanggil membuangnya, satu-satunya jalan menerbitkan yang baru. Karena itu
   "kirim ulang" selalu menerbitkan token baru dan mencabut yang lama — dua
   tautan hidup sekaligus berarti "Revoke" cuma mematikan salah satunya.
+- **`MAIL_MAILER=log` MENGIRIM DENGAN SUKSES — ke berkas log.** Layar backoffice
+  mengatakan undangan terkirim, tidak ada galat di mana pun, dan tautan
+  penerimaan berikut tokennya duduk di `storage/logs/laravel.log` dalam bentuk
+  polos. Itu bawaan `.env.example` (benar untuk pengembangan), jadi server yang
+  lupa mengubahnya diam sempurna. Periksa dengan `php artisan dwf:mail-test
+  <alamat>`, yang mencetak konfigurasi yang BENAR-BENAR dibaca aplikasi lalu
+  melaporkan `log` sebagai kegagalan, bukan sukses. Penyetelan lengkapnya di
+  `docs/PRODUCTION.md` §15.
 - **Surel undangan dikirim DI LUAR transaksi.** Di dalamnya, SMTP yang gagal
   akan me-rollback akunnya dan super admin melihat "gagal" untuk akun yang di
   sebagian jalur sudah telanjur ada. Kegagalan kirim juga tidak dilempar ke

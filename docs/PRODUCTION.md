@@ -274,7 +274,7 @@ pendek.
 |---|---|
 | `APP_URL` | API publik mengirim **URL gambar absolut** (§5.2 kontrak API). Salah nilainya = tiap gambar di situs publik menunjuk domain yang salah, sementara backoffice tetap normal |
 | `CORS_ALLOWED_ORIGINS` | Daftar domain situs publik, dipisah koma. **Kosong adalah bawaan yang benar** dan menghasilkan galat CORS yang terlihat di konsol; wildcard `*` menghasilkan lubang yang tidak terlihat di mana pun. Jangan pakai `*` |
-| `MAIL_*` | Undangan admin dikirim **sinkron** (`Mail::to()->send()`, bukan antrean). SMTP yang lambat memperlambat request-nya; SMTP yang mati membuat undangan gagal terkirim — tapi akunnya tetap dibuat, dan layarnya memberi tahu bahwa tautannya perlu dikirim ulang. Tombolnya sudah ada |
+| `MAIL_*` | Undangan admin dikirim **sinkron** (`Mail::to()->send()`, bukan antrean). SMTP yang lambat memperlambat request-nya; SMTP yang mati membuat undangan gagal terkirim — tapi akunnya tetap dibuat, dan layarnya memberi tahu bahwa tautannya perlu dikirim ulang. Tombolnya sudah ada. **Penyetelan lengkapnya di §15** — termasuk kenapa `MAIL_MAILER=log` adalah kegagalan yang terlihat seperti keberhasilan |
 
 ### Sakelar yang perilakunya sengaja "mati kalau kosong"
 
@@ -1003,3 +1003,143 @@ satu saja membuat situs publik jatuh ke mock atau ke galat CORS.
 **`registrationLabel` dari API tidak boleh di-cache lebih dari sehari.** Ia
 teks siap tampil ("in 3 days"), bukan timestamp — halaman yang menyimpannya di
 edge cache akan terus menulis "3 days" sampai minggu berikutnya.
+
+---
+
+## 15. Surel
+
+### Aplikasi ini mengirim SATU surel, dan itu kunci pintunya
+
+`AdminInvitationMail` satu-satunya. Tidak ada reset sandi — undangan itu sendiri
+jalur pemulihannya. Pesan kontak hanya tersimpan di database dan dibaca di
+backoffice; pelanggan buletin dikumpulkan tapi belum ada yang mengirimi mereka
+apa pun.
+
+Jadi volumenya belasan surel seumur project. Tapi **akun admin dibuat tanpa
+sandi**, dan tautan sekali pakai 72 jam itu satu-satunya cara pemiliknya bisa
+masuk pertama kali. Mendarat di spam = orangnya terkunci di luar.
+
+Itu yang menentukan pilihan penyedianya: bukan harga, bukan fitur, melainkan
+penempatan inbox dan akun yang tidak tiba-tiba ditangguhkan.
+
+### `MAIL_MAILER=log` adalah kegagalan yang terlihat seperti keberhasilan
+
+Bawaan `.env.example`, karena benar untuk pengembangan. Di server ia berarti:
+surelnya **berhasil dikirim** ke `storage/logs/laravel.log`, layar backoffice
+mengatakan undangan terkirim, dan tidak seorang pun pernah menerimanya. Tautan
+penerimaan berikut tokennya duduk di berkas log itu dalam bentuk polos.
+
+Tidak ada galat, tidak ada peringatan. Periksa dengan perintah di bawah, bukan
+dengan mata.
+
+### Pilihan penyedia
+
+**Resend** — 3.000/bulan gratis (100/hari), SMTP biasa, punya region EU.
+Cukup dengan kelebihan besar untuk kebutuhan di atas.
+
+Kalau undangan tetap masuk spam, naik ke **Postmark**: penempatan transaksional
+terbaik di kelasnya, dan ia memisahkan aliran transaksional dari broadcast
+secara desain. **Brevo** atau **Mailjet** kalau residency EU jadi syarat.
+
+**SendGrid tidak lagi punya paket gratis** (dipensiunkan 27 Mei 2025); pintu
+masuknya ~$19,95/bulan, dan di tier itu Anda berbagi kolam IP dengan lalu lintas
+bulk siapa saja.
+
+**Jangan** memakai postfix/sendmail server ini sendiri: IP baru tanpa reputasi,
+tanpa PTR yang selaras, dan port 25 keluar sering diblokir hoster — surelnya
+hilang tanpa satu pun galat. **Jangan** memakai SMTP akun Gmail pribadi: ia
+gagal alignment DMARC untuk domain Anda, dan itu kredensial bersama.
+
+### Aturan yang berlaku sejak modul buletin hidup
+
+Jangan pernah mengirim buletin dari reputasi yang sama dengan undangan admin.
+Satu lonjakan keluhan spam dari blast buletin bisa menenggelamkan surel yang
+jadi kunci masuk backoffice. Akun atau aliran terpisah, bukan kuota yang sama.
+
+### Menyiapkan Resend
+
+**0. Putuskan domain pengirimnya lebih dulu.** Yang dibaca penerima adalah
+alamat From, dan mengganti domain pengirim setelah reputasinya terbangun berarti
+mulai dari nol. Pakai domain merek yang akan tetap benar setelah peluncuran,
+bukan domain infrastruktur.
+
+**1. Tambahkan domainnya** di Resend → Domains → Add Domain, pilih region
+(`eu-west-1` kalau residency EU relevan).
+
+**2. Pasang record DNS yang ia tampilkan.** Bentuknya kira-kira begini —
+**salin nilai persisnya dari layar Resend**, karena host dan region berbeda per
+akun:
+
+```
+TXT   resend._domainkey        p=MIGfMA0GCSq...        ← DKIM
+TXT   send                     v=spf1 include:amazonses.com ~all
+MX    send                     feedback-smtp.<region>.amazonses.com   (prio 10)
+```
+
+Tambahkan DMARC sendiri, mulai dari mode yang tidak menolak apa pun:
+
+```
+TXT   _dmarc    v=DMARC1; p=none; rua=mailto:dmarc@<domain-anda>
+```
+
+Naikkan ke `p=quarantine` setelah laporannya bersih beberapa minggu. Sejak 2024
+Gmail dan Yahoo menuntut SPF, DKIM, dan DMARC selaras.
+
+**3. Terbitkan API key** (Sending access, batasi ke domain itu).
+
+**4. Isi `.env`:**
+
+```bash
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.resend.com
+MAIL_PORT=587
+MAIL_SCHEME=tls
+MAIL_USERNAME=resend                       # literal, bukan email Anda
+MAIL_PASSWORD=re_xxxxxxxxxxxxxxxxxxxx      # API key-nya
+MAIL_FROM_ADDRESS="no-reply@<domain-anda>"
+MAIL_FROM_NAME="Domino World Federation"
+```
+
+SMTP, bukan transport API `resend` bawaan Laravel — tanpa dependensi baru, dan
+pindah penyedia nanti cukup mengganti empat baris di atas.
+
+`MAIL_FROM_ADDRESS` **wajib** di domain yang barusan diverifikasi. Alamat gmail
+di sana akan gagal DMARC dan ditolak diam-diam.
+
+**5. Buang config cache, lalu reload FPM:**
+
+```bash
+php artisan config:clear     # atau config:cache lagi
+sudo systemctl reload php8.4-fpm
+```
+
+Reload-nya bukan pelengkap. `bootstrap/cache/config.php` adalah berkas PHP, dan
+dengan `opcache.validate_timestamps=0` (§8) ia tidak dilepas sampai worker-nya
+diganti — jadi `.env` yang sudah benar tetap tidak terbaca. Gejalanya sama
+persis dengan §9 "Layar menampilkan KUNCI": perubahan yang "sudah dilakukan"
+tapi tidak berlaku.
+
+**6. Uji:**
+
+```bash
+php artisan dwf:mail-test anda@example.com
+```
+
+Ia mencetak konfigurasi yang **benar-benar dibaca aplikasi** — bukan isi `.env`,
+karena persis di situ keduanya bisa berbeda — lalu mengirim satu surel dan
+melaporkan galat aslinya kalau gagal. `MAIL_MAILER=log` dilaporkan sebagai
+KEGAGALAN, bukan sukses.
+
+**7. Periksa folder spam juga.** "Terkirim" bukan "masuk inbox". Kalau ia
+mendarat di spam, yang kurang hampir selalu DKIM atau DMARC — bukan kodenya.
+
+### Antrean: jebakan yang belum meledak
+
+`QUEUE_CONNECTION=database`, tapi **tidak ada worker yang jalan** — cron di
+server cuma `schedule:run` (§1). Hari ini aman: tidak satu pun job di-dispatch,
+dan undangan dikirim sinkron.
+
+Tapi begitu ada yang menambahkan `implements ShouldQueue` ke sebuah Mailable,
+surelnya berhenti terkirim **tanpa satu pun galat** — ia masuk tabel `jobs` dan
+duduk di sana selamanya. Kalau antrean benar-benar dibutuhkan, worker-nya
+dipasang bersamaan, bukan menyusul.
