@@ -542,8 +542,11 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   pun: selama orangnya masih mengetik. `--days=7` bawaannya; menurunkannya ke 0
   berarti menghapus gambar dari bawah formulir yang sedang dibuka.
 - **Dua jadwal butuh SATU penjadwal di server** — di produksi ini PM2
-  (`deploy/pm2/ecosystem.config.cjs`), bukan crontab, karena PM2 sudah
-  menyalakan situs publik di mesin yang sama. Perintahnya `schedule:work`,
+  (`ecosystem.config.cjs` di akar, ter-commit dan memakai `__dirname` supaya
+  tidak terpaku ke satu mesin; namanya `.cjs` karena `package.json` punya
+  `"type": "module"`, dan `.js` akan diparse sebagai ESM lalu gagal diam-diam),
+  bukan crontab, karena PM2 sudah menyalakan situs publik di mesin yang sama.
+  Perintahnya `schedule:work`,
   BUKAN `schedule:run`: yang kedua sekali jalan lalu keluar, jadi PM2 akan
   menyalakannya lagi tanpa henti. Tanpa penjadwalnya, `editor:prune` dan
   `activitylog:clean` tidak pernah jalan dan tidak ada satu pun layar yang

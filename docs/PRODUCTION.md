@@ -23,17 +23,27 @@ melihat kenapa ia mati (`pm2 logs dwf-scheduler`). Crontab tidak punya keduanya
 yang tidak pernah dibaca siapa pun.
 
 ```bash
-pm2 start deploy/pm2/ecosystem.config.cjs
+pm2 start ecosystem.config.cjs
 pm2 save          # WAJIB — tanpa ini reboot berikutnya mematikan penjadwal
 pm2 startup       # sekali per server, ikuti perintah yang dicetaknya
 ```
 
-Config-nya di `deploy/pm2/ecosystem.config.cjs` (folder `deploy/` di-gitignore,
-sama seperti config nginx — ia milik server, bukan repo). Isinya
-**`schedule:work`, bukan `schedule:run`**: yang kedua sekali jalan lalu keluar,
-jadi PM2 akan melihat proses yang selesai dalam sedetik dan menyalakannya
-lagi tanpa henti. Yang pertama tinggal hidup dan memanggil `schedule:run`
-sendiri tiap menit.
+Config-nya `ecosystem.config.cjs` di **akar project, dan ia ter-commit** —
+tidak seperti config nginx yang tinggal di `deploy/` dan di-gitignore. Bedanya
+bukan selera: config nginx memuat nama host dan path satu mesin, sedangkan
+berkas ini memakai `__dirname` sehingga salinan yang sama bekerja di server mana
+pun tanpa disunting. Yang ter-commit ikut ter-review, dan tidak ikut hilang saat
+servernya diganti.
+
+Namanya **`.cjs`, bukan `.js`** — `package.json` punya `"type": "module"`, jadi
+berkas `.js` diparse sebagai ESM: `module.exports` tidak melakukan apa-apa,
+`apps` jadi `undefined`, dan PM2 tidak mengeluh sedikit pun. Jebakan yang sama
+persis dengan `ecosystem.config.cjs` di situs publik.
+
+Isinya **`schedule:work`, bukan `schedule:run`**: yang kedua sekali jalan lalu
+keluar, jadi PM2 akan melihat proses yang selesai dalam sedetik dan
+menyalakannya lagi tanpa henti. Yang pertama tinggal hidup dan memanggil
+`schedule:run` sendiri tiap menit.
 
 Periksa ia benar-benar bekerja — bukan sekadar `online`:
 
