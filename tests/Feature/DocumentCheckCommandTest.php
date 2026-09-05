@@ -74,6 +74,56 @@ class DocumentCheckCommandTest extends TestCase
             ->assertFailed();
     }
 
+    /**
+     * Direktori yang tidak bisa ditelusuri TIDAK dilaporkan sebagai berkas hilang.
+     *
+     * Ini kegagalan alat ini sendiri, 2026-09-05. Dokumen diunggah oleh php-fpm,
+     * yang membuat direktorinya 0700 miliknya sendiri; perintah dijalankan dari
+     * shell sebagai user lain, dan `file_exists()` menjawab false — bukan karena
+     * berkasnya tidak ada, melainkan karena yang bertanya tidak boleh melihat.
+     * Laporannya mengirim orang mencari berkas yang mungkin ada di depan mata.
+     *
+     * Yang benar adalah menolak menyimpulkan, menyebut user yang bertanya, dan
+     * tetap keluar bukan-nol: tidak tahu bukan kabar baik.
+     */
+    public function test_a_directory_it_cannot_enter_is_not_reported_as_missing(): void
+    {
+        // Disk sungguhan, bukan `Storage::fake` — yang diuji justru izin
+        // filesystem, dan disk palsu tidak punya izin untuk dilanggar.
+        $root = storage_path('app/uji-izin-'.uniqid());
+        config(['filesystems.disks.local.root' => $root]);
+        config(['filesystems.disks.public.root' => $root.'-public']);
+
+        @mkdir($root.'/documents', 0o700, true);
+        file_put_contents($root.'/documents/uji.pdf', 'isi');
+        @chmod($root.'/documents', 0o000);
+
+        // Root menolak izin filesystem, jadi tesnya tidak berarti apa-apa di sana.
+        if (is_executable($root.'/documents')) {
+            @chmod($root.'/documents', 0o700);
+            @unlink($root.'/documents/uji.pdf');
+            @rmdir($root.'/documents');
+            @rmdir($root);
+
+            $this->markTestSkipped('Proses ini menembus izin direktori — dijalankan sebagai root?');
+        }
+
+        Document::factory()->create(['file_path' => 'documents/uji.pdf']);
+
+        try {
+            $this->artisan('dwf:document-check')
+                ->expectsOutputToContain('TIDAK BISA DIPASTIKAN')
+                ->expectsOutputToContain('sudo -u www-data')
+                ->doesntExpectOutputToContain('Semua dokumen punya berkasnya.')
+                ->assertFailed();
+        } finally {
+            @chmod($root.'/documents', 0o700);
+            @unlink($root.'/documents/uji.pdf');
+            @rmdir($root.'/documents');
+            @rmdir($root);
+        }
+    }
+
     /** Gagal, supaya ia bisa dipakai di skrip deploy tanpa membaca keluarannya. */
     public function test_it_exits_non_zero_so_a_script_can_use_it(): void
     {
