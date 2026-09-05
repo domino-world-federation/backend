@@ -2,6 +2,29 @@
 
 return [
     /*
+     * Host yang menyajikan unduhan dokumen kepada publik.
+     *
+     * `fileUrl` di `/api/v1/resources` dibangun `route()`, yang memakai host
+     * permintaan yang sedang berjalan — jadi situs publik menerima
+     * `https://fed-api.../media/documents/{id}`. Nama itu SENGAJA cuma melayani
+     * `/api`: ia yang beredar di internet, dan membuka rute lain di sana
+     * memperluas permukaan yang justru dipisahkan supaya kecil.
+     *
+     * Diisi dengan asal host unduhan (mis. `https://fed-media.pborado.com`) dan
+     * `fileUrl` keluar menunjuk ke sana, tanpa satu pun rute baru di host API.
+     *
+     * **Host itu tetap harus menjalankan PHP.** Unduhan dokumen tunduk pada
+     * sakelar Visibility, yang diperiksa `MediaController` pada TIAP permintaan;
+     * host statis seperti `fed-pub-media` tidak bisa memeriksa apa pun dan akan
+     * menyajikan draft kepada siapa saja yang punya URL-nya. Yang dipisah di
+     * sini NAMANYA, bukan cara menyajikannya.
+     *
+     * Kosong berarti perilaku lama: URL mengikuti host permintaan. Itu yang
+     * benar di lokal, di mana semuanya satu host.
+     */
+    'document_download_url' => env('MEDIA_DOWNLOAD_URL'),
+
+    /*
      * Akun admin pertama, dipakai `DatabaseSeeder`. Nilainya dari `.env` —
      * kredensial tidak pernah ditulis di dalam kode.
      */

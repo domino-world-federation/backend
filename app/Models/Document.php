@@ -102,6 +102,31 @@ class Document extends Model
         return Str::slug($this->title).'.'.pathinfo((string) $this->file_path, PATHINFO_EXTENSION);
     }
 
+    /**
+     * URL unduhan yang diberikan kepada publik.
+     *
+     * `route()` membangun URL absolut dari host permintaan yang sedang
+     * berjalan, jadi `/api/v1/resources` yang dipanggil di `fed-api` mengeluarkan
+     * `https://fed-api.../media/documents/{id}` — nama yang sengaja cuma
+     * melayani `/api`. `dwf.document_download_url` menggeser HOST-nya saja,
+     * tanpa menyentuh route mana pun.
+     *
+     * Path-nya tetap dari `route()`, bukan dirangkai tangan: kalau rutenya
+     * dipindah suatu saat, yang ini ikut, dan tidak ada string yang diam-diam
+     * menunjuk ke tempat lama.
+     *
+     * Yang di config hanya boleh host yang MENJALANKAN PHP. Sakelar Visibility
+     * diperiksa `MediaController` pada tiap permintaan; host statis akan
+     * menyajikan draft kepada siapa pun yang punya URL-nya.
+     */
+    public function downloadUrl(): string
+    {
+        $path = route('media.document', $this, absolute: false);
+        $origin = rtrim((string) config('dwf.document_download_url'), '/');
+
+        return $origin === '' ? url($path) : $origin.$path;
+    }
+
     public function scopeLive(Builder $query): Builder
     {
         return $query->where(function (Builder $q) {

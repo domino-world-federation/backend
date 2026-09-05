@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Document;
 use App\Models\NewsArticle;
 use App\Models\SiteSetting;
 use Database\Seeders\FrontendContentSeeder;
@@ -177,6 +178,48 @@ class ApiConventionTest extends TestCase
         $this->assertArrayHasKey('primaryEmail', $body);
         $this->assertArrayHasKey('footerAddressLabel', $body);
         $this->assertArrayHasKey('socialInstagram', $body);
+    }
+
+    /**
+     * `fileUrl` bisa menunjuk host lain daripada host API.
+     *
+     * Host API sengaja cuma melayani `/api` — ia yang beredar di internet, dan
+     * membuka rute lain di sana memperluas permukaan yang justru dipisahkan
+     * supaya kecil. Jadi unduhan dokumen diberi namanya sendiri, dan
+     * `MEDIA_DOWNLOAD_URL` yang menggeser host-nya.
+     *
+     * PATH-nya harus tetap dari route yang sama: yang digeser host, bukan rute,
+     * dan sebuah string yang dirangkai tangan akan tetap menunjuk tempat lama
+     * saat rutenya dipindah.
+     */
+    public function test_the_download_host_can_be_moved_off_the_api_host(): void
+    {
+        $document = Document::factory()->create(['status' => 'published', 'published_at' => now()->subDay()]);
+
+        config(['dwf.document_download_url' => 'https://fed-media.contoh.test/']);
+
+        $this->assertSame(
+            "https://fed-media.contoh.test/media/documents/{$document->id}",
+            $document->downloadUrl(),
+        );
+
+        // Kosong berarti perilaku lama — URL mengikuti host permintaan, yang
+        // benar di lokal tempat semuanya satu host.
+        config(['dwf.document_download_url' => null]);
+
+        $this->assertSame(url("/media/documents/{$document->id}"), $document->downloadUrl());
+    }
+
+    /** Yang keluar di response ikut host itu, bukan cuma helper-nya. */
+    public function test_the_api_sends_the_moved_download_host(): void
+    {
+        Document::factory()->create(['status' => 'published', 'published_at' => now()->subDay()]);
+
+        config(['dwf.document_download_url' => 'https://fed-media.contoh.test']);
+
+        $url = $this->getJson('/api/v1/resources')->assertOk()->json('0.fileUrl');
+
+        $this->assertStringStartsWith('https://fed-media.contoh.test/media/documents/', $url);
     }
 
     /**

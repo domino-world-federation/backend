@@ -26,7 +26,8 @@ class DocumentResource extends PublicResource
             'publishedAt' => $this->published_at?->toIso8601String(),
             // Lewat route berpenjaga, bukan symlink: berkas dokumen tunduk
             // pada sakelar Visibility, dan symlink tidak pernah memeriksanya.
-            'fileUrl' => route('media.document', $this->resource),
+            // Host-nya bisa berbeda dari host API — lihat `Document::downloadUrl()`.
+            'fileUrl' => $this->resource->downloadUrl(),
             'fileType' => 'pdf',
             'fileSize' => $this->file_size_label,
         ];
