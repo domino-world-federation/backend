@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use RuntimeException;
+
 /**
  * Kategori dokumen — satu tempat membaca `config('dwf.document_categories')`.
  *
@@ -35,6 +37,8 @@ final class DocumentCategories
      */
     public static function options(): array
     {
+        self::guardShape();
+
         return collect(config('dwf.document_categories'))
             ->map(fn (array $meta, string $name) => [
                 'value' => $name,
@@ -44,5 +48,39 @@ final class DocumentCategories
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Menolak dengan menyebut sebabnya, bukan dengan TypeError.
+     *
+     * Daftar ini pernah berbentuk larik datar berisi nama saja. Kalau yang
+     * terbaca masih bentuk itu, penyebabnya hampir selalu satu: kode baru sudah
+     * ter-deploy tapi `bootstrap/cache/config.php` masih versi lama, jadi
+     * `config()` menjawab dari berkas cache alih-alih dari `config/dwf.php`.
+     * Terjadi di produksi 2026-09-05 dan muncul sebagai "Argument #1 ($meta)
+     * must be of type array, string given" di tengah sebuah closure — pesan yang
+     * benar tapi tidak menunjuk ke mana pun.
+     *
+     * Ini jebakan yang sama dengan yang `dwf:mail-test` periksa lebih dulu:
+     * yang dibaca aplikasi tidak selalu isi berkasnya, dan membaca berkasnya
+     * dengan mata tidak akan pernah memperlihatkan bedanya.
+     */
+    private static function guardShape(): void
+    {
+        $configured = config('dwf.document_categories');
+
+        if (! is_array($configured) || $configured === []) {
+            throw new RuntimeException(
+                'config(\'dwf.document_categories\') kosong atau bukan larik.',
+            );
+        }
+
+        if (array_is_list($configured)) {
+            throw new RuntimeException(
+                'config(\'dwf.document_categories\') masih bentuk lama (larik datar berisi nama). '
+                .'Yang dibaca aplikasi bukan isi config/dwf.php — hampir pasti bootstrap/cache/config.php yang basi. '
+                .'Jalankan: php artisan config:cache && php artisan route:cache, lalu reload php-fpm (PRODUCTION.md §11).',
+            );
+        }
     }
 }

@@ -74,6 +74,30 @@ class DocumentCategoryTest extends TestCase
         }
     }
 
+    /**
+     * Bentuk lama ditolak dengan menyebut SEBABNYA.
+     *
+     * Terjadi di produksi 2026-09-05: kode baru sudah ter-deploy, tapi
+     * `bootstrap/cache/config.php` masih versi sebelum deploy, jadi `config()`
+     * menjawab dengan larik datar berisi nama saja. Yang muncul di layar adalah
+     * "Argument #1 ($meta) must be of type array, string given" di tengah sebuah
+     * closure — pesan yang benar dan tidak menunjuk ke mana pun.
+     *
+     * Menolak TETAP benar di sini, dan sengaja tidak diubah jadi degradasi:
+     * kalau layarnya tetap jalan dengan config basi, ia akan menawarkan
+     * kategori LAMA, dan dokumen akan diarsipkan di bawah nama yang sudah mati.
+     * Yang diperbaiki pesannya, bukan keputusannya.
+     */
+    public function test_a_stale_config_cache_says_so_instead_of_a_type_error(): void
+    {
+        config(['dwf.document_categories' => ['Annual Report', 'Media Release']]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/bootstrap\/cache\/config\.php/');
+
+        DocumentCategories::options();
+    }
+
     /** Tidak ada dokumen yang memegang kategori di luar daftar — itu berkas yang berhenti terlihat. */
     public function test_no_document_is_left_holding_a_name_that_no_longer_exists(): void
     {
