@@ -1058,6 +1058,43 @@ jadi kunci masuk backoffice. Akun atau aliran terpisah, bukan kuota yang sama.
 
 ### Menyiapkan Resend
 
+#### Keadaan DNS `pborado.com` saat diperiksa (2026-09-04)
+
+```
+NS    addilyn/vick.ns.cloudflare.com   ← DNS-nya di Cloudflare, Anda yang pegang
+MX    1 smtp.google.com                ← Google Workspace SUDAH aktif di domain ini
+SPF   (kosong)
+DKIM  google._domainkey → (kosong)
+DMARC v=DMARC1; p=none;                ← tidak menolak apa pun
+```
+
+Dan `dwf-domino.org` **tidak punya NS sama sekali** — ia belum terdaftar atau
+belum didelegasikan, jadi bukan pilihan. Alamat `contact@dwf-domino.org` yang
+ada di seeder itu data contoh, bukan domain yang dimiliki federasi.
+
+Jadi domain pengirimnya `pborado.com`, dan pertanyaan §15.0 di bawah sudah
+terjawab.
+
+**Menambahkan Resend TIDAK mengganggu surel Workspace yang sudah jalan**, dan
+alasannya perlu dipahami sebelum menekan Save di Cloudflare:
+
+| Yang ditambahkan | Kenapa aman |
+|---|---|
+| `MX` di `send.pborado.com` | Nama yang berbeda dari root. MX root tetap `smtp.google.com` — surel masuk tidak tersentuh |
+| `TXT` SPF di `send.pborado.com` | Juga di subdomain, jadi tidak bertabrakan dengan SPF root (yang memang belum ada) |
+| `TXT` DKIM di `resend._domainkey` | Selektor `resend`, terpisah dari `google._domainkey` milik Workspace. Satu domain boleh punya banyak selektor |
+
+Hasilnya: surel dari Resend ber-From `no-reply@pborado.com` akan LULUS DMARC —
+SPF-nya diperiksa terhadap `send.pborado.com` (subdomain, jadi selaras) dan
+DKIM-nya menandatangani `d=pborado.com`.
+
+**Catatan terpisah, bukan bagian dari penyetelan ini:** root `pborado.com`
+belum punya SPF maupun DKIM Workspace. Artinya surel perusahaan yang keluar
+lewat Google hari ini tidak terautentikasi, dan siapa pun bisa memalsukan
+alamat @pborado.com. Itu sebabnya DMARC-nya **harus tetap `p=none` untuk
+sekarang** — menaikkannya ke `quarantine` sebelum Workspace diberi SPF dan DKIM
+akan mengarantina surel perusahaan Anda sendiri.
+
 **0. Putuskan domain pengirimnya lebih dulu.** Yang dibaca penerima adalah
 alamat From, dan mengganti domain pengirim setelah reputasinya terbangun berarti
 mulai dari nol. Pakai domain merek yang akan tetap benar setelah peluncuran,
