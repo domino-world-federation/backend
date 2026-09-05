@@ -262,11 +262,37 @@ class PublicController extends Controller
      *
      * Nilai kosong DIHILANGKAN, bukan dikirim string kosong (§5.4): footer bisa
      * memakai `??` tanpa memeriksa dua keadaan.
+     *
+     * **Kuncinya didaftar, bukan disapu dari kelompoknya.** Sampai 2026-09-05
+     * endpoint ini mengirim SELURUH kelompok `contact`, dan di dalamnya ada
+     * `form_recipient_email` — ke mana pemberitahuan formulir dirutekan. Itu
+     * config internal, bukan naskah publik: hari ini nilainya kebetulan sama
+     * dengan alamat yang memang tayang, tapi seseorang yang mengarahkannya ke
+     * kotak masuk internal akan menerbitkannya ke internet tanpa pernah
+     * diberi tahu.
+     *
+     * Daftar putih juga berarti kelompok ini boleh tumbuh tanpa endpoint publik
+     * ikut membocorkan apa pun yang ditambahkan — pengaturan baru harus DIPILIH
+     * untuk tayang, bukan tayang karena lupa dikecualikan.
      */
+    private const PUBLIC_SETTINGS = [
+        'primary_email',
+        'footer_address_label',
+        'headquarters_address',
+        'social_instagram',
+        'social_tiktok',
+        'social_x',
+        'social_facebook',
+        'social_youtube',
+    ];
+
     public function settings(): JsonResponse
     {
         return response()->json(
-            SiteSetting::query()->where('group', SiteSetting::GROUP_CONTACT)->pluck('value', 'key')
+            SiteSetting::query()
+                ->where('group', SiteSetting::GROUP_CONTACT)
+                ->whereIn('key', self::PUBLIC_SETTINGS)
+                ->pluck('value', 'key')
                 ->reject(fn ($value) => blank($value))
                 ->mapWithKeys(fn (string $value, string $key) => [str($key)->camel()->toString() => $value])
                 ->all(),

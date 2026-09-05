@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\NewsArticle;
+use App\Models\SiteSetting;
 use Database\Seeders\FrontendContentSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
@@ -136,6 +137,46 @@ class ApiConventionTest extends TestCase
                 );
             }
         }
+    }
+
+    /**
+     * `/settings` mengirim naskah publik, BUKAN config internal.
+     *
+     * `form_recipient_email` ada di kelompok pengaturan yang sama — ia yang
+     * menentukan ke mana pemberitahuan formulir dirutekan — dan sampai
+     * 2026-09-05 ia ikut terkirim ke internet karena endpointnya menyapu
+     * seluruh kelompok. Nilainya kebetulan sama dengan alamat yang memang
+     * tayang, jadi tidak ada yang melihatnya; mengarahkannya ke kotak masuk
+     * internal akan menerbitkannya tanpa satu pun tanda.
+     *
+     * Tes ini menjaga arahnya: pengaturan baru di kelompok `contact` TIDAK
+     * tayang sampai seseorang memasukkannya ke daftar putih.
+     */
+    public function test_settings_does_not_publish_internal_configuration(): void
+    {
+        $this->seed(FrontendContentSeeder::class);
+
+        SiteSetting::putMany([
+            'primary_email' => 'contact@dwf.test',
+            'footer_address_label' => 'Headquarters, Lausanne, CH',
+            'social_instagram' => 'dominoworldfederation',
+
+            // Dua yang TIDAK boleh tayang: satu config internal yang sudah ada,
+            // satu pengaturan baru yang belum diputuskan untuk tayang.
+            'form_recipient_email' => 'kotak-masuk-internal@dwf.test',
+            'sesuatu_yang_baru' => 'belum diputuskan untuk tayang',
+        ], SiteSetting::GROUP_CONTACT);
+
+        $body = $this->getJson('/api/v1/settings')->assertOk()->json();
+
+        $this->assertArrayNotHasKey('formRecipientEmail', $body);
+        $this->assertArrayNotHasKey('sesuatuYangBaru', $body);
+        $this->assertStringNotContainsString('kotak-masuk-internal', json_encode($body));
+
+        // Yang memang publik tetap ada — daftar putihnya bukan sekadar kosong.
+        $this->assertArrayHasKey('primaryEmail', $body);
+        $this->assertArrayHasKey('footerAddressLabel', $body);
+        $this->assertArrayHasKey('socialInstagram', $body);
     }
 
     /**
