@@ -20,6 +20,7 @@ use App\Http\Controllers\Cms\MemberFederationController;
 use App\Http\Controllers\Cms\NewsArticleController;
 use App\Http\Controllers\Cms\NewsCategoryController;
 use App\Http\Controllers\Cms\NewsletterController;
+use App\Http\Controllers\Cms\NotificationController;
 use App\Http\Controllers\Cms\PeopleController;
 use App\Http\Controllers\Cms\ResultController;
 use App\Http\Controllers\Cms\RoleController;
@@ -84,6 +85,20 @@ Route::get('/media/documents/{document}', [MediaController::class, 'document'])
 Route::middleware('auth')->group(function () {
     Route::redirect('/', '/dashboard');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    /*
+     * Lonceng di topbar.
+     *
+     * Tanpa `can:` apa pun, dan itu bukan kelalaian: notifikasi milik satu
+     * orang, dan kedua aksi ini bekerja lewat relasi milik pengguna yang
+     * sedang masuk. Izin modul menentukan siapa yang MENERIMA notifikasinya
+     * (lihat `SubmissionRecipients`), bukan siapa yang boleh membaca
+     * loncengnya sendiri.
+     */
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])
+        ->name('notifications.read-all');
+    Route::get('/notifications/{notification}', [NotificationController::class, 'open'])
+        ->name('notifications.open');
 
     // Unggahan gambar dari dalam editor teks kaya — dipakai News, FAQ, dan
     // Legal Pages, jadi ia berdiri sendiri dan tidak menempel di salah satunya.

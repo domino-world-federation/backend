@@ -40,11 +40,47 @@ return [
         'theme_light' => 'Switch to dark theme',
         'theme_dark' => 'Switch to light theme',
         'notifications' => 'Notifications',
-        'notifications_unavailable' => 'Notifications are not built yet — nothing sends them.',
+        'notifications_empty' => 'Nothing new. Messages and reports from the public site appear here.',
+        'notifications_mark_all' => 'Mark all as read',
+        'notifications_count' => ':count unread',
         'language' => 'Language',
         'sign_out' => 'Sign out',
         'breadcrumb' => 'Breadcrumb',
         'pagination' => 'Pagination',
+    ],
+
+    /*
+     * Pemberitahuan formulir situs publik.
+     *
+     * `contact` dan `newsletter` boleh menyebut isinya; `integrity` TIDAK, dan
+     * `why_empty` adalah kalimat yang menjelaskan kekosongan itu kepada
+     * penerimanya — tanpa itu, surel yang tidak menyebut apa-apa terbaca
+     * seperti surel yang rusak.
+     */
+    'notifications' => [
+        'contact' => [
+            'subject' => 'New message: :topic',
+            'intro' => ':name sent a message about :topic.',
+            'from' => 'Reply-to: :email',
+            'action' => 'Open the message',
+            'bell_title' => 'New contact message',
+            'bell_body' => ':name — :topic',
+        ],
+        'integrity' => [
+            'subject' => 'A new integrity report has been filed',
+            'intro' => 'Someone has filed a report through the integrity channel on the public site.',
+            'why_empty' => 'Neither the incident type nor the report itself is included in this email. The page it came from promises confidentiality, and email leaves the system — read it in the backoffice, where it is behind sign-in.',
+            'action' => 'Open the report',
+            'bell_title' => 'New integrity report',
+            'bell_body' => 'Filed through the public site. Open it to read it.',
+        ],
+        'newsletter' => [
+            'subject' => ':count new newsletter subscriber(s)',
+            'intro' => ':count address(es) joined the newsletter in the last day. The list now stands at :total.',
+            'action' => 'Open the newsletter list',
+            'bell_title' => 'Newsletter',
+            'bell_body' => ':count new subscriber(s) since yesterday',
+        ],
     ],
 
     'auth' => [

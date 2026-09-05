@@ -8,6 +8,9 @@ use App\Models\IntegrityReport;
 use App\Models\NewsletterSubscriber;
 use App\Models\Tournament;
 use App\Models\TournamentNotification;
+use App\Notifications\NewContactMessage;
+use App\Notifications\NewIntegrityReport;
+use App\Support\SubmissionNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -58,7 +61,12 @@ class SubmissionController extends Controller
             'subject' => ['nullable', 'string', 'max:200'],
         ]);
 
-        ContactMessage::create($data);
+        $message = ContactMessage::create($data);
+
+        // Setelah baris tersimpan, dan tidak pernah menggantikannya: kalau
+        // pemberitahuannya gagal, pesannya tetap ada di backoffice. Lihat
+        // `SubmissionNotifier` — ia menelan kegagalannya ke log dengan sengaja.
+        SubmissionNotifier::send('contact-messages.view', new NewContactMessage($message));
 
         return $this->accepted();
     }
@@ -86,6 +94,12 @@ class SubmissionController extends Controller
             ['email' => mb_strtolower($data['email'])],
             ['unsubscribed_at' => null],
         );
+
+        // TIDAK ada pemberitahuan per pendaftar — sengaja. Berlangganan buletin
+        // bukan sesuatu yang harus dikerjakan seseorang, dan satu surel per
+        // orang akan melatih penerimanya mengabaikan seluruh pemberitahuan dari
+        // sistem ini; yang ikut terabaikan nanti adalah laporan integritas.
+        // Ringkasan hariannya dikirim `dwf:newsletter-digest`.
 
         return $this->accepted();
     }
@@ -135,7 +149,12 @@ class SubmissionController extends Controller
             'description' => ['required', 'string', 'min:'.IntegrityReport::MIN_DESCRIPTION, 'max:10000'],
         ]);
 
-        IntegrityReport::create($data);
+        $report = IntegrityReport::create($data);
+
+        // Hanya nomor barisnya yang dibawa. Pemberitahuannya tidak memuat jenis
+        // insiden maupun satu kata pun dari laporannya — lihat
+        // `NewIntegrityReport` untuk alasannya, yang bukan soal kerapian.
+        SubmissionNotifier::send('integrity-reports.view', new NewIntegrityReport($report->id));
 
         return $this->accepted();
     }

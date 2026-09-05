@@ -110,6 +110,20 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tujuan pemberitahuan formulir situs publik
+    |--------------------------------------------------------------------------
+    |
+    | Cadangan untuk `form_recipient_email` di Site Settings, yang lebih
+    | didahulukan karena bisa diubah tanpa akses server. Yang di sini menjaga
+    | agar kotak masuk tidak diam-diam menjadi "tidak ke mana-mana" hanya
+    | karena satu baris pengaturan belum diisi.
+    |
+    */
+
+    'submissions_to' => env('MAIL_SUBMISSIONS_TO'),
+
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),

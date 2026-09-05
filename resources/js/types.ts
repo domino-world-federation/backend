@@ -22,7 +22,22 @@ export interface NavNode {
     key?: string
     href?: string
     built?: boolean
+    /**
+     * Yang belum dikerjakan di modul itu — dari tabelnya sendiri, bukan dari
+     * lonceng. Tidak dikirim sama sekali kalau nol; lihat `Navigation::badgeFor`.
+     */
+    badge?: number
     children?: NavChild[]
+}
+
+/** Satu baris di panel lonceng. */
+export interface NotificationItem {
+    id: string
+    title: string
+    body: string
+    module: string | null
+    isRead: boolean
+    receivedAt: string | null
 }
 
 export interface AuthUser {
@@ -40,6 +55,8 @@ export interface LocaleOption {
 export interface SharedProps {
     auth: { user: AuthUser | null }
     navigation: NavNode[]
+    /** `null` saat belum masuk — lonceng tidak digambar di halaman login. */
+    notifications: { unreadCount: number; items: NotificationItem[] } | null
     flash: { success: string | null; error: string | null }
     locale: string
     /** Pengalih bahasa di topbar; mati secara bawaan. */

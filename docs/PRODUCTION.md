@@ -9,7 +9,7 @@ Diperbarui 2026-09-03.
 
 ---
 
-## 1. Penjadwal: satu proses, dua pekerjaan
+## 1. Penjadwal dan pekerja antrean: dua proses
 
 Pilih **salah satu** — bukan keduanya. Dua penjadwal berarti tiap pekerjaan
 berpeluang jalan dua kali.
@@ -65,9 +65,47 @@ layar yang memperlihatkannya**:
 |---|---|---|
 | `editor:prune --days=7` | Senin 03:10 | Gambar di `storage/app/public/editor` yang tidak disebut HTML mana pun |
 | `activitylog:clean` | Harian 03:30 | Baris `activity_log` yang lebih tua dari `ACTIVITY_LOG_RETENTION_DAYS` |
+| `dwf:newsletter-digest` | Harian 07:00 | Ringkasan pendaftar buletin ke kotak masuk federasi. Tidak mengirim apa-apa kalau angkanya nol |
 
 Yang terlihat kalau penjadwalnya lupa dipasang — atau `pm2 save` terlewat dan
 server pernah reboot: disk penuh, berbulan-bulan kemudian.
+
+### Pekerja antrean — `dwf-queue`
+
+**Ini yang paling mudah lupa dipasang, dan kegagalannya paling menyesatkan.**
+
+Sejak 2026-09-05 setiap formulir situs publik mengirim pemberitahuan, dan
+seluruhnya `ShouldQueue`. Tanpa proses ini:
+
+- tidak ada satu pun surel yang keluar;
+- lonceng di backoffice tidak pernah terisi;
+- **situs publik tetap membalas 204 dan tidak ada satu pun layar yang
+  memperlihatkannya.**
+
+Gejalanya identik dengan "tidak ada yang mengirim formulir" — dan itu kesimpulan
+yang salah, yang bisa bertahan berminggu-minggu.
+
+`pm2 start ecosystem.config.cjs` menyalakannya bersama penjadwal. Memeriksanya:
+
+```bash
+pm2 logs dwf-queue --lines 20
+php artisan queue:monitor database:default
+```
+
+Atau paling cepat, langsung ke tabelnya — angka yang naik dan tidak pernah turun
+berarti prosesnya mati:
+
+```sql
+select count(*) from jobs;        -- yang menunggu
+select count(*) from failed_jobs; -- yang menyerah setelah 3 percobaan
+```
+
+Yang gagal bisa dikirim ulang: `php artisan queue:retry all`.
+
+**Tiap deploy: `pm2 restart dwf-queue`.** Pekerja Laravel memuat aplikasi sekali
+lalu hidup terus, jadi kode baru tidak ikut sampai ia dinyalakan ulang.
+`--max-time=3600` adalah jaring pengamannya — ia mati sendiri tiap jam — tapi
+mengandalkan itu berarti deploy yang efeknya baru muncul sejam kemudian.
 
 **`editor:prune` punya `--dry-run`.** Jalankan itu dulu di server baru sebelum
 mempercayainya. Ambang `--days=7` jangan diturunkan ke 0: gambar diunggah saat
@@ -318,7 +356,7 @@ pendek.
 |---|---|
 | `APP_URL` | API publik mengirim **URL gambar absolut** (§5.2 kontrak API). Salah nilainya = tiap gambar di situs publik menunjuk domain yang salah, sementara backoffice tetap normal |
 | `CORS_ALLOWED_ORIGINS` | Daftar domain situs publik, dipisah koma. **Kosong adalah bawaan yang benar** dan menghasilkan galat CORS yang terlihat di konsol; wildcard `*` menghasilkan lubang yang tidak terlihat di mana pun. Jangan pakai `*` |
-| `MAIL_*` | Undangan admin dikirim **sinkron** (`Mail::to()->send()`, bukan antrean). SMTP yang lambat memperlambat request-nya; SMTP yang mati membuat undangan gagal terkirim — tapi akunnya tetap dibuat, dan layarnya memberi tahu bahwa tautannya perlu dikirim ulang. Tombolnya sudah ada. **Penyetelan lengkapnya di §15** — termasuk kenapa `MAIL_MAILER=log` adalah kegagalan yang terlihat seperti keberhasilan |
+| `MAIL_*` | **Dua jalur sekarang.** Pemberitahuan formulir situs publik lewat ANTREAN — butuh `dwf-queue` hidup (§1), dan tanpanya tidak ada surel yang keluar tanpa satu pun tanda. Undangan admin tetap **sinkron** (`Mail::to()->send()`). SMTP yang lambat memperlambat request-nya; SMTP yang mati membuat undangan gagal terkirim — tapi akunnya tetap dibuat, dan layarnya memberi tahu bahwa tautannya perlu dikirim ulang. Tombolnya sudah ada. **Penyetelan lengkapnya di §15** — termasuk kenapa `MAIL_MAILER=log` adalah kegagalan yang terlihat seperti keberhasilan |
 
 ### Sakelar yang perilakunya sengaja "mati kalau kosong"
 

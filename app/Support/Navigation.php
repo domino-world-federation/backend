@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\ContactMessage;
+use App\Models\IntegrityReport;
 use Illuminate\Contracts\Auth\Access\Authorizable;
 
 /**
@@ -217,7 +219,9 @@ final class Navigation
 
         foreach ($visible as $index => $node) {
             if ($node['type'] !== 'heading') {
-                $out[] = $node;
+                $badge = self::badgeFor($node['key'] ?? '');
+
+                $out[] = $badge === null ? $node : [...$node, 'badge' => $badge];
 
                 continue;
             }
@@ -230,6 +234,33 @@ final class Navigation
         }
 
         return $out;
+    }
+
+    /**
+     * Angka di sebelah kanan menu — yang BELUM DIBACA di modul itu.
+     *
+     * Dihitung dari tabel modulnya sendiri (`read_at`), bukan dari tabel
+     * `notifications`. Keduanya menjawab pertanyaan yang berbeda: lonceng
+     * menghitung yang belum DILIHAT oleh satu orang, badge menghitung yang
+     * belum DIKERJAKAN oleh siapa pun. Menandai lonceng terbaca tidak boleh
+     * membuat sepuluh pesan yang belum dibalas menghilang dari sidebar.
+     *
+     * Cuma dua modul yang punya keadaan itu. Buletin tidak: sebuah alamat tidak
+     * "belum dibaca", jadi angka di sana akan jadi hiasan yang tidak pernah
+     * berkurang.
+     *
+     * Nol mengembalikan `null`, bukan 0 — badge bertuliskan "0" adalah lencana
+     * yang menarik mata untuk memberi tahu bahwa tidak ada apa-apa.
+     */
+    private static function badgeFor(string $key): ?int
+    {
+        $count = match ($key) {
+            'contact-messages' => ContactMessage::query()->unread()->count(),
+            'integrity-reports' => IntegrityReport::query()->unread()->count(),
+            default => 0,
+        };
+
+        return $count > 0 ? $count : null;
     }
 
     /** Tujuan yang modulnya belum dibangun — dipakai dashboard. */

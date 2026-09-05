@@ -1,5 +1,5 @@
 /**
- * Penjadwal Laravel di bawah PM2 — pengganti satu entri crontab.
+ * Dua proses latar Laravel di bawah PM2: penjadwal dan pekerja antrean.
  *
  * PM2 sudah menyalakan situs publik di server ini, jadi penjadwal ikut ke sana:
  * satu tempat untuk melihat apa yang hidup (`pm2 ls`) dan satu tempat untuk
@@ -31,6 +31,30 @@
  * `pm2 save` bukan pelengkap: tanpa itu, reboot berikutnya mematikan penjadwal
  * dan tidak ada satu pun layar yang memberi tahu. Gejalanya sama persis dengan
  * cron yang lupa dipasang — disk penuh berbulan-bulan kemudian.
+ *
+ * ── Pekerja antrean: `dwf-queue` ──
+ *
+ * Ditambahkan 2026-09-05 bersama pemberitahuan formulir situs publik. Seluruh
+ * notifikasi `ShouldQueue`, jadi TANPA proses ini tidak ada satu pun surel yang
+ * keluar dan lonceng di backoffice tidak pernah terisi — sementara situs publik
+ * tetap membalas 204 dan tidak ada satu pun layar yang memperlihatkan bahwa
+ * antreannya menumpuk. Gejalanya identik dengan "tidak ada yang mengirim
+ * formulir", yang adalah kesimpulan yang salah.
+ *
+ * Periksa dengan `php artisan queue:monitor database:default` atau, paling
+ * cepat, `select count(*) from jobs` — angka yang naik dan tidak pernah turun
+ * berarti prosesnya mati.
+ *
+ * `--tries=3` dan `--backoff=60`: SMTP gagal karena hal-hal yang sembuh sendiri
+ * (rate limit penyedia, jaringan), dan pemberitahuan yang menyerah pada
+ * percobaan pertama adalah laporan integritas yang tidak pernah dikabarkan.
+ * Yang gagal tiga kali masuk `failed_jobs` dan bisa dikirim ulang dengan
+ * `php artisan queue:retry all`.
+ *
+ * `--max-time=3600`: pekerja Laravel memuat aplikasi SEKALI dan hidup terus,
+ * jadi kode baru tidak ikut sampai ia dinyalakan ulang. Membiarkannya mati
+ * sendiri tiap jam berarti deploy yang lupa `pm2 restart dwf-queue` tetap
+ * sampai — dalam sejam, bukan tidak pernah.
  *
  * ── Jangan dijalankan bersama crontab ──
  *
@@ -78,6 +102,38 @@ module.exports = {
       // Log dibiarkan di tempat bawaan PM2 (`~/.pm2/logs/dwf-scheduler-*.log`),
       // yang mengikuti pengguna yang menjalankannya. Menuliskannya di sini
       // berarti mengunci berkas ini ke satu home directory lagi.
+      time: true,
+    },
+
+    {
+      name: 'dwf-queue',
+
+      cwd: __dirname,
+
+      script: 'php',
+      args: 'artisan queue:work --tries=3 --backoff=60 --max-time=3600',
+
+      /*
+       * Satu pekerja. Notifikasi di aplikasi ini datang beberapa per jam pada
+       * hari tersibuknya — pekerja kedua hanya menambah proses yang menunggu.
+       * Kalau suatu saat memang perlu, naikkan angkanya; jangan menyalakan
+       * `queue:work` kedua dengan tangan, karena yang itu tidak ikut mati saat
+       * PM2 dimatikan.
+       */
+      instances: 1,
+      exec_mode: 'fork',
+
+      autorestart: true,
+
+      // `--max-time=3600` membuatnya keluar dengan sukses tiap jam, dan PM2
+      // menyalakannya lagi. Itu WAJAR di sini — jadi `min_uptime` diberi jarak
+      // jauh dari satu jam supaya restart terjadwal itu tidak dihitung sebagai
+      // kegagalan.
+      max_restarts: 10,
+      min_uptime: '60s',
+
+      max_memory_restart: '256M',
+
       time: true,
     },
   ],

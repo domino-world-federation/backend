@@ -57,6 +57,37 @@ class HandleInertiaRequests extends Middleware
             // ke siapa pun yang membuka /login.
             'navigation' => Navigation::forUser($user),
 
+            /*
+             * Isi lonceng.
+             *
+             * Dua query per permintaan halaman — satu hitungan, satu daftar
+             * pendek — dan keduanya memakai indeks yang dipasang migrasi
+             * `notifications`. Itu harga yang dibayar karena loncengnya ada di
+             * SETIAP halaman: kalau ia diambil lewat permintaan terpisah, ia
+             * baru terisi sesudah halaman tergambar, dan lonceng yang angkanya
+             * muncul belakangan terbaca seperti notifikasi yang baru datang.
+             *
+             * Delapan baris, bukan seluruhnya: panel ini tempat melihat apa
+             * yang menunggu, bukan arsip. Yang lebih lama dari itu dibuka di
+             * modulnya masing-masing, tempat ia bisa disaring dan dicari.
+             */
+            'notifications' => $user === null ? null : [
+                'unreadCount' => $user->unreadNotifications()->count(),
+                'items' => $user->notifications()
+                    ->latest()
+                    ->limit(8)
+                    ->get()
+                    ->map(fn ($row) => [
+                        'id' => $row->id,
+                        'title' => $row->data['title'] ?? '',
+                        'body' => $row->data['body'] ?? '',
+                        'module' => $row->data['module'] ?? null,
+                        'isRead' => $row->read_at !== null,
+                        'receivedAt' => $row->created_at?->toIso8601String(),
+                    ])
+                    ->all(),
+            ],
+
             // Kamus dikirim UTUH, bukan per halaman.
             //
             // Berkasnya ~270 kunci (~12 KB sebelum gzip) dan ia ikut di setiap

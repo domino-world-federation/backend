@@ -52,3 +52,20 @@ Schedule::command('activitylog:clean')
     ->dailyAt('03:30')
     ->onOneServer()
     ->withoutOverlapping();
+
+/*
+ * Ringkasan pendaftar buletin.
+ *
+ * Sekali sehari, dan TIDAK mengirim apa-apa kalau angkanya nol — lihat
+ * `NewsletterDigestCommand`. Pukul 07:00 supaya ia sudah ada di kotak masuk
+ * saat orang mulai bekerja, bukan tengah malam bersama tugas kebersihan di
+ * atas: ini satu-satunya jadwal di berkas ini yang ditujukan untuk DIBACA
+ * manusia.
+ *
+ * `withoutOverlapping()` tidak dipasang: jalannya sekejap dan tidak ada yang
+ * rusak kalau dua eksekusi berpapasan. `onOneServer()` dipasang, karena dua
+ * server berarti dua surel untuk satu hari yang sama.
+ */
+Schedule::command('dwf:newsletter-digest')
+    ->dailyAt('07:00')
+    ->onOneServer();

@@ -99,8 +99,10 @@ function logout(): void {
     router.post('/logout')
 }
 
+// `relative` supaya badge bisa duduk di pojok ikon saat sidebar menciut —
+// tanpa itu ia dipatok ke leluhur berposisi terdekat, yang jauh di atas sana.
 const mainItemClass =
-    'flex w-full items-center gap-3 rounded px-3 py-1.5 text-nav-l transition-colors'
+    'relative flex w-full items-center gap-3 rounded px-3 py-1.5 text-nav-l transition-colors'
 </script>
 
 <template>
@@ -184,6 +186,28 @@ const mainItemClass =
                     >
                         <NavIcon :name="node.icon" />
                         <span v-show="!collapsed" class="flex-1 truncate">{{ node.label }}</span>
+
+                        <!-- Yang belum dikerjakan di modul itu. Angkanya
+                             DICETAK, bukan titik: "ada sesuatu" dan "ada dua
+                             puluh tiga" menuntut hari yang berbeda.
+
+                             Saat sidebar menciut, angkanya tetap ada tapi jadi
+                             titik di pojok ikon — label yang ikut hilang membuat
+                             angka telanjang tidak bisa dibaca milik siapa, dan
+                             menyembunyikannya sama sekali berarti menciutkan
+                             sidebar diam-diam menyembunyikan pekerjaan. -->
+                        <span
+                            v-if="node.badge"
+                            :class="[
+                                'shrink-0 rounded-full bg-danger font-semibold text-white',
+                                collapsed
+                                    ? 'absolute top-1 right-1 h-2 w-2'
+                                    : 'px-1.5 py-0.5 text-[10px] leading-none',
+                            ]"
+                            :aria-label="`${node.badge}`"
+                        >
+                            <template v-if="!collapsed">{{ node.badge }}</template>
+                        </span>
                     </Link>
 
                     <div v-else class="flex flex-col">

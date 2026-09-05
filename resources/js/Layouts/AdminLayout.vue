@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { usePage } from '@inertiajs/vue3'
-import { PhBell, PhMoon, PhSun } from '@phosphor-icons/vue'
+import { PhMoon, PhSun } from '@phosphor-icons/vue'
 import AppSidebar from '@/Components/Sidebar/AppSidebar.vue'
 import LanguageSwitcher from '@/Components/LanguageSwitcher.vue'
+import NotificationBell from '@/Components/NotificationBell.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useTheme } from '@/composables/useTheme'
 import type { SharedProps } from '@/types'
@@ -61,21 +62,11 @@ watch(collapsed, (value) => {
                     <component :is="theme === 'dark' ? PhMoon : PhSun" :size="24" aria-hidden="true" />
                 </button>
 
-                <!-- Mati, dan `title`-nya menyebut ALASANNYA — aturan yang
-                     sama dengan `IconButton`. Tombol mati yang tooltipnya cuma
-                     mengulang namanya membuat orang menekannya berkali-kali
-                     mengira dirinya yang salah. `cursor-not-allowed`, bukan
-                     `cursor-pointer`: kursor yang menjanjikan klik pada tombol
-                     yang tidak menerima klik adalah janji yang sama. -->
-                <button
-                    type="button"
-                    class="cursor-not-allowed text-cool-90"
-                    :aria-label="t('nav.notifications')"
-                    disabled
-                    :title="t('nav.notifications_unavailable')"
-                >
-                    <PhBell :size="24" aria-hidden="true" class="opacity-40" />
-                </button>
+                <!-- Hidup sejak 2026-09-05. Tombol ini dulu `disabled` dengan
+                     tooltip yang mengakui alasannya — belum ada yang mengirim
+                     notifikasi — dan tooltip itu dihapus bersama alasannya,
+                     bukan dibiarkan menua jadi keterangan yang salah. -->
+                <NotificationBell />
             </header>
 
             <!--

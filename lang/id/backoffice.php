@@ -41,11 +41,47 @@ return [
         'theme_light' => 'Ganti ke tema gelap',
         'theme_dark' => 'Ganti ke tema terang',
         'notifications' => 'Notifikasi',
-        'notifications_unavailable' => 'Notifikasi belum dibangun — belum ada yang mengirimnya.',
+        'notifications_empty' => 'Belum ada yang baru. Pesan dan laporan dari situs publik muncul di sini.',
+        'notifications_mark_all' => 'Tandai semua terbaca',
+        'notifications_count' => ':count belum dibaca',
         'language' => 'Bahasa',
         'sign_out' => 'Keluar',
         'breadcrumb' => 'Remah roti',
         'pagination' => 'Penomoran halaman',
+    ],
+
+    /*
+     * Pemberitahuan formulir situs publik.
+     *
+     * `contact` dan `newsletter` boleh menyebut isinya; `integrity` TIDAK, dan
+     * `why_empty` adalah kalimat yang menjelaskan kekosongan itu kepada
+     * penerimanya — tanpa itu, surel yang tidak menyebut apa-apa terbaca
+     * seperti surel yang rusak.
+     */
+    'notifications' => [
+        'contact' => [
+            'subject' => 'Pesan baru: :topic',
+            'intro' => ':name mengirim pesan tentang :topic.',
+            'from' => 'Balas ke: :email',
+            'action' => 'Buka pesannya',
+            'bell_title' => 'Pesan kontak baru',
+            'bell_body' => ':name — :topic',
+        ],
+        'integrity' => [
+            'subject' => 'Ada laporan integritas baru',
+            'intro' => 'Seseorang mengirim laporan lewat saluran integritas di situs publik.',
+            'why_empty' => 'Jenis insiden maupun isi laporannya sengaja tidak disertakan di surel ini. Halaman asalnya menjanjikan kerahasiaan, dan surel keluar dari batas sistem — bacalah di backoffice, di belakang login.',
+            'action' => 'Buka laporannya',
+            'bell_title' => 'Laporan integritas baru',
+            'bell_body' => 'Masuk dari situs publik. Buka untuk membacanya.',
+        ],
+        'newsletter' => [
+            'subject' => ':count pendaftar buletin baru',
+            'intro' => ':count alamat berlangganan buletin dalam sehari terakhir. Daftarnya kini :total.',
+            'action' => 'Buka daftar buletin',
+            'bell_title' => 'Buletin',
+            'bell_body' => ':count pendaftar baru sejak kemarin',
+        ],
     ],
 
     'auth' => [
