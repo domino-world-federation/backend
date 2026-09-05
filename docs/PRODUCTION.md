@@ -9,21 +9,55 @@ Diperbarui 2026-09-03.
 
 ---
 
-## 1. Satu entri cron, dua pekerjaan
+## 1. Penjadwal: satu proses, dua pekerjaan
+
+Pilih **salah satu** — bukan keduanya. Dua penjadwal berarti tiap pekerjaan
+berpeluang jalan dua kali.
+
+### PM2 (dipakai di server ini)
+
+PM2 sudah menyalakan situs publik di server yang sama, jadi penjadwal ikut ke
+sana: satu tempat untuk melihat apa yang hidup (`pm2 ls`), satu tempat untuk
+melihat kenapa ia mati (`pm2 logs dwf-scheduler`). Crontab tidak punya keduanya
+— pekerjaan yang gagal diam, dan satu-satunya jejaknya surel ke mailbox lokal
+yang tidak pernah dibaca siapa pun.
+
+```bash
+pm2 start deploy/pm2/ecosystem.config.cjs
+pm2 save          # WAJIB — tanpa ini reboot berikutnya mematikan penjadwal
+pm2 startup       # sekali per server, ikuti perintah yang dicetaknya
+```
+
+Config-nya di `deploy/pm2/ecosystem.config.cjs` (folder `deploy/` di-gitignore,
+sama seperti config nginx — ia milik server, bukan repo). Isinya
+**`schedule:work`, bukan `schedule:run`**: yang kedua sekali jalan lalu keluar,
+jadi PM2 akan melihat proses yang selesai dalam sedetik dan menyalakannya
+lagi tanpa henti. Yang pertama tinggal hidup dan memanggil `schedule:run`
+sendiri tiap menit.
+
+Periksa ia benar-benar bekerja — bukan sekadar `online`:
+
+```bash
+pm2 logs dwf-scheduler --lines 20
+php artisan schedule:list
+```
+
+### crontab (alternatif)
 
 ```cron
 * * * * * cd /path/ke/backend-cms && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-Tanpa baris ini, dua hal tumbuh tanpa batas dan **tidak ada satu pun layar yang
-memperlihatkannya**:
+Tanpa salah satu di atas, dua hal tumbuh tanpa batas dan **tidak ada satu pun
+layar yang memperlihatkannya**:
 
 | Pekerjaan | Jadwal | Yang dibereskan |
 |---|---|---|
 | `editor:prune --days=7` | Senin 03:10 | Gambar di `storage/app/public/editor` yang tidak disebut HTML mana pun |
 | `activitylog:clean` | Harian 03:30 | Baris `activity_log` yang lebih tua dari `ACTIVITY_LOG_RETENTION_DAYS` |
 
-Yang terlihat kalau cron-nya lupa dipasang: disk penuh, berbulan-bulan kemudian.
+Yang terlihat kalau penjadwalnya lupa dipasang — atau `pm2 save` terlewat dan
+server pernah reboot: disk penuh, berbulan-bulan kemudian.
 
 **`editor:prune` punya `--dry-run`.** Jalankan itu dulu di server baru sebelum
 mempercayainya. Ambang `--days=7` jangan diturunkan ke 0: gambar diunggah saat

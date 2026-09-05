@@ -541,10 +541,14 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   jendela nyata di mana berkas sudah ada di disk tapi belum disebut baris mana
   pun: selama orangnya masih mengetik. `--days=7` bawaannya; menurunkannya ke 0
   berarti menghapus gambar dari bawah formulir yang sedang dibuka.
-- **Dua jadwal butuh SATU entri cron di server.**
-  `* * * * * php artisan schedule:run` — tanpa itu `editor:prune` dan
-  `activitylog:clean` tidak pernah jalan, dan tidak ada satu pun layar yang
-  memperlihatkannya. Keduanya membereskan hal yang tumbuh tanpa batas.
+- **Dua jadwal butuh SATU penjadwal di server** — di produksi ini PM2
+  (`deploy/pm2/ecosystem.config.cjs`), bukan crontab, karena PM2 sudah
+  menyalakan situs publik di mesin yang sama. Perintahnya `schedule:work`,
+  BUKAN `schedule:run`: yang kedua sekali jalan lalu keluar, jadi PM2 akan
+  menyalakannya lagi tanpa henti. Tanpa penjadwalnya, `editor:prune` dan
+  `activitylog:clean` tidak pernah jalan dan tidak ada satu pun layar yang
+  memperlihatkannya — keduanya membereskan hal yang tumbuh tanpa batas.
+  Lengkapnya di `docs/PRODUCTION.md` §1.
 - **`<meta name="csrf-token">` di `app.blade.php` dipakai unggahan editor.**
   Inertia tidak membutuhkannya (axios membaca cookie `XSRF-TOKEN` sendiri), tapi
   `fetch` tidak melakukan itu — tanpa baris itu yang muncul 419 tanpa penjelasan.
