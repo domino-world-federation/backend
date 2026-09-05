@@ -44,6 +44,47 @@ class MailTestCommandTest extends TestCase
     }
 
     /**
+     * `MAIL_SCHEME=tls` ditolak SEBELUM mencoba menyambung.
+     *
+     * Tebakan yang wajar sekali — hampir semua dokumentasi SMTP menulis "TLS"
+     * untuk port 587, dan Laravel sendiri dulu punya `MAIL_ENCRYPTION=tls`.
+     * Symfony menamainya `smtp`. Galat bawaannya menyebut daftar yang sah tapi
+     * tidak menyebut mana yang harus dipilih untuk port yang sedang dipakai;
+     * perintah ini yang melengkapinya.
+     */
+    public function test_it_rejects_an_unknown_smtp_scheme(): void
+    {
+        config([
+            'mail.default' => 'smtp',
+            'mail.mailers.smtp.scheme' => 'tls',
+            'mail.mailers.smtp.port' => 587,
+            'mail.from.address' => 'no-reply@dwf.test',
+        ]);
+
+        $this->artisan('dwf:mail-test', ['email' => 'orang@example.com'])
+            ->expectsOutputToContain('MAIL_SCHEME=tls')
+            ->expectsOutputToContain('MAIL_SCHEME=smtp')
+            ->assertExitCode(1);
+    }
+
+    /** Yang sah lolos — termasuk yang dikosongkan. */
+    public function test_it_accepts_the_valid_schemes(): void
+    {
+        foreach ([null, 'smtp'] as $scheme) {
+            Mail::fake();
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.scheme' => $scheme,
+                'mail.mailers.smtp.port' => 587,
+                'mail.from.address' => 'no-reply@dwf.test',
+            ]);
+
+            $this->artisan('dwf:mail-test', ['email' => 'orang@example.com'])
+                ->assertExitCode(0);
+        }
+    }
+
+    /**
      * Dan jalur yang benar LULUS — kalau tidak, tes di atas lulus karena
      * perintahnya menolak segalanya.
      */

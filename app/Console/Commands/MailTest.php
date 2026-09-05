@@ -30,6 +30,18 @@ class MailTest extends Command
     /** Mailer yang TIDAK mengirim ke mana pun, sekeras apa pun ia terlihat berhasil. */
     private const OFFLINE_MAILERS = ['log', 'array'];
 
+    /**
+     * Nilai `MAIL_SCHEME` yang dikenal Symfony Mailer. Kosong juga sah.
+     *
+     * `tls` TIDAK ada di sini, dan itu tebakan yang wajar sekali — hampir semua
+     * dokumentasi SMTP di luar sana menulis "TLS" untuk port 587, dan Laravel
+     * sendiri dulu punya `MAIL_ENCRYPTION=tls`. Symfony menamainya lain: port
+     * 587 memakai `smtp` (STARTTLS dinegosiasi sendiri) dan port 465 memakai
+     * `smtps`. Galat bawaannya menyebut daftar yang benar tapi tidak menyebut
+     * mana yang harus dipilih, jadi diperiksa di sini supaya jawabannya utuh.
+     */
+    private const SMTP_SCHEMES = ['smtp', 'smtps'];
+
     public function handle(): int
     {
         $mailer = config('mail.default');
@@ -63,6 +75,33 @@ class MailTest extends Command
             $this->line('    <fg=yellow>php artisan config:clear && sudo systemctl reload php8.4-fpm</>');
 
             return self::FAILURE;
+        }
+
+        if ($mailer === 'smtp') {
+            $scheme = config('mail.mailers.smtp.scheme');
+            $port = (int) config('mail.mailers.smtp.port');
+
+            if (filled($scheme) && ! in_array($scheme, self::SMTP_SCHEMES, true)) {
+                $this->error("MAIL_SCHEME={$scheme} tidak dikenal — surelnya tidak akan pernah terkirim.");
+                $this->line('');
+                $this->line('  Yang sah cuma dua, dan port-nya yang menentukan:');
+                $this->line('    port 587 → <fg=yellow>MAIL_SCHEME=smtp</>   (STARTTLS dinegosiasi sendiri)');
+                $this->line('    port 465 → <fg=yellow>MAIL_SCHEME=smtps</>  (TLS sejak byte pertama)');
+                $this->line('  Mengosongkannya juga sah — Laravel menyimpulkannya dari port.');
+
+                return self::FAILURE;
+            }
+
+            // Bukan galat: keduanya tetap menyambung. Tapi ia hampir selalu
+            // salah ketik, dan gejalanya sambungan yang menggantung sampai
+            // timeout — bukan penolakan yang jelas.
+            if ($scheme === 'smtps' && $port !== 465) {
+                $this->warn("MAIL_SCHEME=smtps biasanya berpasangan dengan port 465, bukan {$port}.");
+            }
+
+            if ($scheme === 'smtp' && $port === 465) {
+                $this->warn('Port 465 biasanya berpasangan dengan MAIL_SCHEME=smtps, bukan smtp.');
+            }
         }
 
         if (blank($from)) {

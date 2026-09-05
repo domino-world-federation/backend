@@ -1130,15 +1130,63 @@ Gmail dan Yahoo menuntut SPF, DKIM, dan DMARC selaras.
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.resend.com
 MAIL_PORT=587
-MAIL_SCHEME=tls
+MAIL_SCHEME=smtp
 MAIL_USERNAME=resend                       # literal, bukan email Anda
 MAIL_PASSWORD=re_xxxxxxxxxxxxxxxxxxxx      # API key-nya
 MAIL_FROM_ADDRESS="no-reply@<domain-anda>"
 MAIL_FROM_NAME="Domino World Federation"
 ```
 
-SMTP, bukan transport API `resend` bawaan Laravel — tanpa dependensi baru, dan
-pindah penyedia nanti cukup mengganti empat baris di atas.
+**`MAIL_SCHEME=smtp`, BUKAN `tls`.** Ini tebakan yang wajar sekali dan sudah
+memakan satu putaran: hampir semua dokumentasi SMTP menulis "TLS" untuk port
+587, dan Laravel sendiri dulu punya `MAIL_ENCRYPTION=tls`. Symfony Mailer
+menamainya lain, dan cuma mengenal dua nilai — port 587 memakai `smtp`
+(STARTTLS dinegosiasi sendiri), port 465 memakai `smtps`. Mengosongkannya juga
+sah; Laravel menyimpulkannya dari port. Salah nilai = surel tidak pernah
+terkirim, dengan galat yang menyebut daftar yang sah tapi tidak menyebut mana
+yang harus dipilih. `dwf:mail-test` sekarang menangkapnya sebelum menyambung.
+
+### Dua jalur ke Resend, dan kapan memilih yang mana
+
+Yang di atas **SMTP**. Resend sendiri mendokumentasikan jalur lain untuk Laravel
+— transport API lewat paket `resend/resend-laravel`:
+
+```bash
+composer require resend/resend-laravel
+```
+
+```bash
+MAIL_MAILER=resend
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+MAIL_FROM_ADDRESS="no-reply@pborado.com"
+MAIL_FROM_NAME="Domino World Federation"
+```
+
+(`config/mail.php` sudah memuat entri `resend` — ia bawaan Laravel, tinggal
+paketnya yang belum ada.)
+
+Yang ditukar:
+
+| | SMTP | Transport API |
+|---|---|---|
+| Dependensi | tidak ada | satu paket, dan `composer install` wajib di deploy |
+| Yang bisa salah setel | host, port, scheme, username | cuma API key |
+| Port keluar | 587 — sebagian hoster memblokirnya | 443, seperti trafik web biasa |
+| Kecepatan | jabat tangan SMTP, ~1 detik | ~200 ms |
+| Pindah penyedia | ganti empat baris `.env` | ganti paket dan mailer |
+
+Kecepatan bukan detail kosmetik di sini: undangan dikirim **sinkron** di dalam
+request pembuatan akun (§4), jadi selisihnya terasa oleh orang yang menekan
+tombolnya.
+
+**Untuk produksi ini, transport API lebih tepat** — lebih sedikit yang bisa
+salah setel, dan kebal terhadap hoster yang memblokir port SMTP keluar. SMTP
+tetap ditulis lengkap di atas karena ia yang bekerja tanpa deploy apa pun, dan
+karena ia jalan keluar kalau paketnya bermasalah.
+
+**Urutannya penting kalau berpindah:** `composer install` di server DULU, baru
+`.env` diubah. Terbalik = `MAIL_MAILER=resend` menunjuk transport yang belum
+terpasang, dan undangan berhenti terkirim sampai deploy berikutnya.
 
 `MAIL_FROM_ADDRESS` **wajib** di domain yang barusan diverifikasi. Alamat gmail
 di sana akan gagal DMARC dan ditolak diam-diam.
@@ -1189,7 +1237,7 @@ lama.
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_SCHEME=tls
+MAIL_SCHEME=smtp
 MAIL_USERNAME=akun-anda@gmail.com
 MAIL_PASSWORD="xxxx xxxx xxxx xxxx"      # App Password 16 karakter, BUKAN sandi akun
 MAIL_FROM_ADDRESS="akun-anda@gmail.com"  # WAJIB sama dengan MAIL_USERNAME
@@ -1237,7 +1285,7 @@ reputasi IP Postmark yang membawanya ke inbox.
 ```bash
 MAIL_HOST=smtp.postmarkapp.com
 MAIL_PORT=587
-MAIL_SCHEME=tls
+MAIL_SCHEME=smtp
 MAIL_USERNAME=<server-token>     # token yang sama untuk username DAN password
 MAIL_PASSWORD=<server-token>
 MAIL_FROM_ADDRESS="<alamat-yang-diverifikasi>"
