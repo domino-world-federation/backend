@@ -1133,6 +1133,62 @@ KEGAGALAN, bukan sukses.
 **7. Periksa folder spam juga.** "Terkirim" bukan "masuk inbox". Kalau ia
 mendarat di spam, yang kurang hampir selalu DKIM atau DMARC — bukan kodenya.
 
+### Kalau DNS domainnya tidak bisa disentuh
+
+Kirim **sebagai** `no-reply@domain-anda` tanpa menyentuh DNS-nya tidak mungkin,
+dan itu bukan kerewelan penyedia: SPF dan DKIM justru **buktinya** bahwa Anda
+boleh memakai nama domain itu. Yang tanpa bukti akan dibuang penerima —
+sekarang lebih sering daripada dulu.
+
+Jadi jalan keluarnya bukan "kirim tanpa autentikasi", melainkan **kirim dari
+alamat yang domainnya sudah diautentikasi orang lain**: sebuah mailbox yang
+memang Anda punya.
+
+**Gmail atau Google Workspace lewat SMTP + App Password.** Nol record DNS,
+karena `gmail.com` (atau domain Workspace Anda) sudah punya SPF dan DKIM sejak
+lama.
+
+```bash
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_SCHEME=tls
+MAIL_USERNAME=akun-anda@gmail.com
+MAIL_PASSWORD="xxxx xxxx xxxx xxxx"      # App Password 16 karakter, BUKAN sandi akun
+MAIL_FROM_ADDRESS="akun-anda@gmail.com"  # WAJIB sama dengan MAIL_USERNAME
+MAIL_FROM_NAME="Domino World Federation"
+```
+
+App Password butuh 2-Step Verification menyala di akun Google itu; "Less secure
+app access" sudah dimatikan Google sejak 1 Mei 2025, jadi sandi akun biasa
+tidak akan bekerja. Batasnya 500/hari (Gmail biasa) atau 2.000/hari (Workspace)
+— jauh di atas kebutuhan aplikasi ini.
+
+**`MAIL_FROM_ADDRESS` harus sama dengan akun yang login.** Kalau diisi alamat
+lain, Gmail menulis ulang From-nya jadi alamat akun — jadi `.env` mengatakan
+satu hal dan yang dibaca penerima hal lain, tanpa galat apa pun.
+
+Yang ditukar, dan sebaiknya disadari sejak awal:
+
+- Undangan admin datang **dari alamat Gmail**, bukan dari domain federasi. Untuk
+  surel yang isinya "klik ini untuk membuat akun admin", alamat pengirim yang
+  tidak resmi persis yang diajarkan kepada orang untuk dicurigai.
+- App Password adalah kredensial yang memberi hak **mengirim sebagai** pemilik
+  mailbox itu. Ia duduk di `.env` server. Pakai akun khusus untuk aplikasi ini,
+  jangan akun pribadi siapa pun.
+- Tidak ada log pengiriman, webhook, maupun laporan bounce. Kalau surelnya tidak
+  sampai, tidak ada tempat untuk melihat kenapa.
+
+Ini setelan yang **cukup untuk sekarang** dan sepenuhnya bisa dibalik: pindah ke
+Resend nanti mengganti empat baris yang sama.
+
+Alternatif tanpa DNS yang lain — **Brevo** memperbolehkan memverifikasi satu
+alamat pengirim lewat tautan di inbox, tanpa record apa pun. Ia bekerja, tapi
+lebih buruk daripada opsi di atas untuk kasus ini: From-nya domain Anda
+sementara yang menandatangani domain Brevo, jadi tidak ada yang selaras dan
+peluang mendarat di spam naik — persis pada satu surel yang paling tidak boleh
+mendarat di sana.
+
 ### Antrean: jebakan yang belum meledak
 
 `QUEUE_CONNECTION=database`, tapi **tidak ada worker yang jalan** — cron di
