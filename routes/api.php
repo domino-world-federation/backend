@@ -80,17 +80,26 @@ Route::prefix('v1')->group(function () {
      * Yang ditahan throttle adalah banjir, bukan orangnya. Batas yang terlalu
      * ketat pada saluran integritas berarti laporan yang tidak jadi dikirim —
      * dan itu kegagalan yang jauh lebih mahal daripada beberapa baris sampah.
+     *
+     * ARGUMEN KETIGA — nama ember hitungannya — dan tanpa itu seluruh alinea di
+     * atas tidak benar. `ThrottleRequests` menyusun kuncinya dari
+     * `$prefix.sha1(domain|ip)`: TANPA prefix, keempat rute ini berbagi SATU
+     * penghitung, dan angka yang berbeda cuma jadi ambang berbeda di atas
+     * hitungan yang sama. Akibatnya nyata dan diuji pada 2026-09-05 — lima
+     * pesan kontak membuat kotak buletin di footer menolak selama sisa menit
+     * itu, dan sepuluh "notify me" mengunci saluran integritas. Persis yang
+     * dijanjikan alinea di atas tidak akan terjadi.
      */
     Route::post('/contact', [SubmissionController::class, 'contact'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:5,1,contact');
 
     Route::post('/newsletter', [SubmissionController::class, 'newsletter'])
-        ->middleware('throttle:5,1');
+        ->middleware('throttle:5,1,newsletter');
 
     Route::post('/tournaments/{tournament}/subscribe', [SubmissionController::class, 'subscribeToTournament'])
         ->whereNumber('tournament')
-        ->middleware('throttle:10,1');
+        ->middleware('throttle:10,1,tournament-subscribe');
 
     Route::post('/integrity-reports', [SubmissionController::class, 'integrityReport'])
-        ->middleware('throttle:10,1');
+        ->middleware('throttle:10,1,integrity');
 });

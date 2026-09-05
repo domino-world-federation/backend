@@ -186,4 +186,45 @@ class SubmissionTest extends TestCase
         $this->postJson('/api/v1/newsletter', ['email' => 'keenam@example.org'])
             ->assertStatus(429);
     }
+
+    /**
+     * Tiap formulir punya penghitungnya SENDIRI.
+     *
+     * Sampai 2026-09-05 tidak: `ThrottleRequests` menyusun kuncinya dari
+     * `$prefix.sha1(domain|ip)`, dan tanpa prefix keempat rute berbagi satu
+     * hitungan. Yang rusak karenanya bukan hal teoretis — kotak buletin ada di
+     * footer SETIAP halaman, jadi ia menolak orang yang barusan mengirim
+     * beberapa pesan kontak, dan saluran integritas terkunci oleh sepuluh kali
+     * menekan "notify me" di halaman turnamen.
+     *
+     * Tes ini yang menjaganya: menghabiskan kuota satu formulir tidak boleh
+     * menyentuh tiga yang lain.
+     */
+    public function test_one_form_hitting_its_limit_does_not_close_the_others(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/v1/contact', [
+                'name' => 'Rina',
+                'email' => "rina{$i}@example.org",
+                'topic' => 'General Enquiries',
+                'message' => 'Pesan yang cukup panjang untuk lolos validasi.',
+            ])->assertNoContent();
+        }
+
+        $this->postJson('/api/v1/contact', [
+            'name' => 'Rina',
+            'email' => 'rina-keenam@example.org',
+            'topic' => 'General Enquiries',
+            'message' => 'Pesan yang cukup panjang untuk lolos validasi.',
+        ])->assertStatus(429);
+
+        // Ketiganya percobaan PERTAMA orang ini di formulirnya masing-masing.
+        $this->postJson('/api/v1/newsletter', ['email' => 'rina@example.org'])
+            ->assertNoContent();
+
+        $this->postJson('/api/v1/integrity-reports', [
+            'type' => 'Doping',
+            'description' => 'Laporan pertama orang ini, dan ia harus diterima.',
+        ])->assertNoContent();
+    }
 }
