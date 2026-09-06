@@ -574,6 +574,16 @@ return [
          * berarti layar ini berjanji sesuatu yang belum benar.
          */
         'category_hint' => 'Where the document appears is decided by its category.',
+        /*
+         * Sakelar Visibility menyembunyikan BARISNYA, bukan berkasnya.
+         *
+         * Sejak berkas dokumen disajikan langsung dari media publik, menurunkan
+         * sebuah dokumen mengeluarkannya dari situs tapi tautan yang sudah
+         * beredar tetap bekerja. Membiarkan layar ini diam soal itu berarti
+         * seseorang menurunkan dokumen yang keliru terbit dan mengira ia sudah
+         * hilang.
+         */
+        'visibility_note' => 'Unpublishing removes the document from the site. The file itself stays downloadable to anyone who already has its link.',
         'category_appears' => 'Appears on: :pages.',
         'category_planned' => 'Also planned for :pages, which has no document shelf yet.',
         'view' => 'View',

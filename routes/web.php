@@ -69,11 +69,11 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
 /*
- * Berkas dokumen — DI LUAR grup `auth`, dan itu memang tujuannya.
+ * URL unduhan dokumen yang LAMA — sekarang cuma pengalihan.
  *
- * Situs publik menautkannya untuk pengunjung yang tidak login. Yang menahan
- * berkas yang belum tayang adalah `MediaController`, yang memeriksa keadaan
- * dokumennya pada TIAP permintaan — bukan `auth`, dan bukan nama berkas acak.
+ * Berkas dokumen tinggal di media publik dan disajikan nginx langsung sejak
+ * 2026-09-06. Rute ini tetap ada karena URL-nya sudah beredar: ia mengalihkan
+ * ke alamat barunya dengan 301. Lihat `MediaController`.
  *
  * `whereNumber` karena rutenya memakai id, bukan slug: slug berubah saat judul
  * disunting, dan tautan yang sudah beredar di siaran pers tidak ikut berubah.

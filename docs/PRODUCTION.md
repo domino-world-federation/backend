@@ -159,16 +159,22 @@ nama acak menahan TEBAKAN, bukan tautan yang sudah beredar.
 Susunan yang dipakai:
 
 ```
-/home/oredo/dwf-media/
-├── public/     ← disajikan fed-pub-media.pborado.com, nginx statis
-└── private/    ← dokumen; TIDAK pernah disajikan nginx
+/home/oredo/dev_html/dwf-media/    ← disajikan fed-media.pborado.com, nginx statis
+├── documents/
+├── news/
+├── champions/
+└── tournaments/
 ```
 
 ```dotenv
-MEDIA_ROOT=/home/oredo/dwf-media/public
-MEDIA_URL=https://fed-pub-media.pborado.com
-MEDIA_PRIVATE_ROOT=/home/oredo/dwf-media/private
+MEDIA_ROOT=/home/oredo/dev_html/dwf-media
+MEDIA_URL=https://fed-media.pborado.com
 ```
+
+Satu folder, satu host. Sampai 2026-09-06 ada `private/` di sebelah `public/`
+untuk dokumen, di belakang rute PHP yang memeriksa status tayang; keduanya
+dilebur setelah pemilik repo memutuskan seluruh dokumen federasi memang untuk
+dibagikan.
 
 **Tidak ada FTP dan tidak ada langkah pindah.** Aplikasinya menulis LANGSUNG ke
 folder itu — `MEDIA_ROOT` adalah root disk `public` Laravel, jadi unggahan dari
@@ -176,27 +182,37 @@ backoffice mendarat di sana pada saat disimpan. Yang perlu dipastikan cuma
 izinnya: PHP-FPM (`www-data`) harus bisa menulis ke **keduanya**.
 
 ```bash
-sudo mkdir -p /home/oredo/dwf-media/public /home/oredo/dwf-media/private
-sudo chown -R oredo:www-data /home/oredo/dwf-media
-sudo find /home/oredo/dwf-media -type d -exec chmod 2775 {} \;
+sudo mkdir -p /home/oredo/dev_html/dwf-media
+sudo chown -R oredo:www-data /home/oredo/dev_html/dwf-media
+sudo find /home/oredo/dev_html/dwf-media -type d -exec chmod 2775 {} \;
 ```
 
-`private/` **bersebelahan** dengan `public/`, bukan di dalamnya. Kalau
-tertukar, aplikasi menolak boot — lihat peringatan di bawah.
+**`chmod 2775` berlaku untuk SETIAP subfolder, termasuk yang dibuat PHP-FPM
+sendiri.** Folder `documents/` sempat lahir `0700` milik `www-data` saat
+unggahan pertama, dan akibatnya bukan cuma nginx tidak bisa menyajikannya:
+`php artisan dwf:document-check` yang dijalankan dari shell melaporkan berkasnya
+HILANG, karena `file_exists()` menjawab false untuk berkas yang direktorinya
+tidak bisa ditelusuri. Jalankan `find` di atas lagi setiap kali ada folder baru
+muncul.
 
 `php artisan storage:link` tidak lagi diperlukan dalam susunan ini: symlink
 `public/storage` hanya berguna kalau media disajikan dari host aplikasi, dan di
 sini ia disajikan host sendiri.
 
-> **`MEDIA_PRIVATE_ROOT` wajib DI LUAR `MEDIA_ROOT`.** Kalau ia berada di
-> dalamnya, symlink `public/storage` menjadikan setiap dokumen bisa diunduh
-> siapa pun tanpa satu pun pemeriksaan status tayang — dan tidak ada gejalanya:
-> aplikasi tetap jalan, layarnya tetap normal. `AppServiceProvider` karena itu
-> **menolak boot** kalau keduanya bertumpuk. Lebih baik aplikasi tidak menyala
-> daripada menyala dengan seluruh dokumennya terbuka.
+> **Root nginx tidak boleh menaungi apa pun yang tidak untuk dibaca publik.**
+> Ini bukan nasihat teoretis: pada 2026-09-06 `root` sempat ditaruh di INDUK
+> dari `public/` dan `private/`, dan seluruh dokumen privat bisa diunduh siapa
+> pun lewat `/private/documents/…` — dengan `Cache-Control: immutable` setahun,
+> dan Cloudflare menyimpannya. Tidak ada gejala apa pun di aplikasi: ia tetap
+> jalan, layarnya tetap normal.
+>
+> Susunan sekarang tidak punya folder privat lagi, jadi jebakan itu hilang
+> bersamanya. Kalau suatu saat ada folder yang tidak untuk publik di bawah
+> `dwf-media/`, root nginx harus dipersempit lebih dulu — bukan ditambal
+> dengan `location` yang menolak.
 
 **Memindahkan media keluar project memindahkan tanggung jawab BACKUP-nya juga.**
-Kode ada di git; `media/` dan `private/` tidak ada di mana pun. Siapa pun yang
+Kode ada di git; isi `dwf-media/` tidak ada di mana pun. Siapa pun yang
 mem-backup "project" akan melewatkan keduanya, dan itu baru ketahuan pada hari
 seseorang butuh memulihkannya. Masukkan kedua folder itu ke jadwal backup pada
 hari yang sama Anda memindahkannya — bukan nanti.
@@ -218,8 +234,17 @@ Host medianya cukup nginx statis yang menunjuk `MEDIA_ROOT`. Aturan "tidak
 mengeksekusi PHP" di bawah tetap berlaku di sana, dan justru di sana ia paling
 penting: host itu tidak punya PHP sama sekali kalau disetel benar.
 
-**Dokumen tidak ikut pindah.** Ia tunduk pada sakelar Visibility dan keluar
-lewat `/media/documents/{id}`; host statis tidak bisa memeriksa status tayang.
+**Dokumen IKUT pindah sejak 2026-09-06.** Sebelumnya tidak: ia tunduk pada
+sakelar Visibility dan keluar lewat `/media/documents/{id}`, karena host statis
+tidak bisa memeriksa status tayang. Yang berubah bukan mekanismenya melainkan
+kenyataannya — seluruh dokumen federasi memang untuk dibagikan, jadi penjagaan
+itu tidak membeli apa pun dan hanya menambah cara untuk salah.
+
+Harganya, dan ia nyata: menurunkan sebuah dokumen mengeluarkan BARISNYA dari
+situs, tidak berkasnya. Yang sudah memegang tautannya tetap bisa mengunduh, dan
+cache CDN bisa menyimpannya lama sesudahnya. Layar Documents mengatakan itu ke
+orang yang menekan sakelarnya. `MEDIA_PRIVATE_ROOT` dan `MEDIA_DOWNLOAD_URL`
+sudah tidak dipakai.
 
 **Cache: gambar publik boleh disimpan SELAMANYA, dokumen tidak boleh sama
 sekali.**
@@ -856,8 +881,8 @@ sesuatu. Tanpa bit itu, perbaikannya bertahan sampai unggahan berikutnya.
 
 `usermod` baru berlaku setelah **login ulang** — `groups` yang memastikannya.
 
-Kalau `MEDIA_ROOT` dan `MEDIA_PRIVATE_ROOT` dipakai (§3), keduanya butuh
-perlakuan yang sama; `storage/` bukan lagi satu-satunya tempat menulis.
+Kalau `MEDIA_ROOT` dipakai (§3), ia butuh perlakuan yang sama; `storage/` bukan
+lagi satu-satunya tempat menulis.
 
 ### CORS ditolak walau domainnya sudah didaftarkan
 

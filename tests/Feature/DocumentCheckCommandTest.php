@@ -25,7 +25,6 @@ class DocumentCheckCommandTest extends TestCase
     {
         parent::setUp();
 
-        Storage::fake('local');
         Storage::fake('public');
     }
 
@@ -37,39 +36,20 @@ class DocumentCheckCommandTest extends TestCase
     public function test_a_document_with_its_file_in_place_passes(): void
     {
         $document = $this->document();
-        Storage::disk('local')->put($document->file_path, 'isi');
+        Storage::disk('public')->put($document->file_path, 'isi');
 
         $this->artisan('dwf:document-check')
             ->expectsOutputToContain('Semua dokumen punya berkasnya.')
             ->assertSuccessful();
     }
 
-    /**
-     * Berkas yang tertinggal di disk public punya jawaban yang PASTI.
-     *
-     * Itu bentuk kegagalan yang sangat khas: baris dibuat oleh kode sebelum
-     * `move_documents_to_the_private_disk`, dan migrasinya belum jalan di mesin
-     * itu. Menyebut migrasinya adalah bedanya antara satu perintah dan satu jam
-     * menebak.
-     */
-    public function test_a_file_left_on_the_public_disk_names_the_migration(): void
-    {
-        $document = $this->document();
-        Storage::disk('public')->put($document->file_path, 'isi');
-
-        $this->artisan('dwf:document-check')
-            ->expectsOutputToContain('tertinggal di disk public')
-            ->expectsOutputToContain('php artisan migrate --force')
-            ->assertFailed();
-    }
-
     /** Hilang dari kedua disk: sebabnya tidak pasti, jadi yang disebut kemungkinannya berikut path tujuannya. */
-    public function test_a_file_missing_from_both_disks_says_where_it_should_go(): void
+    public function test_a_missing_file_says_where_it_should_go(): void
     {
         $document = $this->document();
 
         $this->artisan('dwf:document-check')
-            ->expectsOutputToContain('tidak ada di kedua disk')
+            ->expectsOutputToContain('tidak ada di folder media')
             ->expectsOutputToContain('documents/uji.pdf')
             ->assertFailed();
     }
@@ -91,8 +71,7 @@ class DocumentCheckCommandTest extends TestCase
         // Disk sungguhan, bukan `Storage::fake` — yang diuji justru izin
         // filesystem, dan disk palsu tidak punya izin untuk dilanggar.
         $root = storage_path('app/uji-izin-'.uniqid());
-        config(['filesystems.disks.local.root' => $root]);
-        config(['filesystems.disks.public.root' => $root.'-public']);
+        config(['filesystems.disks.public.root' => $root]);
 
         @mkdir($root.'/documents', 0o700, true);
         file_put_contents($root.'/documents/uji.pdf', 'isi');
@@ -135,7 +114,7 @@ class DocumentCheckCommandTest extends TestCase
     public function test_it_can_be_pointed_at_one_document(): void
     {
         $kept = $this->document();
-        Storage::disk('local')->put($kept->file_path, 'isi');
+        Storage::disk('public')->put($kept->file_path, 'isi');
 
         $broken = Document::factory()->create(['file_path' => 'documents/hilang.pdf']);
 
@@ -164,7 +143,7 @@ class DocumentCheckCommandTest extends TestCase
     public function test_a_real_upload_is_found(): void
     {
         $document = $this->document();
-        Storage::disk('local')->putFileAs(
+        Storage::disk('public')->putFileAs(
             'documents',
             UploadedFile::fake()->create('uji.pdf', 12),
             'uji.pdf',

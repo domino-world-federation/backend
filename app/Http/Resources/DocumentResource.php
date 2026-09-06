@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Media\StoredFile;
 use Illuminate\Http\Request;
 
 /**
@@ -24,10 +25,20 @@ class DocumentResource extends PublicResource
             'title' => $this->title,
             'category' => $this->category,
             'publishedAt' => $this->published_at?->toIso8601String(),
-            // Lewat route berpenjaga, bukan symlink: berkas dokumen tunduk
-            // pada sakelar Visibility, dan symlink tidak pernah memeriksanya.
-            // Host-nya bisa berbeda dari host API — lihat `Document::downloadUrl()`.
-            'fileUrl' => $this->resource->downloadUrl(),
+            /*
+             * URL statis di host media, sama seperti gambar.
+             *
+             * Sampai 2026-09-06 ini `route('media.document')` — sebuah rute PHP
+             * yang memeriksa sakelar Visibility pada tiap permintaan, karena
+             * dokumen dianggap bisa ditarik kembali. Pemilik repo memutuskan
+             * seluruh dokumen federasi memang untuk dibagikan, jadi penjagaan
+             * itu tidak membeli apa pun dan hanya menambah cara untuk salah —
+             * lihat migrasi `publish_document_files`.
+             *
+             * Konsekuensinya tercatat di layar Documents: sakelar Visibility
+             * menyembunyikan BARISNYA dari situs, bukan berkasnya.
+             */
+            'fileUrl' => StoredFile::url($this->file_path),
             'fileType' => 'pdf',
             'fileSize' => $this->file_size_label,
         ];

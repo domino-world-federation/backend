@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
-use RuntimeException;
 use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
@@ -34,8 +33,6 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDevCommand();
         $this->recordAuthActivity();
         $this->stampActivityWithOrigin();
-        $this->refusePrivateFilesInsidePublicMedia();
-        $this->refuseDocumentDownloadsOnTheStaticMediaHost();
     }
 
     /**
@@ -72,94 +69,6 @@ class AppServiceProvider extends ServiceProvider
         if (str_starts_with((string) config('app.url'), 'https://')) {
             URL::forceScheme('https');
         }
-    }
-
-    /**
-     * Menolak boot kalau berkas privat berada DI DALAM folder media publik.
-     *
-     * Keduanya bisa dipindah lewat `.env` (`MEDIA_ROOT` dan
-     * `MEDIA_PRIVATE_ROOT`), dan salah setel di sana bukan galat yang
-     * kelihatan — ia menjadikan SETIAP dokumen bisa diunduh siapa pun lewat
-     * symlink `public/storage`, tanpa satu pun pemeriksaan status tayang.
-     * Aplikasinya tetap jalan, layarnya tetap normal, dan tidak ada yang tahu
-     * sampai ada yang menemukan URL-nya.
-     *
-     * Karena itu ia dibuat berisik: lebih baik aplikasi menolak menyala
-     * daripada menyala dengan seluruh dokumennya terbuka.
-     */
-    private function refusePrivateFilesInsidePublicMedia(): void
-    {
-        $public = realpath((string) config('filesystems.disks.public.root'));
-        $private = realpath((string) config('filesystems.disks.local.root'));
-
-        if ($public === false || $private === false) {
-            return;
-        }
-
-        if ($private === $public || str_starts_with($private.DIRECTORY_SEPARATOR, $public.DIRECTORY_SEPARATOR)) {
-            throw new RuntimeException(
-                "Berkas privat ({$private}) berada di dalam media publik ({$public}). "
-                .'Setiap dokumen akan bisa diunduh siapa pun lewat symlink public/storage. '
-                .'Setel MEDIA_PRIVATE_ROOT ke folder DI LUAR MEDIA_ROOT.'
-            );
-        }
-    }
-
-    /**
-     * Menolak menyala kalau unduhan dokumen diarahkan ke host media statis.
-     *
-     * `MEDIA_URL` adalah asal berkas yang memang untuk dilihat: nginx
-     * menyajikannya langsung, tanpa PHP, dengan cache selamanya. `MEDIA_DOWNLOAD_URL`
-     * adalah asal unduhan dokumen, yang HARUS lewat `MediaController` karena
-     * status tayangnya diperiksa tiap permintaan.
-     *
-     * Menyamakan keduanya berarti salah satu dari dua hal, dan keduanya buruk:
-     * host itu tanpa PHP, jadi tiap unduhan 404 — atau host itu MENJALANKAN PHP
-     * di origin yang sama dengan berkas unggahan, yang justru dipisahkan supaya
-     * berkas orang tidak pernah berjalan di sebelah aplikasi.
-     *
-     * Ditulis setelah kejadian 2026-09-06: keduanya disetel ke satu nama, dan
-     * `root` nginx-nya ditaruh di INDUK dari `public/` dan `private/` — jadi
-     * seluruh dokumen privat bisa diunduh siapa pun lewat `/private/documents/…`,
-     * dengan `Cache-Control: immutable` setahun, dan Cloudflare menyimpannya.
-     * `refusePrivateFilesInsidePublicMedia()` di atas tidak menangkapnya: yang
-     * salah ada di nginx, dan PHP tidak bisa melihat ke sana.
-     *
-     * Yang BISA dilihat PHP adalah dua setelan yang menunjuk satu nama, dan itu
-     * gejala yang cukup. Berisik, karena diam berarti dokumen bocor atau
-     * unduhan mati — dan keduanya baru ketahuan lama sesudahnya.
-     */
-    private function refuseDocumentDownloadsOnTheStaticMediaHost(): void
-    {
-        $media = self::host((string) config('filesystems.disks.public.url'));
-        $download = self::host((string) config('dwf.document_download_url'));
-
-        if ($media === null || $download === null || $media !== $download) {
-            return;
-        }
-
-        throw new RuntimeException(
-            "MEDIA_DOWNLOAD_URL menunjuk host yang sama dengan MEDIA_URL ({$media}). "
-            .'Host media menyajikan berkas STATIS, jadi ia tidak bisa memeriksa sakelar Visibility: '
-            .'unduhan dokumen akan 404 di sana, atau — kalau root nginx-nya menaungi folder privat — '
-            .'setiap dokumen bisa diunduh siapa pun tanpa login. '
-            .'Beri unduhan dokumen nama sendiri yang menjalankan PHP, dan JANGAN pernah menaruh root '
-            .'nginx di atas folder privat.'
-        );
-    }
-
-    /** Hostname sebuah URL, atau null kalau kosong/tidak berbentuk URL. */
-    private static function host(string $url): ?string
-    {
-        $url = trim($url);
-
-        if ($url === '') {
-            return null;
-        }
-
-        $host = parse_url($url, PHP_URL_HOST);
-
-        return is_string($host) && $host !== '' ? $host : null;
     }
 
     /**

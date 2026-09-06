@@ -5,6 +5,7 @@ import { useI18n } from '@/composables/useI18n'
 import { PhDownloadSimple, PhPlus } from '@phosphor-icons/vue'
 
 import AdminLayout from '@/Layouts/AdminLayout.vue'
+import ContextNote from '@/Components/ContextNote.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import AppButton from '@/Components/AppButton.vue'
 import FilterBar from '@/Components/FilterBar.vue'
@@ -114,6 +115,13 @@ function destroy(): void {
                 </AppButton>
             </template>
         </PageHeader>
+
+        <!-- Sakelar Visibility di kolom sebelah menyembunyikan BARISNYA dari
+             situs, bukan berkasnya: berkas dokumen disajikan langsung dari host
+             media sejak berkasnya dipindahkan ke sana. Layar ini harus
+             mengatakannya, kalau tidak seseorang menurunkan dokumen yang keliru
+             terbit lalu mengira ia sudah hilang. -->
+        <ContextNote>{{ t('documents.visibility_note') }}</ContextNote>
 
         <FilterBar
             v-model:search="state.q"

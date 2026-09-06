@@ -185,7 +185,7 @@ class DocumentController extends Controller
             'category' => $data['category'] ?? null,
             'status' => $this->resolvedStatus($data),
             'published_at' => $this->resolvedPublishedAt($data),
-            'file_path' => StoredFile::put($request->file('file'), 'documents', disk: 'local'),
+            'file_path' => StoredFile::put($request->file('file'), 'documents'),
             'file_size' => $request->file('file')->getSize(),
         ]);
 
@@ -223,7 +223,7 @@ class DocumentController extends Controller
         // Berkas hanya diganti kalau memang ada yang diunggah. Tanpa penjagaan
         // ini, menyunting judul saja akan mengosongkan `file_path`.
         if ($request->hasFile('file')) {
-            $payload['file_path'] = StoredFile::put($request->file('file'), 'documents', $document->file_path, 'local');
+            $payload['file_path'] = StoredFile::put($request->file('file'), 'documents', $document->file_path);
             $payload['file_size'] = $request->file('file')->getSize();
         }
 
@@ -234,7 +234,7 @@ class DocumentController extends Controller
 
     public function destroy(Document $document): RedirectResponse
     {
-        StoredFile::forget($document->file_path, 'local');
+        StoredFile::forget($document->file_path);
         $document->delete();
 
         return back()->with('success', __('backoffice.documents.deleted'));

@@ -31,31 +31,21 @@ return [
     'disks' => [
 
         /*
-         * Berkas yang TIDAK boleh dibaca siapa pun lewat URL langsung.
+         * Disk bawaan Laravel, dipakai kerangka kerjanya sendiri.
          *
-         * `serve` sengaja `false`. Bawaan Laravel `true` mendaftarkan sepasang
-         * route `/storage/{path}` (baca dan tulis) untuk disk ini. Keduanya
-         * menuntut URL bertanda tangan, jadi ia bukan lubang — tapi aplikasi
-         * ini tidak pernah menerbitkan tanda tangan seperti itu, jadi yang ada
-         * cuma dua route yang tidak dipakai siapa pun dan satu jalan masuk
-         * kedua ke berkas yang justru dipindahkan ke sini supaya punya SATU
-         * pintu berpenjaga.
+         * Sampai 2026-09-06 disk ini menampung berkas dokumen di luar
+         * `MEDIA_ROOT`, dan `MediaController` satu-satunya pintunya — dokumen
+         * dianggap bisa ditarik kembali, jadi tiap permintaan memeriksa sakelar
+         * Visibility. Pemilik repo memutuskan seluruh dokumen federasi memang
+         * untuk dibagikan; berkasnya pindah ke media publik dan
+         * `MEDIA_PRIVATE_ROOT` ikut pergi. Lihat migrasi `publish_document_files`.
          *
-         * Pintunya `MediaController` — ia yang memeriksa apakah dokumennya
-         * sudah tayang sebelum mengalirkan bytenya.
+         * Yang tersisa di sini bawaan Laravel apa adanya. Tidak ada satu pun
+         * kode aplikasi ini yang menulis ke sana.
          */
         'local' => [
             'driver' => 'local',
-            // `MEDIA_PRIVATE_ROOT` pasangan `MEDIA_ROOT` di bawah: kalau media
-            // dipindah keluar direktori aplikasi, dokumen ikut — kalau tidak,
-            // justru berkas yang paling perlu dijaga yang tertinggal di dalam
-            // rilis dan hilang tiap deploy bergaya rilis-simbolik.
-            //
-            // WAJIB di luar `MEDIA_ROOT`. Kalau ia berada DI DALAMNYA, symlink
-            // `public/storage` menjadikan tiap dokumen bisa diunduh siapa pun
-            // tanpa satu pun pemeriksaan — `AppServiceProvider` menolak boot
-            // kalau itu terjadi.
-            'root' => env('MEDIA_PRIVATE_ROOT', storage_path('app/private')),
+            'root' => storage_path('app/private'),
             'serve' => false,
             'throw' => false,
             'report' => false,
@@ -82,8 +72,16 @@ return [
          *   `/storage`) tidak menambah keamanan satu pun — origin-nya tetap
          *   sama. Yang menolong cuma hostname berbeda.
          *
-         * Dokumen TIDAK ikut ke sini: ia tunduk pada sakelar Visibility dan
-         * keluar lewat `MediaController`. Host statis tidak bisa memeriksanya.
+         * Dokumen IKUT ke sini sejak 2026-09-06. Sebelumnya tidak: ia tunduk
+         * pada sakelar Visibility dan keluar lewat `MediaController`. Yang
+         * berubah bukan mekanismenya melainkan kenyataannya — seluruh dokumen
+         * federasi memang untuk dibagikan, jadi penjagaan itu tidak membeli apa
+         * pun dan hanya menambah cara untuk salah: disk kedua, izin direktori
+         * tersendiri, dan satu host lagi yang harus disetel benar.
+         *
+         * Harganya tercatat dan diterima: sakelar Visibility menyembunyikan
+         * BARIS dokumen dari situs, bukan berkasnya. Yang sudah memegang
+         * tautannya tetap bisa mengunduh, dan layar Documents mengatakannya.
          */
         'public' => [
             'driver' => 'local',

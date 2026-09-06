@@ -575,6 +575,16 @@ return [
          * berarti layar ini berjanji sesuatu yang belum benar.
          */
         'category_hint' => 'Kategori yang menentukan di halaman mana dokumen ini muncul.',
+        /*
+         * Sakelar Visibility menyembunyikan BARISNYA, bukan berkasnya.
+         *
+         * Sejak berkas dokumen disajikan langsung dari media publik, menurunkan
+         * sebuah dokumen mengeluarkannya dari situs tapi tautan yang sudah
+         * beredar tetap bekerja. Membiarkan layar ini diam soal itu berarti
+         * seseorang menurunkan dokumen yang keliru terbit dan mengira ia sudah
+         * hilang.
+         */
+        'visibility_note' => 'Menurunkan dokumen mengeluarkannya dari situs. Berkasnya sendiri tetap bisa diunduh oleh siapa pun yang sudah punya tautannya.',
         'category_appears' => 'Muncul di: :pages.',
         'category_planned' => 'Direncanakan juga untuk :pages, yang belum punya rak dokumen.',
         'view' => 'Lihat',

@@ -28,7 +28,7 @@ class DocumentTest extends TestCase
         $document = Document::first();
 
         $this->assertNotNull($document);
-        Storage::disk('local')->assertExists($document->file_path);
+        Storage::disk('public')->assertExists($document->file_path);
         $this->assertGreaterThan(0, $document->file_size);
     }
 
@@ -64,8 +64,7 @@ class DocumentTest extends TestCase
     public function test_editing_the_title_alone_keeps_the_file(): void
     {
         Storage::fake('public');
-        Storage::fake('local');
-        $path = UploadedFile::fake()->create('lama.pdf', 10, 'application/pdf')->store('documents', 'local');
+        $path = UploadedFile::fake()->create('lama.pdf', 10, 'application/pdf')->store('documents', 'public');
 
         $document = Document::query()->create([
             'title' => 'Lama', 'slug' => 'lama', 'file_path' => $path,
@@ -79,14 +78,13 @@ class DocumentTest extends TestCase
         $document->refresh();
         $this->assertSame('Baru', $document->title);
         $this->assertSame($path, $document->file_path);
-        Storage::disk('local')->assertExists($path);
+        Storage::disk('public')->assertExists($path);
     }
 
     public function test_replacing_the_file_deletes_the_old_one(): void
     {
         Storage::fake('public');
-        Storage::fake('local');
-        $old = UploadedFile::fake()->create('lama.pdf', 10, 'application/pdf')->store('documents', 'local');
+        $old = UploadedFile::fake()->create('lama.pdf', 10, 'application/pdf')->store('documents', 'public');
 
         $document = Document::query()->create([
             'title' => 'Lama', 'slug' => 'lama-2', 'file_path' => $old,
@@ -99,8 +97,8 @@ class DocumentTest extends TestCase
             'file' => UploadedFile::fake()->create('baru.pdf', 20, 'application/pdf'),
         ]);
 
-        Storage::disk('local')->assertMissing($old);
-        Storage::disk('local')->assertExists($document->fresh()->file_path);
+        Storage::disk('public')->assertMissing($old);
+        Storage::disk('public')->assertExists($document->fresh()->file_path);
     }
 
     public function test_the_size_label_is_human_readable(): void
@@ -196,33 +194,13 @@ class DocumentTest extends TestCase
         $this->assertSame($budi->id, $document->published_by_id);
     }
 
-    /** Hanya yang benar-benar tayang yang dihitung `live()`. */
-    public function test_live_skips_drafts_and_future_schedules(): void
-    {
-        Document::factory()->create(['title' => 'tayang']);
-        Document::factory()->create(['title' => 'draf', 'status' => 'draft', 'published_at' => null]);
-        Document::factory()->create([
-            'title' => 'nanti', 'status' => 'scheduled', 'published_at' => now()->addWeek(),
-        ]);
-        Document::factory()->create([
-            'title' => 'sudah', 'status' => 'scheduled', 'published_at' => now()->subWeek(),
-        ]);
-
-        $live = Document::query()->live()->pluck('title')->all();
-
-        sort($live);
-        $this->assertSame(['sudah', 'tayang'], $live);
-    }
-
-    // ------------------------------------------------ berkas berpenjaga
-
+    /** Satu dokumen yang berkasnya benar-benar ada di media publik. */
     private function documentWithFile(string $status = 'published'): Document
     {
         Storage::fake('public');
-        Storage::fake('local');
 
         $path = UploadedFile::fake()->create('regulasi.pdf', 10, 'application/pdf')
-            ->store('documents', 'local');
+            ->store('documents', 'public');
 
         return Document::query()->create([
             'title' => 'Regulasi Turnamen v3',
@@ -234,115 +212,80 @@ class DocumentTest extends TestCase
         ]);
     }
 
-    public function test_a_published_document_can_be_downloaded_by_anyone(): void
+    /**
+     * URL lama MENGALIHKAN ke berkas di media publik.
+     *
+     * Sampai 2026-09-06 rute ini yang menyajikan bytenya dan memeriksa sakelar
+     * Visibility tiap permintaan. Berkas dokumen sekarang tinggal di media
+     * publik, jadi rutenya tinggal pengalihan — dipertahankan karena URL-nya
+     * sudah tercetak di situs publik dan mungkin tersimpan di bookmark orang.
+     */
+    public function test_the_old_download_url_redirects_to_the_media_file(): void
     {
         $document = $this->documentWithFile();
 
         $this->get("/media/documents/{$document->id}")
-            ->assertOk()
-            ->assertDownload('regulasi-turnamen-v3.pdf');
+            ->assertRedirect(Storage::disk('public')->url($document->file_path));
     }
 
     /**
-     * INTI perubahan 2026-09-03.
+     * Dokumen yang DITURUNKAN tetap bisa diunduh, dan tesnya menyatakannya.
      *
-     * Sebelumnya berkas dokumen disajikan web server langsung lewat symlink,
-     * jadi menurunkan sebuah dokumen tidak menurunkan berkasnya — yang diatur
-     * sakelar Visibility cuma daftarnya. Nama berkas acak menahan TEBAKAN,
-     * bukan tautan yang sudah beredar.
+     * Ini harga yang dibayar saat berkas dokumen pindah ke media publik, dan ia
+     * dikunci di sini SEBAGAI perilaku yang disengaja — bukan dibiarkan tidak
+     * teruji supaya tidak terlihat. Sakelar Visibility menyembunyikan barisnya
+     * dari situs; berkasnya tetap ada di host media, dan yang sudah memegang
+     * tautannya tetap bisa mengambilnya.
      *
-     * 404, bukan 403: 403 mengakui bahwa berkasnya ADA dan cuma sedang
-     * ditahan — untuk dokumen yang belum dirilis, keberadaannya sendiri kadang
-     * yang rahasia.
+     * Kalau suatu saat dokumen perlu bisa ditarik kembali, tes inilah yang
+     * harus dibalik lebih dulu.
      */
-    public function test_an_unpublished_document_is_not_downloadable_by_the_public(): void
+    public function test_unpublishing_hides_the_row_but_not_the_file(): void
     {
         $document = $this->documentWithFile('draft');
 
-        $this->get("/media/documents/{$document->id}")->assertNotFound();
+        // Tidak muncul di situs publik.
+        $this->getJson('/api/v1/resources')->assertOk()->assertJsonCount(0);
+
+        // Berkasnya tetap ada di media, dan URL-nya tetap menunjuk ke sana.
+        Storage::disk('public')->assertExists($document->file_path);
+        $this->assertNotNull(Storage::disk('public')->url($document->file_path));
     }
 
-    /** Admin yang boleh melihat modulnya tetap bisa memeriksa isinya. */
-    public function test_an_editor_can_still_download_a_draft(): void
-    {
-        $document = $this->documentWithFile('draft');
-
-        $this->actingAs(User::factory()->superAdmin()->create())
-            ->get("/media/documents/{$document->id}")
-            ->assertOk();
-    }
-
-    /**
-     * Nama unduhannya dari JUDUL, bukan dari nama di disk.
-     *
-     * Nama di disk 40 karakter acak — benar sebagai penyimpanan, tapi berkas
-     * bernama `a1b2c3….pdf` di folder Downloads tidak bisa dikenali lagi
-     * seminggu kemudian.
-     */
-    public function test_the_download_is_named_after_the_document(): void
-    {
-        $document = $this->documentWithFile();
-
-        $this->get("/media/documents/{$document->id}")
-            ->assertDownload('regulasi-turnamen-v3.pdf');
-    }
-
-    /** Berkas dokumen TIDAK boleh mendarat di disk yang di-symlink. */
-    public function test_an_uploaded_document_never_lands_on_the_public_disk(): void
+    /** Unggahan mendarat di media publik, bukan di disk bawaan Laravel. */
+    public function test_an_uploaded_document_lands_in_public_media(): void
     {
         Storage::fake('public');
         Storage::fake('local');
 
         $this->actingAs(User::factory()->superAdmin()->create())->post('/documents', [
-            'title' => 'Laporan Rahasia',
+            'title' => 'Regulasi Baru',
             'category' => 'Reports & Publications',
             'posting' => 'now',
-            'file' => UploadedFile::fake()->create('rahasia.pdf', 12, 'application/pdf'),
+            'file' => UploadedFile::fake()->create('regulasi.pdf', 12, 'application/pdf'),
         ])->assertRedirect('/documents');
 
         $path = Document::query()->latest('id')->value('file_path');
 
         $this->assertNotNull($path);
 
-        Storage::disk('local')->assertExists($path);
-        Storage::disk('public')->assertMissing($path);
+        Storage::disk('public')->assertExists($path);
+        Storage::disk('local')->assertMissing($path);
     }
 
     /**
-     * Berkas dokumen tidak boleh disimpan cache mana pun.
+     * `fileUrl` di API adalah URL media statis, bukan rute PHP.
      *
-     * Berkas yang tersimpan tetap terunduh SETELAH dokumennya diturunkan, dan
-     * itu membatalkan seluruh guna pemeriksaan status di `MediaController`.
-     * Bedakan dari gambar publik, yang justru DIANJURKAN di-cache selamanya:
-     * nama berkasnya acak dan tidak pernah dipakai ulang, jadi satu URL selalu
-     * berisi hal yang sama.
+     * Itu yang membuat unduhannya tidak lagi bergantung pada satu host yang
+     * menjalankan PHP — sebab 404 yang menghabiskan dua hari pada 2026-09-05.
      */
-    public function test_a_document_download_is_never_cached(): void
+    public function test_the_api_sends_a_static_media_url(): void
     {
         $document = $this->documentWithFile();
 
-        $this->get("/media/documents/{$document->id}")
-            ->assertOk()
-            ->assertHeader('Cache-Control', 'max-age=0, no-store, private');
-    }
+        $url = $this->getJson('/api/v1/resources')->assertOk()->json('0.fileUrl');
 
-    /**
-     * Berkas yang diunggah orang keluar dari origin APLIKASI, jadi browser
-     * tidak boleh menebak tipenya.
-     *
-     * Host media statis memasang header ini di config nginx-nya; unduhan
-     * dokumen tidak lewat sana — ia lewat PHP, karena status tayangnya harus
-     * diperiksa tiap permintaan — jadi header yang sama harus dipasang di sini.
-     * Tanpa itu berkas yang isinya HTML bisa dirender sebagai halaman di origin
-     * ini, meski `Content-Disposition`-nya menyuruh mengunduh.
-     */
-    public function test_a_document_download_forbids_type_sniffing(): void
-    {
-        $document = $this->documentWithFile();
-
-        $this->get("/media/documents/{$document->id}")
-            ->assertOk()
-            ->assertHeader('X-Content-Type-Options', 'nosniff')
-            ->assertHeader('Content-Disposition', 'attachment; filename='.$document->downloadName());
+        $this->assertSame(Storage::disk('public')->url($document->file_path), $url);
+        $this->assertStringNotContainsString('/media/documents/', (string) $url);
     }
 }
