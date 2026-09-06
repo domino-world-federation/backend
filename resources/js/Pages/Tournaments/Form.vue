@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { PhArrowDown, PhArrowUp, PhPlus, PhTrash } from '@phosphor-icons/vue'
 
@@ -39,9 +39,8 @@ const props = defineProps<{
     tournament: Record<string, any> | null
     options: {
         coverage: string[]
-        rulesFormats: string[]
+        rulesFormats: RuleFormatOption[]
         attendance: string[]
-        participantTypes: string[]
         currencies: string[]
         dwfIdRequirements: string[]
         eligibility: string[]
@@ -101,9 +100,6 @@ const form = useForm({
 
     game_format: props.tournament?.gameFormat ?? '',
     participant_count: props.tournament?.participantCount ?? '',
-    participant_type: props.tournament?.participantType ?? null,
-    competition_system: props.tournament?.competitionSystem ?? '',
-    scoring: props.tournament?.scoring ?? '',
 
     documents: [...((props.tournament?.documents ?? []) as number[])],
 
@@ -179,12 +175,88 @@ const progress = computed(() => ({
             form.schedule.filter((i) => i.held_on !== '' && i.starts_at !== '' && i.activity !== '').length,
             form.schedule.length,
         ),
-    format: ratio(
-        filledCount(form.game_format, form.participant_type, form.competition_system, form.scoring),
-        4,
-    ),
+    // Dua field, bukan empat: penilaian dan sistem kompetisi tidak lagi diisi
+    // orang, jadi menghitungnya sebagai kemajuan berarti langkah ini terlihat
+    // setengah selesai padahal tidak ada lagi yang bisa dikerjakan di sana.
+    format: ratio(filledCount(form.rules_format, form.game_format), 2),
     regulations: form.documents.length > 0 ? 1 : 0,
 }))
+
+/**
+ * Satu aturan main, sebagaimana `TournamentRules::options()` mengirimnya.
+ *
+ * `counts` dan `participantType` datang bersama namanya, bukan diminta ulang
+ * saat pilihannya berubah: enam aturan dengan empat field pendek tidak sebanding
+ * dengan satu perjalanan ke server per klik, dan label yang berubah beberapa
+ * ratus milidetik setelah pilihannya terbaca sebagai layar yang tersendat.
+ */
+interface RuleFormatOption {
+    value: string
+    label: string
+    side: 'single' | 'double'
+    participantType: string
+    counts: number[]
+    /** Naskah mentah — `$n` diisi di layar, lihat `derived`. */
+    scoring: string
+    competitionSystem: string
+}
+
+const selectedRule = computed(() =>
+    props.options.rulesFormats.find((r) => r.value === form.rules_format),
+)
+
+/** "Player Count" untuk aturan tunggal, "Team Count" untuk ganda. */
+const participantCountLabel = computed(() =>
+    selectedRule.value === undefined
+        ? t('tournaments.participant_count')
+        : t('tournaments.participant_count_of', { type: selectedRule.value.participantType }),
+)
+
+const participantCountOptions = computed(() =>
+    (selectedRule.value?.counts ?? []).map((n) => ({ value: n, label: String(n) })),
+)
+
+/**
+ * Kalimat yang AKAN tersimpan, dihitung ulang di layar.
+ *
+ * Server yang menuliskannya saat menyimpan — ini salinan untuk dilihat lebih
+ * dulu, bukan yang dikirim. Aturannya sama persis dengan `TournamentRules::render()`:
+ * `($n / k)` dihitung, `$n` diisi, dan tanpa jumlah peserta `$n` dibiarkan
+ * berdiri supaya kalimatnya jelas belum selesai.
+ */
+const derived = computed(() => {
+    const rule = selectedRule.value
+    if (rule === undefined) return { scoring: '', competitionSystem: '' }
+
+    const n = Number(form.participant_count)
+
+    const render = (text: string): string =>
+        Number.isFinite(n) && n > 0
+            ? text
+                  .replace(/\(\$n\s*\/\s*(\d+)\)/g, (_, k: string) => String(Math.ceil(n / Number(k))))
+                  .replaceAll('$n', String(n))
+            : text
+
+    return {
+        scoring: rule.scoring,
+        competitionSystem: render(rule.competitionSystem),
+    }
+})
+
+/**
+ * Mengganti aturan mengosongkan jumlah peserta yang tidak lagi sah.
+ *
+ * 64 ada di kedua daftar, 8 hanya di ganda. Membiarkannya berarti kolom yang
+ * menampilkan angka yang akan ditolak server — dan penolakannya baru terbaca
+ * setelah Simpan, di kartu yang sudah digulir lewat.
+ */
+watch(
+    () => form.rules_format,
+    () => {
+        const allowed = selectedRule.value?.counts ?? []
+        if (!allowed.includes(Number(form.participant_count))) form.participant_count = null
+    },
+)
 
 const steps = computed(() => [
     { id: 'basic', label: t('tournaments.section_basic'), progress: progress.value.basic },
@@ -323,21 +395,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                         <FormRow :label="t('tournaments.country')" :description="t('tournaments.country_hint')" required>
                             <template #default="{ id }">
                                 <AppField :id="id" v-model="form.country" :error="form.errors.country" />
-                            </template>
-                        </FormRow>
-
-                        <FormRow
-                            :label="t('tournaments.rules_format')"
-                            :description="t('tournaments.rules_format_hint')"
-                            required
-                        >
-                            <template #default="{ id }">
-                                <SelectField
-                                    :id="id"
-                                    v-model="form.rules_format"
-                                    :options="toOptions(options.rulesFormats)"
-                                    :error="form.errors.rules_format"
-                                />
                             </template>
                         </FormRow>
 
@@ -556,12 +613,21 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                                 />
                             </div>
 
-                            <MediaUpload
-                                v-model="official.photo"
-                                kind="image"
-                                :existing-url="official.photoUrl"
-                                :error="(form.errors as any)[`officials.${index}.photo`]"
-                            />
+                            <!-- Fotonya opsional, dan layar ini yang harus
+                                 mengatakannya: tanpa keterangan itu, kotak
+                                 unggah kosong di sebelah dua kolom wajib
+                                 terbaca seperti kolom yang belum diisi. -->
+                            <div class="flex flex-col gap-2">
+                                <MediaUpload
+                                    v-model="official.photo"
+                                    kind="image"
+                                    :existing-url="official.photoUrl"
+                                    :error="(form.errors as any)[`officials.${index}.photo`]"
+                                />
+                                <p class="text-body-xs text-cool-70">
+                                    {{ t('tournaments.official_photo_hint') }}
+                                </p>
+                            </div>
                         </div>
 
                         <AppButton variant="outline" size="s" @click="addOfficial">
@@ -723,6 +789,26 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
 
                     <!-- ============================= Format -->
                     <CardSection id="section-format" :title="t('tournaments.section_format')">
+                        <!-- Pindah ke sini dari section Basic: aturan mainlah
+                             yang menentukan tiga baris di bawahnya, jadi
+                             memilihnya di kartu lain berarti pembaca mengubah
+                             sesuatu dan melihat akibatnya di layar yang sudah ia
+                             lewati. -->
+                        <FormRow
+                            :label="t('tournaments.rules_format')"
+                            :description="t('tournaments.rules_format_hint')"
+                            required
+                        >
+                            <template #default="{ id }">
+                                <SelectField
+                                    :id="id"
+                                    v-model="form.rules_format"
+                                    :options="options.rulesFormats"
+                                    :error="form.errors.rules_format"
+                                />
+                            </template>
+                        </FormRow>
+
                         <FormRow :label="t('tournaments.game_format')" :description="t('tournaments.game_format_hint')" required>
                             <template #default="{ id }">
                                 <AppField
@@ -734,55 +820,51 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                             </template>
                         </FormRow>
 
+                        <!-- Label DAN pilihannya mengikuti aturan yang dipilih:
+                             "Player Count" dengan 16/64/256/1024 untuk aturan
+                             tunggal, "Team Count" dengan 8…1024 untuk ganda.
+                             Angka bebas dibuang — babak gugur hanya bekerja pada
+                             pangkat dua, dan kalimat sistem kompetisi menghitung
+                             `($n / 2)` atau `($n / 4)` dari angka ini. -->
                         <FormRow
-                            :label="t('tournaments.participant_count')"
+                            :label="participantCountLabel"
                             :description="t('tournaments.participant_count_hint')"
                         >
                             <template #default="{ id }">
-                                <AppField
+                                <SelectField
                                     :id="id"
                                     v-model="form.participant_count"
-                                    type="number"
-                                    min="1"
-                                    placeholder="64"
+                                    :options="participantCountOptions"
+                                    :disabled="selectedRule === undefined"
+                                    :placeholder="
+                                        selectedRule === undefined
+                                            ? t('tournaments.participant_count_needs_rule')
+                                            : t('tournaments.participant_count_placeholder')
+                                    "
                                     :error="form.errors.participant_count"
                                 />
                             </template>
                         </FormRow>
 
-                        <FormRow
-                            :label="t('tournaments.participant_type')"
-                            :description="t('tournaments.participant_type_hint')"
-                            required
-                        >
-                            <template #default="{ id }">
-                                <SelectField
-                                    :id="id"
-                                    v-model="form.participant_type"
-                                    :options="toOptions(options.participantTypes)"
-                                    :error="form.errors.participant_type"
-                                />
+                        <!-- Penilaian dan sistem kompetisi TIDAK diketik lagi:
+                             keduanya sifat aturannya, bukan sifat turnamennya.
+                             Yang ditampilkan di sini kalimat yang akan tersimpan
+                             dan tercetak di halaman publik, supaya keputusannya
+                             terlihat sebelum disimpan alih-alih baru ketahuan di
+                             situs. -->
+                        <FormRow :label="t('tournaments.scoring')" :description="t('tournaments.derived_hint')">
+                            <template #default>
+                                <p class="text-body-s text-cool-90">
+                                    {{ derived.scoring || t('tournaments.derived_empty') }}
+                                </p>
                             </template>
                         </FormRow>
 
-                        <FormRow
-                            :label="t('tournaments.competition_system')"
-                            :description="t('tournaments.competition_system_hint')"
-                            required
-                        >
-                            <template #default="{ id }">
-                                <AppField
-                                    :id="id"
-                                    v-model="form.competition_system"
-                                    textarea
-                                    :error="form.errors.competition_system"
-                                />
-                            </template>
-                        </FormRow>
-
-                        <FormRow :label="t('tournaments.scoring')" :description="t('tournaments.scoring_hint')" required>
-                            <template #default="{ id }">
-                                <AppField :id="id" v-model="form.scoring" textarea :error="form.errors.scoring" />
+                        <FormRow :label="t('tournaments.competition_system')" :description="t('tournaments.derived_hint')">
+                            <template #default>
+                                <p class="text-body-s text-cool-90">
+                                    {{ derived.competitionSystem || t('tournaments.derived_empty') }}
+                                </p>
                             </template>
                         </FormRow>
                     </CardSection>

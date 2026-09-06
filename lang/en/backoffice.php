@@ -702,13 +702,21 @@ return [
         'game_format' => 'Game Format',
         'game_format_hint' => 'Primary domino discipline or match format used in the competition.',
         'participant_count' => 'Participant Count',
-        'participant_count_hint' => 'Expected or confirmed total number of players, pairs, or teams.',
-        'participant_type' => 'Participant Type',
-        'participant_type_hint' => 'Defines whether the tournament is played by players, pairs, or teams.',
+        /* `:type` is Players or Teams, decided by the rules format. */
+        'participant_count_of' => ':type Count',
+        'participant_count_hint' => 'Knockout brackets only work on these sizes, so the list is fixed.',
+        'participant_count_placeholder' => 'Select amount',
+        'participant_count_needs_rule' => 'Choose a rules format first',
         'competition_system' => 'Competition System',
-        'competition_system_hint' => 'Explain group stages, knockout rules, advancement, or bracket structure.',
         'scoring' => 'Scoring',
-        'scoring_hint' => 'Explain the scoring or winning condition used for a match.',
+        /*
+         * Keduanya sifat ATURANNYA, bukan sifat turnamennya, jadi ia dicetak
+         * alih-alih diketik. Keterangan ini yang menjelaskan kenapa kolomnya
+         * tidak bisa disunting — tanpa itu ia terbaca seperti field yang rusak.
+         */
+        'derived_hint' => 'Set by the rules format. Shown here as it will be published.',
+        'derived_empty' => 'Choose a rules format to see this.',
+        'official_photo_hint' => 'Optional. If left blank, an avatar with the first two initials will be used.',
 
         'regulations_note' => 'Documents are sourced from Documents so publication date, file type, and file size stay consistent.',
         'documents' => 'Attached Documents',

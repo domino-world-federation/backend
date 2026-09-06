@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Tournament;
+use App\Support\TournamentRules;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -28,7 +29,7 @@ class TournamentFactory extends Factory
             'ends_on' => $end,
             'city' => fake()->city(),
             'country' => fake()->country(),
-            'rules_format' => fake()->randomElement(config('dwf.tournaments.rules_formats')),
+            'rules_format' => fake()->randomElement(TournamentRules::names()),
             'hero_image_path' => 'tournaments/hero.webp',
             'overview' => fake()->paragraph(8),
 
@@ -41,7 +42,7 @@ class TournamentFactory extends Factory
             'registration_method' => fake()->randomElement(config('dwf.tournaments.registration_methods')),
 
             'game_format' => 'Double-101',
-            'participant_type' => fake()->randomElement(config('dwf.tournaments.participant_types')),
+            'participant_type' => fake()->randomElement(array_values(config('dwf.tournaments.participant_types'))),
             'competition_system' => '16 groups of four; top two advance to knockout',
             'scoring' => 'First team to reach 101 points wins the match',
 

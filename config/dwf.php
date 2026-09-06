@@ -40,10 +40,79 @@ return [
             'Invitational',
         ],
 
-        // "Tournament Rules Format" — aturan main yang dipakai.
-        'rules_formats' => ['Single 101', 'Double 101', 'Draw Domino', 'Block Domino', 'Mixed Format'],
+        /*
+         * "Tournament Rules Format" — aturan main, dan apa yang mengikutinya.
+         *
+         * Kuncinya yang TERSIMPAN di `tournaments.rules_format`; sisanya
+         * diturunkan darinya dan tidak pernah diketik siapa pun:
+         *
+         *   `side`  — menentukan apakah pesertanya pemain atau tim, dan karena
+         *             itu menentukan label kolom jumlah peserta beserta pilihan
+         *             angkanya. Ditulis eksplisit, bukan ditebak dari kata
+         *             "Single"/"Double" di judulnya: judul adalah teks yang
+         *             boleh berubah, `side` adalah sifat aturannya.
+         *   `scoring` dan `competition_system` — kalimat yang tercetak di
+         *             halaman turnamen. Dulu dua kolom teks bebas yang diisi
+         *             tangan per turnamen, padahal isinya sifat ATURANNYA:
+         *             enam turnamen dengan aturan yang sama menghasilkan enam
+         *             kalimat yang berbeda-beda susunannya.
+         *
+         * `$n` diganti jumlah peserta, dan `($n / k)` dihitung — lihat
+         * `TournamentRules::render()`. Ia BUKAN `eval`: hanya pola itu yang
+         * dikenali, karena naskah ini akan tercetak di situs publik.
+         */
+        'rules_formats' => [
+            'Double 101' => [
+                'side' => 'double',
+                'scoring' => 'First team to reach 101 points wins the match.',
+                'competition_system' => '$n-team knockout bracket with ($n / 2) opening-round matches. Each match consists of two teams (four players).',
+            ],
+            'Single 101' => [
+                'side' => 'single',
+                'scoring' => 'First player to reach 101 points wins the match.',
+                'competition_system' => '$n-player knockout format with ($n / 4) opening-round groups. Each group consists of four players, and the winner advances to the next stage.',
+            ],
+            'Double Knockout' => [
+                'side' => 'double',
+                'scoring' => 'The team that wins the round wins the match.',
+                'competition_system' => '$n-team knockout bracket with ($n / 2) opening-round matches. Each match consists of two teams (four players).',
+            ],
+            'Single Knockout' => [
+                'side' => 'single',
+                'scoring' => 'The player who wins the round wins the match.',
+                'competition_system' => '$n-player knockout format with ($n / 4) opening-round groups. Each group consists of four players, and the winner advances to the next stage.',
+            ],
+            'Double BO3' => [
+                'side' => 'double',
+                'scoring' => 'The first team to win two rounds wins the match.',
+                'competition_system' => '$n-team knockout bracket with ($n / 2) opening-round matches. Each match consists of two teams (four players).',
+            ],
+            'Single BO3' => [
+                'side' => 'single',
+                'scoring' => 'The first player to win two rounds wins the match.',
+                'competition_system' => '$n-player knockout format with ($n / 4) opening-round groups. Each group consists of four players, and the winner advances to the next stage.',
+            ],
+        ],
 
-        'participant_types' => ['Players', 'Pairs', 'Teams'],
+        /*
+         * Jumlah peserta yang boleh dipilih, per `side`.
+         *
+         * Daftar tertutup, bukan angka bebas: babak gugur hanya bekerja pada
+         * pangkat dua, dan `($n / 2)`/`($n / 4)` di kalimat sistem kompetisi
+         * hanya bulat pada angka-angka ini. Sebuah turnamen 100 tim akan
+         * mencetak "50 opening-round matches" untuk bagan yang tidak bisa
+         * disusun.
+         *
+         * Single mulai dari 16 karena babaknya berkelompok empat; double dari 8
+         * karena babaknya berpasangan dua.
+         */
+        'participant_counts' => [
+            'single' => [16, 64, 256, 1024],
+            'double' => [8, 16, 32, 64, 128, 256, 512, 1024],
+        ],
+
+        /* Label peserta, diturunkan dari `side` — tidak lagi dipilih tangan. */
+        'participant_types' => ['single' => 'Players', 'double' => 'Teams'],
 
         // Pil di sebelah kategori di kartu publik (`592:16886`).
         'attendance' => ['Offline', 'Online'],

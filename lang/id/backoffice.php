@@ -703,13 +703,21 @@ return [
         'game_format' => 'Format Permainan',
         'game_format_hint' => 'Disiplin domino atau format pertandingan utama yang dipakai.',
         'participant_count' => 'Jumlah Peserta',
-        'participant_count_hint' => 'Perkiraan atau jumlah pasti pemain, pasangan, atau tim.',
-        'participant_type' => 'Jenis Peserta',
-        'participant_type_hint' => 'Menentukan turnamen ini dimainkan pemain, pasangan, atau tim.',
+        /* `:type` diisi Players atau Teams, ditentukan aturan mainnya. */
+        'participant_count_of' => 'Jumlah :type',
+        'participant_count_hint' => 'Bagan gugur hanya bekerja pada ukuran-ukuran ini, jadi daftarnya tertutup.',
+        'participant_count_placeholder' => 'Pilih jumlah',
+        'participant_count_needs_rule' => 'Pilih aturan mainnya dulu',
         'competition_system' => 'Sistem Kompetisi',
-        'competition_system_hint' => 'Jelaskan babak grup, aturan gugur, kelolosan, atau struktur bagan.',
         'scoring' => 'Penilaian',
-        'scoring_hint' => 'Jelaskan penilaian atau syarat kemenangan satu pertandingan.',
+        /*
+         * Keduanya sifat ATURANNYA, bukan sifat turnamennya, jadi ia dicetak
+         * alih-alih diketik. Keterangan ini yang menjelaskan kenapa kolomnya
+         * tidak bisa disunting — tanpa itu ia terbaca seperti field yang rusak.
+         */
+        'derived_hint' => 'Ditentukan aturan mainnya. Ditampilkan persis seperti yang akan tayang.',
+        'derived_empty' => 'Pilih aturan mainnya untuk melihat ini.',
+        'official_photo_hint' => 'Opsional. Kalau dikosongkan, dipakai avatar berisi dua huruf pertama namanya.',
 
         'regulations_note' => 'Dokumen diambil dari modul Dokumen supaya tanggal terbit, jenis, dan ukuran berkasnya tetap satu sumber.',
         'documents' => 'Dokumen Terlampir',

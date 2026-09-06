@@ -4,6 +4,7 @@ namespace App\Http\Requests\Cms;
 
 use App\Models\Document;
 use App\Models\Tournament;
+use App\Support\TournamentRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -47,7 +48,7 @@ class TournamentRequest extends FormRequest
             'ends_on' => ['required', 'date', 'after_or_equal:starts_on'],
             'city' => ['required', 'string', 'max:120'],
             'country' => ['required', 'string', 'max:120'],
-            'rules_format' => ['required', Rule::in($options['rules_formats'])],
+            'rules_format' => ['required', Rule::in(TournamentRules::names())],
             'attendance' => ['required', Rule::in($options['attendance'])],
 
             // "Primary image displayed in the tournament hero area." Wajib saat
@@ -113,10 +114,31 @@ class TournamentRequest extends FormRequest
 
             // --- Tournament Format ---
             'game_format' => ['required', 'string', 'min:2', 'max:80'],
-            'participant_count' => ['nullable', 'integer', 'min:1'],
-            'participant_type' => ['required', Rule::in($options['participant_types'])],
-            'competition_system' => ['required', 'string', 'min:10', 'max:500'],
-            'scoring' => ['required', 'string', 'min:10', 'max:500'],
+
+            /*
+             * Jumlah peserta dibatasi daftar milik ATURANNYA, bukan sekadar
+             * bilangan bulat. Babak gugur hanya bekerja pada pangkat dua, dan
+             * kalimat sistem kompetisi menghitung `($n / 2)` atau `($n / 4)` —
+             * 100 tim akan mencetak "50 opening-round matches" untuk bagan yang
+             * tidak bisa disusun.
+             *
+             * Daftarnya dibaca dari `rules_format` yang DIKIRIM di permintaan
+             * yang sama, jadi mengganti aturan dan jumlahnya sekaligus tetap
+             * divalidasi terhadap pasangan yang benar.
+             */
+            'participant_count' => [
+                'nullable',
+                'integer',
+                Rule::in(TournamentRules::countsFor($this->string('rules_format')->toString())),
+            ],
+
+            /*
+             * `participant_type`, `competition_system` dan `scoring` TIDAK lagi
+             * diterima dari permintaan: ketiganya diturunkan dari aturannya di
+             * controller. Menerimanya berarti dua sumber kebenaran, dan yang
+             * dikirim klien adalah yang kalah — sebuah field yang bisa diisi
+             * tapi tidak pernah dipakai.
+             */
 
             // --- Regulations & Rules ---
             // "select up to 10 existing published documents".
@@ -241,9 +263,6 @@ class TournamentRequest extends FormRequest
             'venue_lat' => __('backoffice.tournaments.map_location'),
             'venue_lng' => __('backoffice.tournaments.map_location'),
             'game_format' => __('backoffice.tournaments.game_format'),
-            'participant_type' => __('backoffice.tournaments.participant_type'),
-            'competition_system' => __('backoffice.tournaments.competition_system'),
-            'scoring' => __('backoffice.tournaments.scoring'),
             'eligibility' => __('backoffice.tournaments.eligibility'),
             'registration_method' => __('backoffice.tournaments.registration_method'),
         ];

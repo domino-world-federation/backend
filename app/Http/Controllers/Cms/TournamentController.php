@@ -9,6 +9,7 @@ use App\Models\Tournament;
 use App\Models\TournamentNotification;
 use App\Support\Csv;
 use App\Support\Media\StoredFile;
+use App\Support\TournamentRules;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -352,9 +353,23 @@ class TournamentController extends Controller
 
             'game_format' => $data['game_format'],
             'participant_count' => $data['participant_count'] ?? null,
-            'participant_type' => $data['participant_type'],
-            'competition_system' => $data['competition_system'],
-            'scoring' => $data['scoring'],
+
+            /*
+             * Ketiganya DITURUNKAN dari aturannya, tidak diterima dari layar.
+             *
+             * Yang disimpan tetap kalimat jadinya, bukan kuncinya: begitu
+             * `$n` sudah diisi, baris ini bisa dibaca apa adanya oleh
+             * `/api/v1/tournaments/{slug}` dan halaman publik tidak perlu tahu
+             * apa pun tentang tabel aturan. Konsekuensinya kalimat itu membeku
+             * pada jumlah peserta saat disimpan — dan itu yang benar: mengubah
+             * jumlahnya berarti menyimpan lagi, yang menuliskannya ulang.
+             */
+            'participant_type' => TournamentRules::participantType($data['rules_format']),
+            'competition_system' => TournamentRules::competitionSystemFor(
+                $data['rules_format'],
+                $data['participant_count'] ?? null,
+            ),
+            'scoring' => TournamentRules::scoringFor($data['rules_format']),
 
             'status' => $request->resolvedStatus(),
             'published_at' => $this->resolvedPublishedAt($data),
@@ -465,9 +480,10 @@ class TournamentController extends Controller
         return [
             'options' => [
                 'coverage' => $options['coverage'],
-                'rulesFormats' => $options['rules_formats'],
+                // Bentuk penuh, bukan daftar nama: layar butuh `side`, pilihan
+                // jumlah pesertanya, dan label kolomnya untuk tiap aturan.
+                'rulesFormats' => TournamentRules::options(),
                 'attendance' => $options['attendance'],
-                'participantTypes' => $options['participant_types'],
                 'currencies' => $options['currencies'],
                 'dwfIdRequirements' => $options['dwf_id_requirements'],
                 'eligibility' => $options['eligibility'],
