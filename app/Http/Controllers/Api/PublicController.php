@@ -135,7 +135,17 @@ class PublicController extends Controller
                 $request->string('slug')->toString() !== '',
                 fn ($q) => $q->where('slug', $request->string('slug')),
             )
-            ->orderByDesc('held_on')
+            /*
+             * `NULLS LAST`, dan itu bukan kerapian.
+             *
+             * Postgres menaruh NULL PALING ATAS pada `ORDER BY … DESC`, jadi
+             * album yang belum punya tanggal acara — kolomnya nullable, dan
+             * layar yang membuat album tidak punya field untuk itu — akan
+             * memimpin halaman galeri di atas kejuaraan dunia tahun ini.
+             * Urutannya "yang terbaru dulu", dan yang tidak bertanggal bukan
+             * yang terbaru; ia yang tidak diketahui.
+             */
+            ->orderByRaw('held_on desc nulls last')
             ->get()
             ->filter(fn (GalleryEvent $e) => $e->items->isNotEmpty())
             ->values();
