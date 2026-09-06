@@ -59,13 +59,22 @@ return [
     | Application Timezone
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | Zona waktu aplikasi — dan ia dibaca dari `.env`, tidak dipatok di sini.
+    |
+    | Sampai 2026-09-06 baris ini tertulis `'UTC'` apa adanya, sementara
+    | `.env` DAN `.env.example` sama-sama menyetel `APP_TIMEZONE=Asia/Jakarta`.
+    | Setelan itu tidak pernah terbaca, jadi seluruh aplikasi berjalan tujuh jam
+    | di belakang waktu orang yang memakainya — dan kegagalannya diam: tidak ada
+    | galat, hanya angka jam yang salah di mana-mana.
+    |
+    | Yang paling mahal darinya penjadwalan. Editor memilih "terbitkan 14:00"
+    | dengan WIB di kepalanya; nilainya diurai sebagai 14:00 UTC, dan
+    | `scopeLive` membandingkannya dengan `now()` yang juga UTC — jadi barangnya
+    | baru tayang pukul 21:00 WIB. Dari layar, jadwalnya "tidak jalan".
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------
