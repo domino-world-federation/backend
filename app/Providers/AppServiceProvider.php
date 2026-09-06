@@ -35,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         $this->recordAuthActivity();
         $this->stampActivityWithOrigin();
         $this->refusePrivateFilesInsidePublicMedia();
+        $this->refuseDocumentDownloadsOnTheStaticMediaHost();
     }
 
     /**
@@ -102,6 +103,63 @@ class AppServiceProvider extends ServiceProvider
                 .'Setel MEDIA_PRIVATE_ROOT ke folder DI LUAR MEDIA_ROOT.'
             );
         }
+    }
+
+    /**
+     * Menolak menyala kalau unduhan dokumen diarahkan ke host media statis.
+     *
+     * `MEDIA_URL` adalah asal berkas yang memang untuk dilihat: nginx
+     * menyajikannya langsung, tanpa PHP, dengan cache selamanya. `MEDIA_DOWNLOAD_URL`
+     * adalah asal unduhan dokumen, yang HARUS lewat `MediaController` karena
+     * status tayangnya diperiksa tiap permintaan.
+     *
+     * Menyamakan keduanya berarti salah satu dari dua hal, dan keduanya buruk:
+     * host itu tanpa PHP, jadi tiap unduhan 404 — atau host itu MENJALANKAN PHP
+     * di origin yang sama dengan berkas unggahan, yang justru dipisahkan supaya
+     * berkas orang tidak pernah berjalan di sebelah aplikasi.
+     *
+     * Ditulis setelah kejadian 2026-09-06: keduanya disetel ke satu nama, dan
+     * `root` nginx-nya ditaruh di INDUK dari `public/` dan `private/` — jadi
+     * seluruh dokumen privat bisa diunduh siapa pun lewat `/private/documents/…`,
+     * dengan `Cache-Control: immutable` setahun, dan Cloudflare menyimpannya.
+     * `refusePrivateFilesInsidePublicMedia()` di atas tidak menangkapnya: yang
+     * salah ada di nginx, dan PHP tidak bisa melihat ke sana.
+     *
+     * Yang BISA dilihat PHP adalah dua setelan yang menunjuk satu nama, dan itu
+     * gejala yang cukup. Berisik, karena diam berarti dokumen bocor atau
+     * unduhan mati — dan keduanya baru ketahuan lama sesudahnya.
+     */
+    private function refuseDocumentDownloadsOnTheStaticMediaHost(): void
+    {
+        $media = self::host((string) config('filesystems.disks.public.url'));
+        $download = self::host((string) config('dwf.document_download_url'));
+
+        if ($media === null || $download === null || $media !== $download) {
+            return;
+        }
+
+        throw new RuntimeException(
+            "MEDIA_DOWNLOAD_URL menunjuk host yang sama dengan MEDIA_URL ({$media}). "
+            .'Host media menyajikan berkas STATIS, jadi ia tidak bisa memeriksa sakelar Visibility: '
+            .'unduhan dokumen akan 404 di sana, atau — kalau root nginx-nya menaungi folder privat — '
+            .'setiap dokumen bisa diunduh siapa pun tanpa login. '
+            .'Beri unduhan dokumen nama sendiri yang menjalankan PHP, dan JANGAN pernah menaruh root '
+            .'nginx di atas folder privat.'
+        );
+    }
+
+    /** Hostname sebuah URL, atau null kalau kosong/tidak berbentuk URL. */
+    private static function host(string $url): ?string
+    {
+        $url = trim($url);
+
+        if ($url === '') {
+            return null;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return is_string($host) && $host !== '' ? $host : null;
     }
 
     /**
