@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import { useI18n } from '@/composables/useI18n'
+
 /**
  * Sidebar Progress Step — Figma `585:11561`, komponen `Atom/Progress-step`
  * (`585:11529`) dan `Atom/Progress-indicator-step` (`585:11538`).
@@ -38,6 +40,8 @@ const props = defineProps<{
  * ke salah satu dari tiga varian akan membuat cincin berhenti bergerak justru
  * saat orang sedang mengisi.
  */
+const { t } = useI18n()
+
 const RADIUS = 8
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
@@ -104,28 +108,50 @@ const rings = computed(() =>
                  berikutnya. Keduanya ditengahkan, seperti `layout_283e9b97`. -->
             <span class="flex flex-col items-center" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 20 20" class="shrink-0">
-                    <circle
-                        cx="10"
-                        cy="10"
-                        :r="RADIUS"
-                        fill="none"
-                        stroke="var(--color-cool-20)"
-                        stroke-width="2"
-                    />
-                    <!-- Diputar −90° supaya cincinnya mulai dari atas, bukan
-                         dari sisi kanan. -->
-                    <circle
-                        v-if="step.value > 0"
-                        cx="10"
-                        cy="10"
-                        :r="RADIUS"
-                        fill="none"
-                        stroke="var(--color-primary-60)"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        :stroke-dasharray="step.dash"
-                        transform="rotate(-90 10 10)"
-                    />
+                    <!-- **Selesai digambar sebagai CENTANG, bukan cincin
+                         penuh.** Cincin yang tertutup rapat dan cincin yang
+                         tinggal sedikit lagi berbeda beberapa piksel busur di
+                         glif 20px — persis di ujung tempat bedanya paling
+                         penting, karena di situlah orang berhenti mengisi.
+                         Centang tidak bisa disalahbaca sebagai "hampir".
+                         Cakramnya diisi penuh supaya perbedaannya juga terbaca
+                         dari sudut mata, bukan cuma saat dipandangi. -->
+                    <template v-if="step.value >= 1">
+                        <circle cx="10" cy="10" :r="RADIUS" fill="var(--color-primary-60)" />
+                        <path
+                            d="M6 10.2 L8.7 13 L14 7.4"
+                            fill="none"
+                            stroke="white"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </template>
+
+                    <template v-else>
+                        <circle
+                            cx="10"
+                            cy="10"
+                            :r="RADIUS"
+                            fill="none"
+                            stroke="var(--color-cool-20)"
+                            stroke-width="2"
+                        />
+                        <!-- Diputar −90° supaya cincinnya mulai dari atas, bukan
+                             dari sisi kanan. -->
+                        <circle
+                            v-if="step.value > 0"
+                            cx="10"
+                            cy="10"
+                            :r="RADIUS"
+                            fill="none"
+                            stroke="var(--color-primary-60)"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            :stroke-dasharray="step.dash"
+                            transform="rotate(-90 10 10)"
+                        />
+                    </template>
                 </svg>
 
                 <span
@@ -139,7 +165,11 @@ const rings = computed(() =>
                 <!-- Angkanya hanya dibacakan pembaca layar. Mencetaknya di
                      sebelah judul akan menggandakan informasi yang sudah
                      disampaikan cincinnya, di ruang selebar 218px. -->
-                <span class="sr-only">{{ step.percent }}%</span>
+                <!-- Dibacakan pembaca layar saja: mencetaknya di sebelah judul
+                     menggandakan apa yang sudah dikatakan cincinnya, di ruang
+                     selebar 218px. "Selesai" pada 100%, karena itu yang
+                     dikatakan centangnya kepada yang melihat. -->
+                <span class="sr-only">{{ step.value >= 1 ? t('common.done') : `${step.percent}%` }}</span>
             </span>
         </a>
     </div>

@@ -14,6 +14,8 @@
  */
 return [
     'common' => [
+        /* Dibacakan pembaca layar saat sebuah langkah formulir terisi penuh. */
+        'done' => 'Selesai',
         'save' => 'Simpan',
         'save_draft' => 'Simpan Draft',
         'cancel' => 'Batal',

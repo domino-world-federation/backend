@@ -269,6 +269,25 @@ const steps = computed(() => [
     { id: 'regulations', label: t('tournaments.section_regulations'), progress: progress.value.regulations },
 ])
 
+/**
+ * Dua huruf yang dipakai avatar seorang ofisial kalau fotonya dikosongkan.
+ *
+ * Digambar di kotak unggahnya, bukan cuma dijanjikan keterangan di bawahnya:
+ * yang mengunggah melihat persis apa yang akan tayang, dan melihatnya berubah
+ * saat ia mengetik nama. Aturannya sama persis dengan yang dipakai situs
+ * publik (`tournaments/DetailSupport.vue`) — huruf pertama dua kata pertama,
+ * atau dua huruf pertama untuk nama satu kata, supaya bloknya tidak pernah
+ * memuat satu huruf kesepian.
+ */
+function initials(name: string): string {
+    const words = name.trim().split(/\s+/).filter(Boolean)
+
+    if (words.length === 0) return ''
+    if (words.length === 1) return [...words[0]!].slice(0, 2).join('')
+
+    return (words[0]![0] ?? '') + (words[1]![0] ?? '')
+}
+
 // --- kelompok berulang ---------------------------------------------------
 
 function addOfficial(): void {
@@ -622,6 +641,7 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                                     v-model="official.photo"
                                     kind="image"
                                     :existing-url="official.photoUrl"
+                                    :fallback-initials="initials(official.name)"
                                     :error="(form.errors as any)[`officials.${index}.photo`]"
                                 />
                                 <p class="text-body-xs text-cool-70">

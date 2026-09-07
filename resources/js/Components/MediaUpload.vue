@@ -22,8 +22,18 @@ const props = withDefaults(
         existingLabel?: string | null
         accept?: string
         error?: string
+        /**
+         * Dua huruf yang menggantikan ikon kosong.
+         *
+         * Dipakai di tempat yang fotonya opsional DAN punya pengganti yang
+         * sudah ditentukan — ofisial turnamen jatuh ke avatar inisial. Kotak
+         * unggah yang menggambar ikon gambar generik menyembunyikan itu:
+         * pengunggahnya baru tahu apa yang akan tayang setelah membuka situs
+         * publik. Yang digambar di sini persis yang akan dilihat pembaca.
+         */
+        fallbackInitials?: string | null
     }>(),
-    { kind: 'image', existingUrl: null, existingLabel: null },
+    { kind: 'image', existingUrl: null, existingLabel: null, fallbackInitials: null },
 )
 
 const { t } = useI18n()
@@ -86,6 +96,11 @@ const fileName = computed(() => model.value?.name ?? props.existingLabel)
                     alt=""
                     class="size-full object-cover"
                 />
+                <span
+                    v-else-if="fallbackInitials"
+                    class="text-heading-m font-semibold text-cool-60 uppercase"
+                    aria-hidden="true"
+                >{{ fallbackInitials }}</span>
                 <component
                     :is="kind === 'document' ? PhFileArrowUp : PhImageSquare"
                     v-else
