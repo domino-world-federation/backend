@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
-import { PhArrowSquareOut, PhCaretDown, PhTextAlignLeft } from '@phosphor-icons/vue'
+import { PhCaretDown, PhSignOut, PhTextAlignLeft } from '@phosphor-icons/vue'
 import NavIcon from '@/Components/Sidebar/NavIcon.vue'
 import { useI18n } from '@/composables/useI18n'
 import type { NavNode, SharedProps } from '@/types'
@@ -257,10 +257,14 @@ const mainItemClass =
                 </template>
         </nav>
 
-        <!-- Blok akun `252:3263`, dipatok di dasar sidebar. -->
+        <!-- Blok akun `252:3263`, dipatok di dasar sidebar.
+             Menumpuk saat sidebar diciutkan: avatar dan tombol keluar
+             berdampingan tidak muat di kolom sempit, dan yang dikorbankan dulu
+             adalah tombol keluarnya. -->
         <div
             v-if="user"
-            class="relative z-10 flex shrink-0 items-center justify-between border-t border-white/10 px-3 pt-3"
+            class="relative z-10 flex shrink-0 border-t border-white/10 px-3 pt-3"
+            :class="collapsed ? 'flex-col items-center gap-3' : 'items-center justify-between'"
         >
             <div class="flex min-w-0 items-center gap-2">
                 <img
@@ -283,14 +287,28 @@ const mainItemClass =
                 </span>
             </div>
 
+            <!-- **Keluar, dan ia harus terbaca sebagai keluar.**
+                 Tiga hal membuatnya tidak pernah ketemu: ikonnya
+                 `PhArrowSquareOut` — panah keluar dari kotak, yang di mana pun
+                 berarti "buka di tab baru" dan bukan "akhiri sesi" — tidak ada
+                 satu kata pun di sebelahnya, dan `v-show="!collapsed"`
+                 menghapusnya sama sekali begitu sidebar diciutkan, yaitu
+                 keadaan yang tersimpan di localStorage dan bertahan antar
+                 kunjungan. Pemilik repo tetap masuk berhari-hari karena tidak
+                 menemukan jalan keluarnya.
+
+                 `PhSignOut` adalah pintu dengan panah — ikon keluar yang
+                 dikenali. `title` menyertainya supaya menahan kursor sedetik
+                 menjawab pertanyaannya tanpa harus menekan dulu; `aria-label`
+                 tetap ada karena `title` bukan nama yang bisa diandalkan. -->
             <button
-                v-show="!collapsed"
                 type="button"
-                class="shrink-0 cursor-pointer text-white"
+                class="shrink-0 cursor-pointer rounded p-1 text-white transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none"
                 :aria-label="t('nav.sign_out')"
+                :title="t('nav.sign_out')"
                 @click="logout"
             >
-                <PhArrowSquareOut :size="20" aria-hidden="true" />
+                <PhSignOut :size="20" aria-hidden="true" />
             </button>
         </div>
     </aside>
