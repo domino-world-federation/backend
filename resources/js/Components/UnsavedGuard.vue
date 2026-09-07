@@ -95,8 +95,29 @@ if (import.meta.hot) {
     })
 }
 
+/**
+ * Benar saat APLIKASI ini sendiri yang sedang mengirim formulirnya.
+ *
+ * Menyimpan bukan pergi. Kalau kepergiannya berasal dari Simpan yang baru saja
+ * ditekan, dialog "Leave site?" menanyakan hal yang sudah dijawab — dan
+ * menjawab "Cancel" justru membatalkan perpindahan ke halaman daftar SETELAH
+ * datanya tersimpan, jadi orangnya tertinggal di formulir yang menurutnya gagal.
+ *
+ * Terjadi di produksi 2026-09-07 pada layar Add Gallery: POST-nya berhasil,
+ * lalu pengalihannya menjadi muat halaman penuh — Inertia melakukan
+ * `window.location` begitu asal URL tujuan berbeda dari yang sedang dibuka —
+ * dan `beforeunload` menyala di tengah penyimpanan yang sudah selesai.
+ *
+ * Penyebab asal perbedaan origin itu ada di deploy (APP_URL melawan origin
+ * sungguhan), dan itu tetap harus dibetulkan di sana; yang dibetulkan di sini
+ * adalah penjaganya, yang seharusnya memang tidak pernah bertanya saat
+ * aplikasinya sendiri yang berpindah.
+ */
+let submitting = false
+
 function onBeforeUnload(event: BeforeUnloadEvent): void {
     if (viteIsReloading) return
+    if (submitting) return
     if (!dirty.value) return
 
     /*
@@ -115,10 +136,24 @@ const guard = {
 }
 
 let stopBefore: VoidFunction | undefined
+let stopFinish: VoidFunction | undefined
 
 onMounted(() => {
     window.addEventListener('beforeunload', onBeforeUnload)
     registerLeaveGuard(guard)
+
+    /*
+     * Ditandai di `before`, bukan di `start`: `before` menyala sebelum
+     * permintaannya berangkat, jadi penandanya sudah berdiri kalau responsnya
+     * ternyata memerintahkan muat halaman penuh.
+     *
+     * Dilepas di `finish` — yang menyala baik pada sukses, galat, maupun
+     * pembatalan — supaya sebuah simpanan yang gagal tidak meninggalkan
+     * formulir yang bisa ditutup diam-diam bersama isinya.
+     */
+    stopFinish = router.on('finish', () => {
+        submitting = false
+    })
 
     stopBefore = router.on('before', (event) => {
         const visit = event.detail.visit
@@ -138,7 +173,11 @@ onMounted(() => {
          * Tanpa saringan ini, tombol Save-lah yang pertama kena tahan: ia
          * memang selalu menekan tombol saat formulirnya "kotor".
          */
-        if (visit.method !== 'get') return
+        if (visit.method !== 'get') {
+            submitting = true
+
+            return
+        }
 
         const href = visit.url.href
 
@@ -155,6 +194,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('beforeunload', onBeforeUnload)
     unregisterLeaveGuard(guard)
     stopBefore?.()
+    stopFinish?.()
 })
 </script>
 
