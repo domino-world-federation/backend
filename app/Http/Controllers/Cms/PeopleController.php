@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Cms;
 use App\Http\Controllers\Controller;
 use App\Models\BoardMember;
 use App\Models\StandingCommittee;
-use App\Models\SubCommittee;
 use App\Support\Media\StoredFile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -108,41 +107,6 @@ class PeopleController extends Controller
         }
 
         return $payload;
-    }
-
-    // --------------------------------------------- Sub-committees (teks saja)
-
-    public function subCommittees(): Response
-    {
-        return Inertia::render('People/SubCommittees', [
-            'committees' => SubCommittee::query()->ordered()->get()
-                ->map(fn (SubCommittee $c) => [
-                    'name' => $c->name,
-                    'href' => $c->href,
-                    'is_active' => $c->is_active,
-                ])
-                ->all(),
-        ]);
-    }
-
-    /** Menulis ulang seluruh daftar — urutannya dari susunan di layar. */
-    public function updateSubCommittees(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'committees' => ['array', 'max:40'],
-            'committees.*.name' => ['required', 'string', 'max:160'],
-            // Boleh kosong: halaman tujuannya belum tentu ada.
-            'committees.*.href' => ['nullable', 'string', 'max:200'],
-            'committees.*.is_active' => ['required', 'boolean'],
-        ], attributes: ['committees' => __('backoffice.people.sub_committees')]);
-
-        SubCommittee::query()->delete();
-
-        foreach (array_values($data['committees'] ?? []) as $index => $row) {
-            SubCommittee::create($row + ['position' => $index + 1]);
-        }
-
-        return back()->with('success', __('backoffice.people.sub_saved'));
     }
 
     // ------------------------------------------ Standing committees (teks saja)

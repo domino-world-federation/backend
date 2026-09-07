@@ -25,6 +25,7 @@ use App\Http\Controllers\Cms\PeopleController;
 use App\Http\Controllers\Cms\ResultController;
 use App\Http\Controllers\Cms\RoleController;
 use App\Http\Controllers\Cms\SeoController;
+use App\Http\Controllers\Cms\SubCommitteeController;
 use App\Http\Controllers\Cms\TournamentController;
 use App\Http\Controllers\Cms\UserController;
 use App\Http\Controllers\DashboardController;
@@ -318,15 +319,41 @@ Route::middleware('auth')->group(function () {
     });
 
     // ------------------------------------------------- People & Governance
+    /*
+     * `sub-committees` didaftarkan SEBELUM route apa pun yang memakai
+     * `/people/{member}` — sama seperti kategori berita di atas. `{member}`
+     * dibatasi `whereNumber`, jadi urutannya bukan satu-satunya yang menjaga,
+     * tapi keduanya ditulis benar supaya tidak bergantung pada salah satu saja.
+     *
+     * Modul CRUD-nya sendiri, dengan controller-nya sendiri: baris punya id
+     * yang tetap, dan urutannya disimpan lewat route yang terpisah dari isinya.
+     * Alasannya di `SubCommitteeController`.
+     */
+    Route::prefix('people/sub-committees')->name('people.sub-committees.')
+        ->middleware('can:people.view')->group(function () {
+            Route::get('/', [SubCommitteeController::class, 'index'])->name('index');
+
+            Route::post('/', [SubCommitteeController::class, 'store'])
+                ->middleware('can:people.create')->name('store');
+
+            Route::middleware('can:people.update')->group(function () {
+                // Sebelum `/{committee}`, dan `{committee}` dibatasi angka:
+                // tanpa itu `/order` cocok dengan `{committee}` dan membalas
+                // 405 alih-alih menjalankan reorder.
+                Route::patch('/order', [SubCommitteeController::class, 'reorder'])->name('order');
+                Route::put('/{committee}', [SubCommitteeController::class, 'update'])
+                    ->whereNumber('committee')->name('update');
+            });
+
+            Route::delete('/{committee}', [SubCommitteeController::class, 'destroy'])
+                ->whereNumber('committee')->middleware('can:people.delete')->name('destroy');
+        });
+
     Route::middleware('can:people.view')->group(function () {
         Route::get('/people', [PeopleController::class, 'index'])->name('people.index');
-        Route::get('/people/sub-committees', [PeopleController::class, 'subCommittees'])
-            ->name('people.sub-committees');
         Route::get('/people/committees', [PeopleController::class, 'committees'])->name('people.committees');
 
         Route::middleware('can:people.update')->group(function () {
-            Route::put('/people/sub-committees', [PeopleController::class, 'updateSubCommittees'])
-                ->name('people.sub-committees.update');
             Route::put('/people/committees', [PeopleController::class, 'updateCommittees'])
                 ->name('people.committees.update');
             // POST, bukan PUT: `PUT` tidak membawa berkas, dan potretnya berkas.

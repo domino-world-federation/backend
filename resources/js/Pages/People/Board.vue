@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Head, router, useForm } from '@inertiajs/vue3'
-import { PhPlus, PhUser } from '@phosphor-icons/vue'
+import { PhGavel, PhPlus, PhUser, PhUsersThree } from '@phosphor-icons/vue'
 
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import PageHeader from '@/Components/PageHeader.vue'
@@ -107,6 +107,20 @@ function destroy(): void {
         >
             <template #description>{{ t('people.board_hint') }}</template>
             <template #actions>
+                <!-- Kedua layar lain modul ini tidak pernah ditaut dari mana
+                     pun: sidebar cuma membawa satu entri, `/people`, dan yang
+                     dibuka entri itu adalah halaman ini. Sub-komite dan komite
+                     tetap hanya bisa dicapai dengan mengetik URL-nya — pola
+                     yang sama dipakai Results & Winners untuk ketiga layarnya
+                     (`Results/Index`), jadi ditiru di sini. -->
+                <AppButton href="/people/sub-committees" variant="outline">
+                    <template #iconLeft><PhUsersThree :size="24" /></template>
+                    {{ t('people.sub_committees') }}
+                </AppButton>
+                <AppButton href="/people/committees" variant="outline">
+                    <template #iconLeft><PhGavel :size="24" /></template>
+                    {{ t('people.committees') }}
+                </AppButton>
                 <AppButton @click="startAdd">
                     <template #iconLeft><PhPlus :size="24" /></template>
                     {{ t('people.add_member') }}

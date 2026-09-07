@@ -104,33 +104,89 @@ class PeopleAndBlocksTest extends TestCase
     /** `href` boleh kosong: halaman tujuannya belum tentu ada. */
     public function test_a_sub_committee_may_have_no_link(): void
     {
-        $this->actingAs($this->actor())->put('/people/sub-committees', [
-            'committees' => [['name' => 'Technical Committee', 'href' => null, 'is_active' => true]],
+        $this->actingAs($this->actor())->post('/people/sub-committees', [
+            'name' => 'Technical Committee', 'href' => null, 'is_active' => true,
         ])->assertSessionHasNoErrors();
 
         $this->assertNull(SubCommittee::query()->sole()->href);
     }
 
-    public function test_saving_rewrites_sub_committees_in_order(): void
+    /**
+     * Menyunting satu baris tidak membuat baris baru.
+     *
+     * Ini yang dibeli modul CRUD-nya: layar bulk sebelumnya menghapus tabelnya
+     * dan menulis ulang tiap Save, jadi id-nya berubah setiap kali dan tidak
+     * ada satu baris pun yang punya riwayat.
+     */
+    public function test_editing_a_sub_committee_keeps_its_id(): void
     {
         $actor = $this->actor();
 
-        $this->actingAs($actor)->put('/people/sub-committees', [
-            'committees' => [
-                ['name' => 'A', 'href' => null, 'is_active' => true],
-                ['name' => 'B', 'href' => null, 'is_active' => true],
-            ],
+        $this->actingAs($actor)->post('/people/sub-committees', [
+            'name' => 'A', 'href' => null, 'is_active' => true,
         ]);
 
-        $this->actingAs($actor)->put('/people/sub-committees', [
-            'committees' => [['name' => 'B', 'href' => '/b', 'is_active' => true]],
+        $id = SubCommittee::query()->sole()->id;
+
+        $this->actingAs($actor)->put("/people/sub-committees/{$id}", [
+            'name' => 'B', 'href' => '/b', 'is_active' => true,
+        ])->assertSessionHasNoErrors();
+
+        $row = SubCommittee::query()->sole();
+
+        $this->assertSame($id, $row->id);
+        $this->assertSame('B', $row->name);
+        $this->assertSame('/b', $row->href);
+    }
+
+    /** Nama ganda ditolak — dua kartu identik tidak bisa dibedakan pembaca. */
+    public function test_a_duplicate_sub_committee_name_is_rejected(): void
+    {
+        $actor = $this->actor();
+
+        $this->actingAs($actor)->post('/people/sub-committees', [
+            'name' => 'Technical', 'href' => null, 'is_active' => true,
         ]);
 
-        $rows = SubCommittee::query()->ordered()->get();
+        $this->actingAs($actor)->post('/people/sub-committees', [
+            'name' => 'Technical', 'href' => null, 'is_active' => true,
+        ])->assertSessionHasErrors('name');
 
-        $this->assertCount(1, $rows);
-        $this->assertSame('B', $rows->first()->name);
-        $this->assertSame('/b', $rows->first()->href);
+        $this->assertSame(1, SubCommittee::query()->count());
+    }
+
+    public function test_reordering_sub_committees_moves_a_row_without_touching_its_content(): void
+    {
+        $actor = $this->actor();
+
+        foreach (['A', 'B'] as $name) {
+            $this->actingAs($actor)->post('/people/sub-committees', [
+                'name' => $name, 'href' => null, 'is_active' => true,
+            ]);
+        }
+
+        $ids = SubCommittee::query()->ordered()->pluck('id')->all();
+
+        $this->actingAs($actor)
+            ->patch('/people/sub-committees/order', ['ids' => array_reverse($ids)])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(['B', 'A'], SubCommittee::query()->ordered()->pluck('name')->all());
+    }
+
+    public function test_a_sub_committee_can_be_deleted(): void
+    {
+        $actor = $this->actor();
+
+        $this->actingAs($actor)->post('/people/sub-committees', [
+            'name' => 'Technical', 'href' => null, 'is_active' => true,
+        ]);
+
+        $id = SubCommittee::query()->sole()->id;
+
+        $this->actingAs($actor)->delete("/people/sub-committees/{$id}");
+
+        $this->assertSame(0, SubCommittee::query()->count());
     }
 
     // --------------------------------------------------- Standing committees
