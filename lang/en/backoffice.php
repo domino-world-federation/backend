@@ -604,8 +604,6 @@ return [
     'tournaments' => [
         'notify_export' => 'Download notify list (:count)',
         'notify_empty' => 'Nobody has asked to be notified about this tournament yet.',
-        'attendance' => 'Attendance',
-        'attendance_hint' => 'Whether the tournament is played in person or online. Printed as a pill beside the coverage on the public card.',
         'progress' => 'Form progress',
         'title' => 'Events & Tournaments',
         'list' => 'List',
@@ -701,8 +699,6 @@ return [
         'move_up' => 'Move up',
         'move_down' => 'Move down',
 
-        'game_format' => 'Game Format',
-        'game_format_hint' => 'Primary domino discipline or match format used in the competition.',
         'participant_count' => 'Participant Count',
         /* `:type` is Players or Teams, decided by the rules format. */
         'participant_count_of' => ':type Count',

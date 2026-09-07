@@ -227,7 +227,6 @@ class TournamentController extends Controller
                 'city' => $tournament->city,
                 'country' => $tournament->country,
                 'rulesFormat' => $tournament->rules_format,
-                'attendance' => $tournament->attendance,
                 'heroImageUrl' => StoredFile::url($tournament->hero_image_path),
                 'overview' => $tournament->overview,
 
@@ -267,7 +266,6 @@ class TournamentController extends Controller
                     'area' => $e->area,
                 ])->all(),
 
-                'gameFormat' => $tournament->game_format,
                 'participantCount' => $tournament->participant_count,
                 'participantType' => $tournament->participant_type,
                 'competitionSystem' => $tournament->competition_system,
@@ -324,7 +322,12 @@ class TournamentController extends Controller
             'city' => $data['city'],
             'country' => $data['country'],
             'rules_format' => $data['rules_format'],
-            'attendance' => $data['attendance'],
+            /*
+             * Dipatok, tidak diambil dari layar: seluruh turnamen federasi ini
+             * digelar langsung, jadi dropdown-nya dicabut. Tetap ditulis ke
+             * kolomnya supaya pil di kartu publik punya isi.
+             */
+            'attendance' => config('dwf.tournaments.attendance_default'),
             // Ditulis lewat `RichTextEditor`, jadi isinya HTML — dan HTML dari
             // editor WAJIB dibersihkan sebelum disimpan. Sempat terlewat: satu-
             // satunya kolom editor di repo ini yang menyimpan mentah, dan ia
@@ -351,7 +354,13 @@ class TournamentController extends Controller
             'eligibility' => $data['eligibility'],
             'registration_method' => $data['registration_method'],
 
-            'game_format' => $data['game_format'],
+            /*
+             * `game_format` tidak lagi ditulis. Kolomnya dibiarkan berisi apa
+             * adanya untuk baris lama, dan tidak ada satu pun yang membacanya
+             * lagi — `formatLabel` dan fakta "Game format" di halaman publik
+             * sekarang membaca `rules_format`, yang memang mengatakan hal yang
+             * sama dan dipilih dari daftar tertutup.
+             */
             'participant_count' => $data['participant_count'] ?? null,
 
             /*
@@ -483,7 +492,6 @@ class TournamentController extends Controller
                 // Bentuk penuh, bukan daftar nama: layar butuh `side`, pilihan
                 // jumlah pesertanya, dan label kolomnya untuk tiap aturan.
                 'rulesFormats' => TournamentRules::options(),
-                'attendance' => $options['attendance'],
                 'currencies' => $options['currencies'],
                 'dwfIdRequirements' => $options['dwf_id_requirements'],
                 'eligibility' => $options['eligibility'],

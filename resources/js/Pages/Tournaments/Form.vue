@@ -40,7 +40,6 @@ const props = defineProps<{
     options: {
         coverage: string[]
         rulesFormats: RuleFormatOption[]
-        attendance: string[]
         currencies: string[]
         dwfIdRequirements: string[]
         eligibility: string[]
@@ -64,7 +63,6 @@ const form = useForm({
     city: props.tournament?.city ?? '',
     country: props.tournament?.country ?? '',
     rules_format: props.tournament?.rulesFormat ?? null,
-    attendance: props.tournament?.attendance ?? 'Offline',
     hero_image: null as File | null,
     overview: props.tournament?.overview ?? '',
 
@@ -98,7 +96,6 @@ const form = useForm({
 
     schedule: ((props.tournament?.schedule ?? []) as ScheduleItem[]).map((s) => ({ ...s, area: s.area ?? '' })),
 
-    game_format: props.tournament?.gameFormat ?? '',
     participant_count: props.tournament?.participantCount ?? '',
 
     documents: [...((props.tournament?.documents ?? []) as number[])],
@@ -154,9 +151,9 @@ const progress = computed(() => ({
     basic: ratio(
         filledCount(
             form.name, form.coverage, form.starts_on, form.ends_on,
-            form.city, form.country, form.rules_format, form.attendance, form.overview,
+            form.city, form.country, form.rules_format, form.overview,
         ) + (form.hero_image || props.tournament?.heroImageUrl ? 1 : 0),
-        10,
+        9,
     ),
     venue: ratio(filledCount(form.venue_name, form.venue_address, form.venue_lat, form.venue_lng), 4),
     prize: filledCount(
@@ -175,10 +172,11 @@ const progress = computed(() => ({
             form.schedule.filter((i) => i.held_on !== '' && i.starts_at !== '' && i.activity !== '').length,
             form.schedule.length,
         ),
-    // Dua field, bukan empat: penilaian dan sistem kompetisi tidak lagi diisi
-    // orang, jadi menghitungnya sebagai kemajuan berarti langkah ini terlihat
-    // setengah selesai padahal tidak ada lagi yang bisa dikerjakan di sana.
-    format: ratio(filledCount(form.rules_format, form.game_format), 2),
+    // Satu field, bukan empat: penilaian, sistem kompetisi, dan format
+    // permainan tidak lagi diisi orang, jadi menghitungnya sebagai kemajuan
+    // berarti langkah ini terlihat setengah selesai padahal tidak ada lagi yang
+    // bisa dikerjakan di sana. Yang tersisa untuk dipilih hanya aturan mainnya.
+    format: form.rules_format ? 1 : 0,
     regulations: form.documents.length > 0 ? 1 : 0,
 }))
 
@@ -414,21 +412,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                         <FormRow :label="t('tournaments.country')" :description="t('tournaments.country_hint')" required>
                             <template #default="{ id }">
                                 <AppField :id="id" v-model="form.country" :error="form.errors.country" />
-                            </template>
-                        </FormRow>
-
-                        <FormRow
-                            :label="t('tournaments.attendance')"
-                            :description="t('tournaments.attendance_hint')"
-                            required
-                        >
-                            <template #default="{ id }">
-                                <SelectField
-                                    :id="id"
-                                    v-model="form.attendance"
-                                    :options="toOptions(options.attendance)"
-                                    :error="form.errors.attendance"
-                                />
                             </template>
                         </FormRow>
 
@@ -825,17 +808,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                                     v-model="form.rules_format"
                                     :options="options.rulesFormats"
                                     :error="form.errors.rules_format"
-                                />
-                            </template>
-                        </FormRow>
-
-                        <FormRow :label="t('tournaments.game_format')" :description="t('tournaments.game_format_hint')" required>
-                            <template #default="{ id }">
-                                <AppField
-                                    :id="id"
-                                    v-model="form.game_format"
-                                    placeholder="Double-101"
-                                    :error="form.errors.game_format"
                                 />
                             </template>
                         </FormRow>

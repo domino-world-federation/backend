@@ -39,7 +39,6 @@ class TournamentTest extends TestCase
             'city' => 'Bangkok',
             'country' => 'Thailand',
             'rules_format' => 'Double 101',
-            'attendance' => 'Offline',
             'hero_image' => UploadedFile::fake()->image('hero.webp', 1600, 900),
             'overview' => str_repeat('Turnamen ini mempertemukan federasi anggota se-Asia. ', 3),
 
@@ -51,7 +50,6 @@ class TournamentTest extends TestCase
             'eligibility' => 'Open to all DWF member federations',
             'registration_method' => 'Through national federation',
 
-            'game_format' => 'Double-101',
             'participant_type' => 'Teams',
             'competition_system' => '16 groups of four; top two advance to knockout',
             'scoring' => 'First team to reach 101 points wins the match',

@@ -49,7 +49,6 @@ class TournamentRequest extends FormRequest
             'city' => ['required', 'string', 'max:120'],
             'country' => ['required', 'string', 'max:120'],
             'rules_format' => ['required', Rule::in(TournamentRules::names())],
-            'attendance' => ['required', Rule::in($options['attendance'])],
 
             // "Primary image displayed in the tournament hero area." Wajib saat
             // membuat; saat menyunting, tidak mengunggah apa pun berarti
@@ -113,7 +112,14 @@ class TournamentRequest extends FormRequest
             'schedule.*.area' => ['nullable', 'string', 'max:120'],
 
             // --- Tournament Format ---
-            'game_format' => ['required', 'string', 'min:2', 'max:80'],
+            /*
+             * `attendance` dan `game_format` TIDAK lagi diterima dari layar.
+             *
+             * Yang pertama dipatok "Offline" — seluruh turnamen federasi ini
+             * digelar langsung. Yang kedua disembunyikan karena `rules_format`
+             * sudah mengatakannya: "Double 101" adalah formatnya, dan dua kolom
+             * untuk satu fakta berarti dua jawaban yang suatu saat berbeda.
+             */
 
             /*
              * Jumlah peserta dibatasi daftar milik ATURANNYA, bukan sekadar
@@ -262,7 +268,6 @@ class TournamentRequest extends FormRequest
             'venue_address' => __('backoffice.tournaments.venue_address'),
             'venue_lat' => __('backoffice.tournaments.map_location'),
             'venue_lng' => __('backoffice.tournaments.map_location'),
-            'game_format' => __('backoffice.tournaments.game_format'),
             'eligibility' => __('backoffice.tournaments.eligibility'),
             'registration_method' => __('backoffice.tournaments.registration_method'),
         ];

@@ -605,8 +605,6 @@ return [
     'tournaments' => [
         'notify_export' => 'Unduh daftar notifikasi (:count)',
         'notify_empty' => 'Belum ada yang minta dikabari soal turnamen ini.',
-        'attendance' => 'Kehadiran',
-        'attendance_hint' => 'Apakah turnamen dimainkan langsung atau daring. Dicetak sebagai pil di sebelah cakupan di kartu publik.',
         'progress' => 'Progres formulir',
         'title' => 'Event & Turnamen',
         'list' => 'Daftar',
@@ -702,8 +700,6 @@ return [
         'move_up' => 'Naikkan',
         'move_down' => 'Turunkan',
 
-        'game_format' => 'Format Permainan',
-        'game_format_hint' => 'Disiplin domino atau format pertandingan utama yang dipakai.',
         'participant_count' => 'Jumlah Peserta',
         /* `:type` diisi Players atau Teams, ditentukan aturan mainnya. */
         'participant_count_of' => 'Jumlah :type',

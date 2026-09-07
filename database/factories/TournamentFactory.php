@@ -41,7 +41,6 @@ class TournamentFactory extends Factory
             'eligibility' => fake()->randomElement(config('dwf.tournaments.eligibility')),
             'registration_method' => fake()->randomElement(config('dwf.tournaments.registration_methods')),
 
-            'game_format' => 'Double-101',
             'participant_type' => fake()->randomElement(array_values(config('dwf.tournaments.participant_types'))),
             'competition_system' => '16 groups of four; top two advance to knockout',
             'scoring' => 'First team to reach 101 points wins the match',

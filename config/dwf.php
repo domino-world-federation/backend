@@ -114,8 +114,19 @@ return [
         /* Label peserta, diturunkan dari `side` — tidak lagi dipilih tangan. */
         'participant_types' => ['single' => 'Players', 'double' => 'Teams'],
 
-        // Pil di sebelah kategori di kartu publik (`592:16886`).
-        'attendance' => ['Offline', 'Online'],
+        /*
+         * Pil di sebelah kategori di kartu publik (`592:16886`).
+         *
+         * Bukan lagi pilihan: seluruh turnamen federasi ini digelar langsung,
+         * jadi dropdown-nya dicabut dari layar atas permintaan pemilik repo
+         * 2026-09-07 dan nilainya dipatok. Ia tetap TERSIMPAN dan tetap dikirim
+         * ke situs publik — pilnya digambar desain, dan "Offline" adalah
+         * keterangan yang benar, bukan sisa.
+         *
+         * Kalau suatu hari ada acara daring, yang dikembalikan dropdown-nya;
+         * kolomnya tidak perlu disentuh.
+         */
+        'attendance_default' => 'Offline',
 
         'currencies' => ['USD', 'EUR', 'GBP', 'CHF', 'IDR'],
 

@@ -146,7 +146,7 @@ class TournamentDetailResource extends PublicResource
     private function formatFacts(): ?array
     {
         $facts = array_filter([
-            'Game format' => $this->game_format,
+            'Game format' => $this->rules_format,
             'Participants' => $this->participant_count === null
                 ? null
                 : "{$this->participant_count} {$this->participant_type}",

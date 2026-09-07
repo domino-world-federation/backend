@@ -38,7 +38,17 @@ class TournamentResource extends PublicResource
             'dateLabel' => $this->dateLabel(),
             'registrationLabel' => $this->registrationLabel(),
             'attendance' => $this->attendance,
-            'formatLabel' => $this->game_format,
+            /*
+             * Dari `rules_format`, bukan `game_format`.
+             *
+             * Keduanya menjawab pertanyaan yang sama — "dimainkan dengan aturan
+             * apa" — dan yang kedua diketik bebas sementara yang pertama dipilih
+             * dari daftar tertutup yang juga menentukan jumlah peserta dan
+             * kalimat sistem kompetisinya. Kolom `game_format` disembunyikan
+             * dari layar 2026-09-07; membacanya di sini akan membuat kartu
+             * turnamen baru kehilangan baris formatnya.
+             */
+            'formatLabel' => $this->rules_format,
             'startsAt' => $this->starts_on?->toIso8601String(),
             'endsAt' => $this->ends_on?->toIso8601String(),
             'venue' => $this->venue_name,
