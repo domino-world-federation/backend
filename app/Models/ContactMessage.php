@@ -14,13 +14,22 @@ class ContactMessage extends Model
     use HasFactory, RecordsActivity;
 
     /**
-     * Topik dari layar Contact Messages (`258:8271`), ditambah satu.
+     * Topik dari layar Contact Messages (`258:8271`), ditambah dua.
      *
-     * "Tournament Support" TIDAK ada di layar itu, tapi ada di formulir situs
-     * publik (`content/contact/index.ts`) — dan yang menentukan daftar ini
-     * adalah apa yang bisa dikirim orang, bukan apa yang digambar penyaringnya.
-     * Tanpa baris ini setiap pesan bertopik itu ditolak 422 oleh endpoint, dan
-     * yang terlihat pengirimnya cuma formulir yang gagal tanpa sebab.
+     * Yang menentukan daftar ini adalah apa yang BISA DIKIRIM orang, bukan apa
+     * yang digambar penyaringnya. Topik yang bisa dikirim tapi tidak ada di
+     * sini ditolak 422 oleh endpoint, dan yang terlihat pengirimnya cuma
+     * formulir yang gagal tanpa sebab.
+     *
+     * "Tournament Support" datang dari formulir Contact di situs publik
+     * (`content/contact/index.ts`). "Development Support" datang dari kartu
+     * Federation Support Programs di halaman Development (`207:15156`) —
+     * pengajuan dana pengembangan dari federasi nasional. Ia masuk ke kotak
+     * masuk yang sama alih-alih ke tabel sendiri: yang datang adalah nama
+     * badan, alamat surel, dan sebuah permintaan, yang persis bentuk sebuah
+     * pesan. Tabel tersendiri baru berguna kalau pengajuannya punya keadaan
+     * yang dilacak — diterima, ditolak, dicairkan — dan sampai ada yang memutus
+     * itu, ia akan jadi kotak masuk kedua yang harus dibuka orang.
      */
     public const TOPICS = [
         'Media Requests',
@@ -28,6 +37,7 @@ class ContactMessage extends Model
         'Partnerships',
         'Membership Information',
         'Tournament Support',
+        'Development Support',
     ];
 
     /**
