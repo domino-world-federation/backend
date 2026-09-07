@@ -271,38 +271,113 @@ class ResultController extends Controller
         return Inertia::render('Results/Olympic', [
             'results' => OlympicResult::query()->ordered()->get()
                 ->map(fn (OlympicResult $r) => [
+                    // Dikirim balik supaya layarnya bisa menyunting baris yang
+                    // SUDAH ada, bukan menuliskan ulang tabelnya. Lihat
+                    // `updateOlympic()` untuk kenapa itu jadi penting.
+                    'id' => $r->id,
                     'year' => $r->year,
                     'event' => $r->event,
                     'category' => $r->category,
+                    'event_date' => $r->event_date,
+                    'location' => $r->location,
+                    'format' => $r->format,
                     'winners' => $r->winners,
                     'federation' => $r->federation,
+                    'champion_photo_url' => StoredFile::url($r->champion_photo_path),
+                    'champion_photo_alt' => $r->champion_photo_alt,
                     'is_active' => $r->is_active,
                 ])
                 ->all(),
         ]);
     }
 
-    /** Menulis ulang seluruh tabel — sama seperti statistik federasi. */
+    /**
+     * Menyimpan tabelnya.
+     *
+     * **Upsert per baris, bukan hapus-lalu-tulis-ulang.** Versi sebelumnya
+     * membuang seluruh tabel dan membuat ulang dari yang dikirim layar — cukup
+     * selama satu baris hanya berisi teks yang memang ikut terkirim. Sejak
+     * barisnya punya foto juara itu tidak lagi benar: file-nya ada di disk dan
+     * yang dikirim balik hanya URL-nya, jadi menghapus barisnya berarti
+     * kehilangan fotonya setiap kali ada yang menekan Save.
+     *
+     * Baris yang tidak ikut terkirim dihapus, berikut fotonya — itu yang
+     * dimaksud tombol hapus di layar bulk, dan file yatim di disk tidak pernah
+     * bisa ditemukan lagi lewat UI mana pun.
+     */
     public function updateOlympic(Request $request): RedirectResponse
     {
+        $uploads = config('dwf.uploads');
+
         $data = $request->validate([
             'results' => ['array', 'max:100'],
+            'results.*.id' => ['nullable', 'integer', 'exists:olympic_results,id'],
             // String, bukan integer: "2024–25" wajar untuk ajang lintas tahun.
             'results.*.year' => ['required', 'string', 'max:16'],
             'results.*.event' => ['required', 'string', 'max:160'],
             'results.*.category' => ['required', 'string', 'max:120'],
             'results.*.winners' => ['required', 'string', 'max:255'],
             'results.*.federation' => ['required', 'string', 'max:160'],
+
+            // Isi akordeon di halaman publik — opsional, karena baris lama
+            // tidak punya dan tetap harus bisa disimpan.
+            'results.*.event_date' => ['nullable', 'string', 'max:64'],
+            'results.*.location' => ['nullable', 'string', 'max:160'],
+            'results.*.format' => ['nullable', 'string', 'max:160'],
+            'results.*.champion_photo' => [
+                'nullable', 'image',
+                'mimes:'.implode(',', $uploads['image_mimes']),
+                'max:'.$uploads['image_max_kb'],
+            ],
+            'results.*.champion_photo_alt' => ['nullable', 'string', 'max:200'],
+
             'results.*.is_active' => ['required', 'boolean'],
         ], attributes: [
             'results' => __('backoffice.results.olympic'),
         ]);
 
-        OlympicResult::query()->delete();
+        $kept = [];
 
         foreach (array_values($data['results'] ?? []) as $index => $row) {
-            OlympicResult::create($row + ['position' => $index + 1]);
+            $result = isset($row['id'])
+                ? OlympicResult::query()->findOrFail($row['id'])
+                : new OlympicResult;
+
+            $result->fill([
+                'year' => $row['year'],
+                'event' => $row['event'],
+                'category' => $row['category'],
+                'event_date' => $row['event_date'] ?? null,
+                'location' => $row['location'] ?? null,
+                'format' => $row['format'] ?? null,
+                'winners' => $row['winners'],
+                'federation' => $row['federation'],
+                'champion_photo_alt' => $row['champion_photo_alt'] ?? null,
+                'is_active' => $row['is_active'],
+                'position' => $index + 1,
+            ]);
+
+            $file = $request->file("results.{$index}.champion_photo");
+
+            if ($file !== null) {
+                $result->champion_photo_path = StoredFile::put(
+                    $file,
+                    'olympic',
+                    $result->champion_photo_path,
+                );
+            }
+
+            $result->save();
+            $kept[] = $result->id;
         }
+
+        OlympicResult::query()
+            ->when($kept !== [], fn ($q) => $q->whereNotIn('id', $kept))
+            ->get()
+            ->each(function (OlympicResult $result) {
+                StoredFile::forget($result->champion_photo_path);
+                $result->delete();
+            });
 
         return back()->with('success', __('backoffice.results.olympic_saved'));
     }
@@ -312,12 +387,16 @@ class ResultController extends Controller
         $rows = OlympicResult::query()->ordered()->lazy();
 
         return Csv::stream('olympic-results', [
-            'ID', 'Year', 'Event', 'Category', 'Winners', 'Federation', 'Status',
+            'ID', 'Year', 'Event', 'Category', 'Event date', 'Location', 'Format',
+            'Winners', 'Federation', 'Status',
         ], $rows->map(fn (OlympicResult $r) => [
             $r->id,
             $r->year,
             $r->event,
             $r->category,
+            $r->event_date,
+            $r->location,
+            $r->format,
             $r->winners,
             $r->federation,
             $r->is_active ? 'active' : 'inactive',

@@ -8,29 +8,69 @@ import CardSection from '@/Components/CardSection.vue'
 import AppField from '@/Components/AppField.vue'
 import AppToggle from '@/Components/AppToggle.vue'
 import AppButton from '@/Components/AppButton.vue'
+import MediaUpload from '@/Components/MediaUpload.vue'
 import ContextNote from '@/Components/ContextNote.vue'
 import UnsavedGuard from '@/Components/UnsavedGuard.vue'
 import { useI18n } from '@/composables/useI18n'
 
 interface Row {
+    /**
+     * `null` untuk baris baru.
+     *
+     * Layar ini dulu mengirim teks saja dan server menulis ulang seluruh tabel.
+     * Sejak barisnya punya foto juara itu tidak bisa lagi: file-nya di disk dan
+     * yang dikirim balik ke sini cuma URL-nya, jadi tabel yang ditulis ulang
+     * kehilangan fotonya tiap kali ada yang menekan Save. `id` yang ikut
+     * terkirim membuat server MENYUNTING baris yang sama.
+     */
+    id: number | null
     year: string
     event: string
     category: string
+    event_date: string
+    location: string
+    format: string
     winners: string
     federation: string
+    champion_photo: File | null
+    champion_photo_url: string | null
+    champion_photo_alt: string
     is_active: boolean
 }
 
-const props = defineProps<{ results: Row[] }>()
+const props = defineProps<{ results: Omit<Row, 'champion_photo'>[] }>()
 
 const { t } = useI18n()
 
-const form = useForm({ results: props.results.map((r) => ({ ...r })) })
+const form = useForm<{ results: Row[] }>({
+    results: props.results.map((r) => ({
+        ...r,
+        event_date: r.event_date ?? '',
+        location: r.location ?? '',
+        format: r.format ?? '',
+        champion_photo: null,
+        champion_photo_alt: r.champion_photo_alt ?? '',
+    })),
+})
 
 function addRow(): void {
     form.results = [
         ...form.results,
-        { year: '', event: '', category: '', winners: '', federation: '', is_active: true },
+        {
+            id: null,
+            year: '',
+            event: '',
+            category: '',
+            event_date: '',
+            location: '',
+            format: '',
+            winners: '',
+            federation: '',
+            champion_photo: null,
+            champion_photo_url: null,
+            champion_photo_alt: '',
+            is_active: true,
+        },
     ]
 }
 
@@ -38,8 +78,18 @@ function removeRow(index: number): void {
     form.results = form.results.filter((_, i) => i !== index)
 }
 
+/**
+ * POST dengan `_method: 'put'`, bukan `form.put`.
+ *
+ * Rutenya tetap PUT; yang tidak bisa PUT adalah unggahannya. Browser hanya
+ * mengirim `multipart/form-data` lewat POST, jadi PUT dengan file di dalamnya
+ * sampai di server sebagai badan kosong. Laravel membaca `_method` dan
+ * mengarahkannya ke rute PUT yang sama.
+ */
 function submit(): void {
-    form.put('/results/olympic', { preserveScroll: true })
+    form
+        .transform((data) => ({ ...data, _method: 'put' }))
+        .post('/results/olympic', { preserveScroll: true, forceFormData: true })
 }
 </script>
 
@@ -126,6 +176,49 @@ function submit(): void {
                             :placeholder="t('results.olympic_federation')"
                             :error="(form.errors as any)[`results.${index}.federation`]"
                         />
+                    </div>
+
+                    <!-- Isi akordeon di halaman publik (`648:30591`). Semuanya
+                         opsional: baris yang tidak mengisinya tetap tercetak di
+                         tabel, cuma membuka dengan lebih sedikit fakta. -->
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <AppField
+                            v-model="row.event_date"
+                            :aria-label="t('results.olympic_event_date')"
+                            :placeholder="t('results.olympic_event_date')"
+                            :error="(form.errors as any)[`results.${index}.event_date`]"
+                        />
+                        <AppField
+                            v-model="row.location"
+                            :aria-label="t('results.olympic_location')"
+                            :placeholder="t('results.olympic_location')"
+                            :error="(form.errors as any)[`results.${index}.location`]"
+                        />
+                        <AppField
+                            v-model="row.format"
+                            :aria-label="t('results.olympic_format')"
+                            :placeholder="t('results.olympic_format')"
+                            :error="(form.errors as any)[`results.${index}.format`]"
+                        />
+                    </div>
+
+                    <div class="flex flex-wrap items-start gap-4">
+                        <MediaUpload
+                            v-model="row.champion_photo"
+                            :existing-url="row.champion_photo_url"
+                            :error="(form.errors as any)[`results.${index}.champion_photo`]"
+                        />
+                        <div class="flex min-w-60 flex-1 flex-col gap-1">
+                            <span class="text-body-xs text-cool-60">
+                                {{ t('results.olympic_photo_hint') }}
+                            </span>
+                            <AppField
+                                v-model="row.champion_photo_alt"
+                                :aria-label="t('results.olympic_photo_alt')"
+                                :placeholder="t('results.olympic_photo_alt')"
+                                :error="(form.errors as any)[`results.${index}.champion_photo_alt`]"
+                            />
+                        </div>
                     </div>
                 </div>
 
