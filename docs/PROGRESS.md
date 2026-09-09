@@ -367,3 +367,14 @@ handler-nya. Rinciannya di
 - [ ] **Avatar pengguna belum bisa diunggah.** Kolom `avatar_path` sudah ada dan
       sidebar sudah menampilkannya; yang belum ada layar untuk mengisinya —
       sementara ini sidebar menggambar inisial nama.
+- [x] **Undangan admin tidak lagi menembus 2FA.** `InvitationController::accept()`
+      memanggil `Auth::login()` tanpa syarat, dengan komentar yang menyatakan
+      bahwa middleware `auth` akan mengalihkan ke pendaftaran TOTP — middleware
+      itu tidak pernah ada. Karena `two_factor_enabled` bawaannya `true`, hampir
+      setiap admin baru mendarat di dashboard dengan sesi penuh tanpa pernah
+      melihat layar 2FA; yang meminta setup baru login BERIKUTNYA. Sekarang ia
+      lewat `TwoFactorSession` seperti halaman login, jadi sesinya baru dibuat
+      setelah kode terbukti benar. Yang dikunci tesnya bukan cuma tujuan
+      redirect-nya melainkan `assertGuest()` — kalau ada yang
+      "memperbaikinya" dengan login dulu lalu mengalihkan lewat middleware,
+      baris itulah yang merah.

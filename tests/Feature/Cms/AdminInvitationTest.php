@@ -107,6 +107,60 @@ class AdminInvitationTest extends TestCase
         $this->assertNotNull(AdminInvitation::sole()->accepted_at);
     }
 
+    /**
+     * Undangan TIDAK menembus 2FA — dan ini pernah bocor.
+     *
+     * Sampai 2026-09-09 `accept()` memanggil `Auth::login()` tanpa syarat,
+     * dengan komentar yang menyatakan bahwa middleware `auth` akan mengalihkan
+     * ke layar pendaftaran TOTP. Middleware itu tidak pernah ada. Karena
+     * `users.two_factor_enabled` bawaannya `true`, hampir setiap admin baru
+     * mendarat di dashboard dengan sesi penuh tanpa pernah melihat layar 2FA;
+     * yang meminta setup baru login BERIKUTNYA.
+     *
+     * Yang dikunci di sini bukan cuma tujuan redirect-nya, melainkan
+     * `assertGuest()`: kalau suatu saat ada yang "memperbaikinya" dengan login
+     * dulu lalu mengalihkan lewat middleware, tesnya tetap hijau pada baris
+     * redirect dan merah di baris ini — dan baris itulah bugnya.
+     */
+    public function test_accepting_an_invitation_goes_to_two_factor_setup_before_the_dashboard(): void
+    {
+        config(['dwf.two_factor' => true]);
+
+        $user = User::factory()->withRole('editor')->create([
+            'password' => null,
+            'two_factor_enabled' => true,
+        ]);
+        [, $token] = AdminInvitation::issue($user);
+
+        $this->post("/invitation/{$token}", [
+            'password' => 'sandi-yang-panjang',
+            'password_confirmation' => 'sandi-yang-panjang',
+        ])->assertRedirect('/two-factor/setup');
+
+        // Sandinya TETAP tersimpan — yang ditunda cuma sesinya.
+        $this->assertTrue(Hash::check('sandi-yang-panjang', $user->refresh()->password));
+        $this->assertGuest();
+    }
+
+    /** Akun yang 2FA-nya memang dimatikan tetap masuk langsung — tidak ada layar tambahan yang dikarang. */
+    public function test_an_account_without_two_factor_still_lands_on_the_dashboard(): void
+    {
+        config(['dwf.two_factor' => true]);
+
+        $user = User::factory()->withRole('editor')->create([
+            'password' => null,
+            'two_factor_enabled' => false,
+        ]);
+        [, $token] = AdminInvitation::issue($user);
+
+        $this->post("/invitation/{$token}", [
+            'password' => 'sandi-yang-panjang',
+            'password_confirmation' => 'sandi-yang-panjang',
+        ])->assertRedirect('/dashboard');
+
+        $this->assertAuthenticatedAs($user);
+    }
+
     /** Sekali pakai. Tautan yang bisa dipakai dua kali bukan undangan, melainkan sandi. */
     public function test_an_invitation_cannot_be_accepted_twice(): void
     {
