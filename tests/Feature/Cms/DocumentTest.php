@@ -20,7 +20,7 @@ class DocumentTest extends TestCase
 
         $this->actingAs(User::factory()->superAdmin()->create())->post('/documents', [
             'title' => 'DWF Annual Report 2025',
-            'category' => 'Reports & Publications',
+            'category' => 'Publication',
             'posting' => 'now',
             'file' => UploadedFile::fake()->create('report.pdf', 512, 'application/pdf'),
         ])->assertRedirect('/documents');
@@ -260,7 +260,7 @@ class DocumentTest extends TestCase
 
         $this->actingAs(User::factory()->superAdmin()->create())->post('/documents', [
             'title' => 'Regulasi Baru',
-            'category' => 'Reports & Publications',
+            'category' => 'Publication',
             'posting' => 'now',
             'file' => UploadedFile::fake()->create('regulasi.pdf', 12, 'application/pdf'),
         ])->assertRedirect('/documents');

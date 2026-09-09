@@ -560,6 +560,23 @@ return [
     ],
 
     'documents' => [
+        // "Documents per Halaman" — memilih isi tiap rak di situs publik.
+        'sections_title' => 'Documents per Halaman',
+        'sections_link' => 'Documents per Halaman',
+        'sections_hint' => 'Pilih dokumen mana yang tampil di tiap rak situs publik, beserta urutannya. Rak yang belum disentuh mengisi dirinya dengan dokumen terbaru di kategorinya.',
+        'sections_add' => 'Tambahkan dokumen',
+        'sections_add_action' => 'Tambah',
+        'sections_full' => 'Rak ini memuat :max dokumen. Keluarkan satu dulu.',
+        'sections_wrong_category' => 'Rak ini hanya menerima dokumen berkategori :category.',
+        'sections_remove' => 'Keluarkan “:name” dari rak ini',
+        'sections_count' => ':used dari :max',
+        'sections_none_left' => 'Semua dokumen yang layak sudah ada di rak ini.',
+        'sections_empty_library' => 'Belum ada dokumen berkategori ini.',
+        'sections_category' => 'Menarik dari :category',
+        'sections_all_categories' => 'Menarik dari seluruh perpustakaan',
+        'sections_auto' => 'Belum ada yang dipilih, jadi rak ini menampilkan dokumen terbaru di kategorinya. Menambahkan satu di sini menggantikan perilaku itu.',
+        'sections_not_live' => 'Belum tayang',
+        'sections_not_live_hint' => 'Dokumen yang belum tayang tetap memakai slotnya, tapi situs publik tidak menampilkannya.',
         'title' => 'Dokumen',
         'list_title' => 'Daftar Dokumen',
         'add' => 'Tambah Dokumen',

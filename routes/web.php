@@ -452,9 +452,20 @@ Route::middleware('auth')->group(function () {
         // memakai `{document}` yang menelan setiap ruas.
         Route::get('/documents/export', [DocumentController::class, 'export'])
             ->name('documents.export');
+
+        // "Documents per Halaman" — memilih isi tiap rak di situs publik.
+        // Didaftarkan sebelum route resource, alasan yang sama dengan `export`.
+        Route::get('/documents/sections', [DocumentController::class, 'sections'])
+            ->name('documents.sections');
+
         Route::middleware('can:documents.update')->group(function () {
             Route::patch('/documents/{document}/visibility', [DocumentController::class, 'visibility'])
                 ->whereNumber('document')->name('documents.visibility');
+
+            // Memilih dan mengurutkan isi rak adalah MENGUBAH, walau tidak
+            // lewat formulir mana pun — `can:documents.update`, bukan `.view`.
+            Route::put('/documents/sections', [DocumentController::class, 'placements'])
+                ->name('documents.placements');
         });
 
         // `middlewareFor` per aksi. Satu `Route::resource()` di dalam grup

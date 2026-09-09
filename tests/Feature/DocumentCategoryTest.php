@@ -31,12 +31,10 @@ class DocumentCategoryTest extends TestCase
     private const EXPECTED = [
         'Rules & Regulations',
         'Governance Documents',
-        'Integrity & Ethics',
-        'Membership Documents',
         'Development Resources',
-        'Reports & Publications',
         'Tournament Documents',
-        'Media & Press Releases',
+        'Press Releases',
+        'Publication',
     ];
 
     public function test_the_vocabulary_is_exactly_what_the_public_site_asks_for(): void
@@ -56,15 +54,21 @@ class DocumentCategoryTest extends TestCase
     }
 
     /**
-     * Halaman yang belum punya rak dokumen disebut TERPISAH.
+     * Halaman yang belum punya rak dokumen tidak boleh dijanjikan.
      *
      * Kalau Integrity ikut masuk `pages`, layar Documents akan memberi tahu
      * pengunggah bahwa berkasnya muncul di sana — dan ia baru tahu sebaliknya
      * setelah membuka halamannya sendiri.
+     *
+     * Dulu ketiganya dijanjikan setengah-setengah lewat kunci `planned`, yang
+     * dipakai dua kategori (`Integrity & Ethics`, `Membership Documents`).
+     * Keduanya dihapus 2026-09-09, jadi sekarang yang benar adalah tidak
+     * disebut sama sekali.
      */
     public function test_pages_without_a_shelf_are_not_promised(): void
     {
-        $promised = collect(DocumentCategories::options())->flatMap(fn (array $o) => $o['pages']);
+        $promised = collect(DocumentCategories::options())
+            ->flatMap(fn (array $o) => [...$o['pages'], ...$o['planned']]);
 
         foreach (['Integrity', 'Members', 'About Us'] as $page) {
             $this->assertFalse(

@@ -109,6 +109,9 @@ function destroy(): void {
                     <template #iconLeft><PhDownloadSimple :size="24" /></template>
                     {{ t('news.export') }}
                 </AppButton>
+                <AppButton href="/documents/sections" variant="outline">
+                    {{ t('documents.sections_link') }}
+                </AppButton>
                 <AppButton href="/documents/create">
                     <template #iconLeft><PhPlus :size="24" /></template>
                     {{ t('documents.add') }}

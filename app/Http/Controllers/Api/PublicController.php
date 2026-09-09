@@ -36,6 +36,7 @@ use App\Models\SiteSetting;
 use App\Models\StandingCommittee;
 use App\Models\SubCommittee;
 use App\Models\Tournament;
+use App\Support\DocumentSections;
 use App\Support\Media\StoredFile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -96,8 +97,33 @@ class PublicController extends Controller
 
     // ------------------------------------------------------- Documents
 
+    /**
+     * Dua cara bertanya, dan yang kedua yang dipakai rak-rak situs publik.
+     *
+     * `?section=news.publications` mengembalikan isi rak ITU — dokumen yang
+     * dipilih admin di "Documents per Halaman", dalam urutannya, dibatasi `max`
+     * rak tersebut. Rak yang belum pernah dikurasi jatuh kembali ke "N terbaru
+     * dari kategorinya", jadi jawabannya tidak pernah kosong hanya karena belum
+     * ada yang sempat mengisinya (`DocumentSections::documents()`).
+     *
+     * `?category=` + `?limit=` yang lama TETAP ADA, dan bukan demi kompatibilitas
+     * saja: arsip press (`/news/press-releases`) memang meminta SELURUH kategori
+     * tanpa batas rak — itu arti kata "archive", dan mengurasinya berarti sebuah
+     * arsip yang tidak lengkap.
+     *
+     * Section yang tidak dikenal ditolak 422, bukan dijawab array kosong. Salah
+     * ketik pada `?section=` menghasilkan rak kosong di situs publik, dan rak
+     * kosong menyembunyikan dirinya — jadi kekeliruannya tidak terlihat di satu
+     * layar pun. Bentuknya sama dengan penyaring enum lain di berkas ini.
+     */
     public function resources(Request $request): JsonResponse
     {
+        $section = $this->enum($request, 'section', DocumentSections::keys());
+
+        if ($section !== '') {
+            return $this->list(DocumentResource::bare(DocumentSections::documents($section)));
+        }
+
         $documents = Document::query()
             ->live()
             ->when(

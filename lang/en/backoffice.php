@@ -559,6 +559,23 @@ return [
     ],
 
     'documents' => [
+        // "Documents per Halaman" — memilih isi tiap rak di situs publik.
+        'sections_title' => 'Documents per Page',
+        'sections_link' => 'Documents per Page',
+        'sections_hint' => 'Choose which documents appear in each shelf on the public site, and in what order. A shelf you have not touched fills itself with the newest documents in its category.',
+        'sections_add' => 'Add a document',
+        'sections_add_action' => 'Add',
+        'sections_full' => 'This shelf holds :max document(s). Remove one first.',
+        'sections_wrong_category' => 'This shelf only accepts documents filed under :category.',
+        'sections_remove' => 'Remove “:name” from this shelf',
+        'sections_count' => ':used of :max',
+        'sections_none_left' => 'Every eligible document is already on this shelf.',
+        'sections_empty_library' => 'No document is filed under this category yet.',
+        'sections_category' => 'Draws from :category',
+        'sections_all_categories' => 'Draws from the whole library',
+        'sections_auto' => 'Nothing chosen yet, so this shelf shows the newest documents in its category. Adding one here takes over from that.',
+        'sections_not_live' => 'Not published',
+        'sections_not_live_hint' => 'Documents that are not published yet still hold their slot, but the public site does not show them.',
         'title' => 'Documents',
         'list_title' => 'Document List',
         'add' => 'Add Document',

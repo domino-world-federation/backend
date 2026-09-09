@@ -189,7 +189,8 @@ return [
      * ejaan satu kunci berarti tiga hal sekaligus — baris lama jadi yatim,
      * section di situs publik jadi kosong, dan tulisan di kartu ikut berubah.
      * Ganti ejaan HANYA lewat migrasi yang ikut memindahkan barisnya, seperti
-     * `2026_09_05_150000_remap_document_categories`.
+     * `2026_09_05_150000_remap_document_categories` dan
+     * `2026_09_09_100000_rename_document_categories`.
      *
      * ── Daftar halamannya bukan hiasan ──
      *
@@ -198,21 +199,29 @@ return [
      * menyimpan. Sebelum ini kolom Category tidak memberi petunjuk apa pun
      * tentang akibat memilihnya.
      *
-     * Home menampilkan EMPAT dokumen terbaru tanpa menyaring kategori, jadi
-     * setiap kategori sampai ke sana — itu sebabnya hampir semuanya menyebut
-     * Home.
+     * Home menarik dokumen terbaru TANPA menyaring kategori, jadi setiap
+     * kategori sampai ke sana — itu sebabnya semuanya menyebut Home.
      *
-     * ── `pages` dan `planned` dipisah, dan itu yang membuatnya jujur ──
+     * ── Kategori menentukan KELAYAKAN, section menentukan yang TAYANG ──
      *
-     * `pages` adalah halaman yang benar-benar menarik kategori ini hari ini.
-     * `planned` adalah halaman yang DIMINTA menampilkannya tapi belum punya rak
-     * dokumen sama sekali — Integrity, Members, dan About Us. Layarnya mencetak
-     * keduanya dengan kalimat yang berbeda.
+     * Sejak layar "Documents per Halaman" ada (D78), kategori tidak lagi
+     * langsung menentukan isi sebuah rak. Ia menentukan dokumen mana yang BOLEH
+     * dipilih untuk rak itu; yang benar-benar tayang adalah yang dipilih admin
+     * di `document_placements`. Rak yang belum pernah disentuh jatuh kembali ke
+     * "N terbaru dari kategori ini", jadi daftar di bawah tetap menjawab
+     * pertanyaan "berkas saya muncul di mana".
      *
-     * Menggabungkan keduanya jadi satu daftar akan membuat layar itu berjanji
-     * bahwa sebuah berkas akan muncul di halaman yang, hari ini, tidak
-     * menampilkannya — dan orang yang mengunggahnya baru tahu setelah membuka
-     * halamannya sendiri dan tidak menemukan apa-apa.
+     * Peta section → kategori → batas ada di `document_sections`, di bawah.
+     *
+     * ── `planned` sudah tidak dipakai, dan itu kabar baik ──
+     *
+     * Dulu ada kunci kedua, `planned`, untuk halaman yang DIMINTA menampilkan
+     * sebuah kategori tapi belum punya rak sama sekali — Integrity, Members,
+     * dan About Us, lewat kategori `Integrity & Ethics` dan `Membership
+     * Documents`. Kedua kategori itu dihapus 2026-09-09 atas permintaan pemilik
+     * repo, jadi tidak ada lagi yang perlu dijanjikan setengah-setengah.
+     * `DocumentCategories::options()` masih membaca `planned` kalau suatu saat
+     * ada yang membutuhkannya lagi.
      */
     'document_categories' => [
         'Rules & Regulations' => [
@@ -220,49 +229,155 @@ return [
         ],
         'Governance Documents' => [
             'pages' => ['Governance', 'Home'],
-            'planned' => ['About Us'],
-        ],
-        'Integrity & Ethics' => [
-            'pages' => ['Home'],
-            'planned' => ['Integrity'],
-        ],
-        'Membership Documents' => [
-            'pages' => ['Home'],
-            'planned' => ['Members'],
         ],
         'Development Resources' => [
             'pages' => ['Development', 'Home'],
         ],
-        'Reports & Publications' => [
-            'pages' => ['News', 'Governance', 'Home'],
-        ],
+
         /*
-         * "Tournaments", BUKAN "Tournament Detail" — dan bedanya penting bagi
-         * yang mengunggah.
+         * "Tournament Detail", dan sejak 2026-09-09 itu memang tepat.
          *
-         * Rak yang menyaring kategori ada di halaman daftar turnamen. Halaman
-         * DETAIL sebuah turnamen menampilkan dokumen yang DILAMPIRKAN ke event
-         * itu dari layar Tournaments, apa pun kategorinya — mekanisme yang
-         * berbeda, lewat tabel `document_tournament`. Menulis "Tournament
-         * Detail" di sini akan membuat orang mengunggah dokumen dengan kategori
-         * ini lalu heran kenapa ia tidak muncul di halaman sebuah event: yang
-         * kurang bukan kategorinya, melainkan lampirannya.
+         * Dulu baris ini menyebut "Tournaments" dengan peringatan panjang bahwa
+         * halaman DETAIL sebuah turnamen memakai mekanisme lain — lampiran
+         * lewat `document_tournament`, apa pun kategorinya — sehingga menulis
+         * "Tournament Detail" di sini akan menyesatkan pengunggah.
+         *
+         * Yang membuat peringatan itu tidak berlaku lagi: picker lampiran di
+         * layar Tournaments sekarang HANYA menawarkan dokumen berkategori ini.
+         * Jadi kategori ini memang syarat untuk bisa dilampirkan, dan halaman
+         * detail memang tempatnya tayang. Rak di halaman DAFTAR turnamen
+         * pindah ke `Rules & Regulations` (section `tournaments.regulations`).
          */
         'Tournament Documents' => [
-            'pages' => ['Tournaments'],
+            'pages' => ['Tournament Detail', 'Home'],
         ],
 
         /*
-         * Kategori kedelapan, di luar tujuh yang diminta.
+         * Dua kategori untuk halaman News, dan itu memang perlu.
          *
-         * Halaman News punya DUA rak dokumen yang digambar desainer — Press
-         * Releases (`168:8475`) dan Publications (`168:8582`), dua desain kartu
-         * yang berbeda — dan satu kategori tidak bisa mengisi keduanya tanpa
-         * menampilkan isi yang sama dua kali. Keputusan pemilik repo,
-         * 2026-09-05.
+         * News punya DUA rak dokumen yang digambar desainer — Press Releases
+         * (`1010:2701`) dan Publications (`1010:2742`) — dan satu kategori
+         * tidak bisa mengisi keduanya tanpa menampilkan isi yang sama dua kali.
+         *
+         * Ejaannya dipendekkan 2026-09-09 atas permintaan pemilik repo:
+         * "Media & Press Releases" jadi "Press Releases", "Reports &
+         * Publications" jadi "Publication". Barisnya ikut pindah lewat
+         * `2026_09_09_100000_rename_document_categories`.
          */
-        'Media & Press Releases' => [
+        'Press Releases' => [
             'pages' => ['News', 'Home'],
+        ],
+        'Publication' => [
+            'pages' => ['News', 'Home'],
+        ],
+    ],
+
+    /*
+     * Rak dokumen di situs publik — satu baris per rak yang bisa dikurasi.
+     *
+     * Ini katalog untuk layar "Documents per Halaman" (D78). Sebelumnya tiap
+     * rak menarik sendiri "N terbaru dari kategori X", jadi tidak ada seorang
+     * pun yang bisa memutuskan dokumen MANA yang tampil di mana — dan dua rak
+     * yang kebetulan menarik kategori yang sama menampilkan isi yang sama
+     * persis. Itu keadaan Governance: Statutes & Constitution dan Governance
+     * Repository dua-duanya `Governance Documents`.
+     *
+     * ── Kuncinya kontrak antar-repo, seperti nama kategori ──
+     *
+     * `key` di bawah dikirim mentah-mentah oleh situs publik
+     * (`/api/v1/resources?section=news.publications`) dan disimpan di kolom
+     * `document_placements.section`. Menggantinya menuntut tiga hal sekaligus,
+     * sama seperti mengganti ejaan kategori: migrasi yang memindahkan baris
+     * `document_placements`, perubahan di `landing-page-nuxt`, dan penyesuaian
+     * `DocumentSectionTest` yang mengejanya lengkap.
+     *
+     * ── `category` null berarti "seluruh perpustakaan" ──
+     *
+     * Hanya Home yang begitu: rak Resource Library-nya memang tidak menyaring
+     * kategori. Sisanya membatasi pilihan admin ke satu kategori, sehingga
+     * picker tidak menawarkan dokumen yang — kalau dipilih — akan tampil di
+     * rak yang salah tempat.
+     *
+     * ── `max` adalah batas rak, bukan batas kategori ──
+     *
+     * Dua rak bernilai 1 (`domino.rulebook`, `development.youth`) karena
+     * desainnya memang menggambar SATU dokumen di sana: kartu Official Rulebook
+     * dan tombol kurikulum. Rak yang menggambar grid memakai 6.
+     *
+     * ── Rak yang belum dikurasi tidak kosong ──
+     *
+     * `PublicController::resources()` jatuh kembali ke "N terbaru dari
+     * kategori ini" untuk section yang belum punya satu pun baris di
+     * `document_placements`. Tanpa itu, hari fitur ini menyala adalah hari
+     * seluruh rak dokumen di situs publik mendadak kosong sampai ada yang
+     * sempat mengisi sembilan-sembilannya.
+     *
+     * ── Yang TIDAK ada di sini, dan sebabnya ──
+     *
+     * Halaman detail turnamen menampilkan dokumen yang DILAMPIRKAN ke event itu
+     * dari layar Tournaments, bukan rak yang dikurasi terpisah — mekanismenya
+     * `document_tournament`, dan lampirannya memang milik turnamen, bukan milik
+     * halaman. Yang berubah 2026-09-09 hanya pilihannya: picker itu sekarang
+     * disaring ke kategori `Tournament Documents`.
+     *
+     * Arsip press (`/news/press-releases`) juga tidak di sini. Ia memang
+     * memperlihatkan SELURUH kategori `Press Releases` tanpa batas — itu arti
+     * kata "archive", dan mengurasinya berarti sebuah arsip yang tidak lengkap.
+     */
+    'document_sections' => [
+        'home.resources' => [
+            'page' => 'Home',
+            'label' => 'Resource Library',
+            'category' => null,
+            'max' => 6,
+        ],
+        'domino.rulebook' => [
+            'page' => 'Domino',
+            'label' => 'Referee Guidelines — Official Rulebook',
+            'category' => 'Rules & Regulations',
+            'max' => 1,
+        ],
+        'governance.statutes' => [
+            'page' => 'Governance',
+            'label' => 'Statutes & Constitution',
+            'category' => 'Governance Documents',
+            'max' => 6,
+        ],
+        'governance.repository' => [
+            'page' => 'Governance',
+            'label' => 'Governance Repository',
+            'category' => 'Governance Documents',
+            'max' => 6,
+        ],
+        'development.library' => [
+            'page' => 'Development',
+            'label' => 'Educational Resources',
+            'category' => 'Development Resources',
+            'max' => 6,
+        ],
+        'development.youth' => [
+            'page' => 'Development',
+            'label' => 'Youth Development',
+            'category' => 'Development Resources',
+            'max' => 1,
+        ],
+        'tournaments.regulations' => [
+            'page' => 'Tournaments',
+            'label' => 'Tournament Regulations',
+            'category' => 'Rules & Regulations',
+            'max' => 6,
+        ],
+        'news.press' => [
+            'page' => 'News',
+            'label' => 'Press Releases',
+            'category' => 'Press Releases',
+            'max' => 6,
+        ],
+        'news.publications' => [
+            'page' => 'News',
+            'label' => 'Publications',
+            'category' => 'Publication',
+            'max' => 6,
         ],
     ],
 

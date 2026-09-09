@@ -176,11 +176,35 @@ alasannya.
 
 | Endpoint | Parameter | Balasan |
 |---|---|---|
-| `/resources` | `category`, `limit` (24, maks 48) | array `ResourceDocument` |
+| `/resources` | `section`, ATAU `category` + `limit` (24, maks 48) | array `ResourceDocument` |
 
 Namanya `/resources`, bukan `/documents` — mengikuti `getResources()` dan tipe
 `ResourceDocument` di situs publik, yang ditulis lebih dulu. Modul CMS-nya
 bernama Documents; keduanya hal yang sama.
+
+**`?section=` adalah cara yang dipakai hampir semua rak.** Nilainya kunci di
+`config('dwf.document_sections')` — `home.resources`, `domino.rulebook`,
+`governance.statutes`, `governance.repository`, `development.library`,
+`development.youth`, `tournaments.regulations`, `news.press`,
+`news.publications` — dan yang dibalas adalah dokumen yang dipilih admin di
+layar "Documents per Halaman", dalam urutannya, dibatasi `max` rak itu.
+
+Rak yang belum pernah dikurasi jatuh kembali ke "N terbaru dari kategorinya",
+jadi jawabannya tidak pernah kosong semata karena belum ada yang sempat
+mengisinya. Rak yang SUDAH dikurasi lalu pilihannya diturunkan dari peredaran
+menjawab kosong — itu bedanya memeriksa adanya baris penempatan dan adanya
+dokumen yang tayang, dan yang kedua akan memunculkan dokumen yang tidak pernah
+dipilih siapa pun.
+
+Kunci yang tidak dikenal ditolak **422**, bukan dijawab array kosong. Tiap rak
+di situs publik menyembunyikan diri saat kosong, jadi salah ketik yang dijawab
+`[]` tidak akan terlihat di satu layar pun.
+
+`?category=` + `?limit=` yang lama TETAP ADA. Arsip press
+(`/news/press-releases`) memintanya: ia memperlihatkan seluruh kategori tanpa
+batas rak — itu arti kata "archive". Halaman `/domino` juga memakainya untuk dua
+tombol regulasi di samping kartu Official Rulebook, yang isinya "sisa kategori
+di luar rak".
 
 `fileUrl` menunjuk `/media/documents/{id}`, **bukan berkas statis**: dokumen
 tunduk pada sakelar Visibility, dan berkas yang disajikan web server langsung

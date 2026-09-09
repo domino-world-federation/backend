@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 /**
@@ -360,5 +361,32 @@ class TournamentTest extends TestCase
 
         $this->assertStringNotContainsString('<script', $overview);
         $this->assertStringContainsString('<p>', $overview);
+    }
+
+    /**
+     * Picker lampiran hanya menawarkan `Tournament Documents`.
+     *
+     * Sebelum 2026-09-09 ia menawarkan seluruh perpustakaan, jadi statuta
+     * federasi bisa menempel di sebuah turnamen dan kategorinya tidak berarti
+     * apa-apa selain label yang tercetak di kartu. Ini yang membuat
+     * `config/dwf.php` boleh menyebut halaman detail turnamen sebagai tempat
+     * kategori ini tayang tanpa berbohong.
+     */
+    public function test_only_tournament_documents_can_be_attached(): void
+    {
+        $eligible = Document::factory()->create([
+            'category' => 'Tournament Documents',
+            'status' => Document::STATUS_PUBLISHED,
+        ]);
+        Document::factory()->create([
+            'category' => 'Governance Documents',
+            'status' => Document::STATUS_PUBLISHED,
+        ]);
+
+        $this->actingAs(User::factory()->superAdmin()->create())
+            ->get('/tournaments/create')
+            ->assertInertia(fn (AssertableInertia $p) => $p
+                ->has('documentOptions', 1)
+                ->where('documentOptions.0.value', $eligible->id));
     }
 }

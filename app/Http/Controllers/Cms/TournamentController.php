@@ -499,10 +499,29 @@ class TournamentController extends Controller
                 'maxDocuments' => $options['max_documents'],
             ],
 
-            // Hanya dokumen yang BENAR-BENAR tayang yang bisa ditautkan.
-            // Menautkan draf berarti halaman turnamen memuat tautan ke berkas
-            // yang belum boleh dilihat siapa pun.
-            'documentOptions' => Document::query()->live()->orderBy('title')->get(['id', 'title', 'category'])
+            /*
+             * Dua saringan, dan yang kedua baru sejak 2026-09-09.
+             *
+             * Hanya dokumen yang BENAR-BENAR tayang yang bisa ditautkan —
+             * menautkan draf berarti halaman turnamen memuat tautan ke berkas
+             * yang belum boleh dilihat siapa pun.
+             *
+             * Dan hanya kategori `Tournament Documents`. Sebelum ini picker
+             * menawarkan SELURUH perpustakaan, sehingga statuta federasi bisa
+             * menempel di sebuah turnamen; kategorinya sendiri lalu tidak
+             * berarti apa-apa selain label yang tercetak di kartu. Sekarang ia
+             * syarat, dan `config/dwf.php` boleh menyebut halaman detail
+             * turnamen sebagai tempat kategori ini tayang tanpa berbohong.
+             *
+             * Lampiran yang SUDAH ada tidak ikut disaring — memutus tautan yang
+             * sudah dibuat orang bukan tugas sebuah dropdown. Yang berkategori
+             * lain tetap menempel sampai ada yang melepasnya.
+             */
+            'documentOptions' => Document::query()
+                ->live()
+                ->where('category', 'Tournament Documents')
+                ->orderBy('title')
+                ->get(['id', 'title', 'category'])
                 ->map(fn (Document $d) => [
                     'value' => $d->id,
                     'label' => $d->title,

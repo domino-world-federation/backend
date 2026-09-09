@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Cms;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\DocumentPlacement;
 use App\Support\Csv;
 use App\Support\DocumentCategories;
+use App\Support\DocumentSections;
 use App\Support\Media\StoredFile;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -165,6 +168,158 @@ class DocumentController extends Controller
         $document->save();
 
         return back()->with('success', __('backoffice.documents.updated'));
+    }
+
+    /**
+     * "Documents per Halaman" — memilih DAN mengurutkan isi tiap rak publik.
+     *
+     * Seluruh rak berdiri berdampingan di satu layar, sama seperti `/faq/pages`,
+     * dan alasannya sama: dua rak yang menarik kategori yang sama menampilkan
+     * isi yang sama persis, dan yang membuat itu tidak pernah ketahuan adalah
+     * tidak adanya satu pun tempat yang memperlihatkan keduanya sekaligus.
+     * Statutes & Constitution dan Governance Repository dua-duanya
+     * `Governance Documents`.
+     */
+    public function sections(): Response
+    {
+        $placements = DocumentPlacement::query()
+            ->with('document:id,title,category,status,published_at')
+            ->orderBy('position')
+            ->get()
+            ->groupBy('section');
+
+        return Inertia::render('Documents/Sections', [
+            'sections' => collect(DocumentSections::all())
+                ->map(fn (array $section) => [
+                    ...$section,
+                    // Rak yang belum punya satu pun baris menarik "N terbaru
+                    // dari kategorinya" sendiri. Layar HARUS mengatakannya:
+                    // tanpa itu, rak yang di situs publik penuh tampil kosong
+                    // di sini, dan yang membacanya menyimpulkan fiturnya rusak.
+                    'isAuto' => ! $placements->has($section['key']),
+                    'documents' => $placements->get($section['key'], collect())
+                        ->map(fn (DocumentPlacement $p) => [
+                            'id' => $p->document_id,
+                            'label' => $p->document->title,
+                            'note' => $p->document->category,
+                            // Dokumen yang belum tayang TETAP digambar,
+                            // ditandai — alasan yang sama dengan FAQ nonaktif di
+                            // `/faq/pages`: membuangnya diam-diam berarti orang
+                            // melihat empat baris, menambah yang kelima, lalu
+                            // ditolak karena raknya penuh oleh sesuatu yang
+                            // tidak ada di layar.
+                            'isLive' => $this->isLive($p->document),
+                        ])
+                        ->values()
+                        ->all(),
+                    'library' => DocumentSections::library($section['key'])
+                        ->map(fn (Document $d) => [
+                            'value' => $d->id,
+                            'label' => $d->title,
+                            'isLive' => $this->isLive($d),
+                        ])
+                        ->values()
+                        ->all(),
+                ])
+                ->values()
+                ->all(),
+        ]);
+    }
+
+    /**
+     * Menyimpan isi dan urutan SATU rak.
+     *
+     * Satu rak per request, bukan sembilan sekaligus: kalau Governance ditolak
+     * karena kelebihan satu dokumen, delapan rak lain di layar yang sama tidak
+     * ikut batal.
+     */
+    public function placements(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'section' => ['required', Rule::in(DocumentSections::keys())],
+            'ids' => ['present', 'array'],
+            'ids.*' => ['integer', 'distinct', 'exists:documents,id'],
+        ]);
+
+        $section = DocumentSections::find($validated['section']);
+        $ids = array_values($validated['ids']);
+
+        /*
+         * Batas dan kategori diperiksa DI SINI, bukan cuma di layar.
+         *
+         * Aturan `max:` statis tidak bisa dipakai — batasnya berbeda per rak
+         * (1 untuk Official Rulebook, 6 untuk grid) dan baru diketahui setelah
+         * `section` terbaca. Begitu juga kategorinya: tanpa pemeriksaan ini,
+         * permintaan yang dirakit tangan bisa menaruh rulebook di rak
+         * publikasi, dan tidak ada satu pun layar yang akan memberi tahu.
+         */
+        if (count($ids) > $section['max']) {
+            throw ValidationException::withMessages([
+                'ids' => __('backoffice.documents.sections_full', ['max' => $section['max']]),
+            ]);
+        }
+
+        if ($section['category'] !== null && $ids !== []) {
+            $foreign = Document::query()
+                ->whereIn('id', $ids)
+                ->where('category', '!=', $section['category'])
+                ->exists();
+
+            if ($foreign) {
+                throw ValidationException::withMessages([
+                    'ids' => __('backoffice.documents.sections_wrong_category', [
+                        'category' => $section['category'],
+                    ]),
+                ]);
+            }
+        }
+
+        $key = $section['key'];
+        $before = DocumentPlacement::query()->where('section', $key)->orderBy('position')->pluck('document_id')->all();
+
+        DB::transaction(function () use ($key, $ids) {
+            DocumentPlacement::query()->where('section', $key)->whereNotIn('document_id', $ids)->delete();
+
+            foreach ($ids as $index => $id) {
+                DocumentPlacement::query()->updateOrCreate(
+                    ['document_id' => $id, 'section' => $key],
+                    ['position' => $index + 1],
+                );
+            }
+        });
+
+        // Satu entri, bukan satu per penempatan — alasan yang sama dengan
+        // `FaqController::placements()`: satu kali Simpan bukan enam tindakan.
+        // `log_name` 'document' sengaja sama dengan yang dipakai
+        // `RecordsActivity` di model, supaya penyaring modul tidak
+        // memperlihatkan dua Documents.
+        if ($before !== array_map('intval', $ids)) {
+            activity('document')
+                ->causedBy($request->user())
+                ->event('reordered')
+                ->withProperties(['section' => $key, 'attributes' => $ids, 'old' => $before])
+                ->log('reordered');
+        }
+
+        return back()->with('success', __('backoffice.order.saved'));
+    }
+
+    /**
+     * Apakah dokumen ini benar-benar tampil di situs publik hari ini.
+     *
+     * Diturunkan dengan aturan yang SAMA PERSIS dengan `Document::scopeLive()`
+     * — kalau keduanya berbeda, layar ini akan menandai dokumen sebagai tayang
+     * sementara raknya tidak memuatnya.
+     */
+    private function isLive(Document $document): bool
+    {
+        if ($document->status === Document::STATUS_PUBLISHED) {
+            return true;
+        }
+
+        return $document->status === Document::STATUS_SCHEDULED
+            && $document->published_at !== null
+            && ! $document->published_at->isFuture();
     }
 
     public function create(): Response

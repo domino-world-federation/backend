@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 /**
@@ -100,6 +101,17 @@ class Document extends Model
     public function downloadName(): string
     {
         return Str::slug($this->title).'.'.pathinfo((string) $this->file_path, PATHINFO_EXTENSION);
+    }
+
+    /**
+     * Rak-rak tempat dokumen ini dipasang.
+     *
+     * `cascadeOnDelete` di migrasinya yang membersihkan baris penempatan saat
+     * dokumennya dihapus — relasi ini untuk membaca, bukan untuk merapikan.
+     */
+    public function placements(): HasMany
+    {
+        return $this->hasMany(DocumentPlacement::class);
     }
 
     public function scopeLive(Builder $query): Builder

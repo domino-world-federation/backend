@@ -367,6 +367,28 @@ handler-nya. Rinciannya di
 - [ ] **Avatar pengguna belum bisa diunggah.** Kolom `avatar_path` sudah ada dan
       sidebar sudah menampilkannya; yang belum ada layar untuk mengisinya —
       sementara ini sidebar menggambar inisial nama.
+- [x] **"Documents per Halaman" (`/documents/sections`) memilih isi tiap rak
+      situs publik.** Sembilan rak, satu kartu masing-masing, disimpan per kartu
+      — bentuknya sengaja meniru `/faq/pages`, sampai ke nama kolom tabelnya
+      (`document_placements` = `faq_placements`). Yang melahirkannya: dua rak
+      Governance menarik kategori yang sama dengan batas yang sama, jadi
+      keduanya mencetak dokumen yang sama persis dan tidak ada seorang pun yang
+      bisa memutuskan sebaliknya. Rak yang belum disentuh jatuh ke "N terbaru
+      dari kategorinya", jadi tidak ada rak yang kosong pada hari fiturnya
+      menyala; layarnya mengatakan rak mana yang masih begitu.
+- [x] **Kosakata kategori dipendekkan jadi enam** (2026-09-09, permintaan pemilik
+      repo). `Reports & Publications` → `Publication`, `Media & Press Releases` →
+      `Press Releases`; `Integrity & Ethics` dan `Membership Documents` dihapus
+      karena halaman Integrity dan Members tidak pernah menggambar rak dokumen —
+      keduanya hanya menjanjikan tempat tayang yang tidak ada. Barisnya
+      dipindahkan `2026_09_09_100000_rename_document_categories`. Kunci `planned`
+      di `config/dwf.php` jadi tidak terpakai; ia dibiarkan hidup di
+      `DocumentCategories::options()` kalau suatu saat dibutuhkan lagi.
+- [x] **Picker lampiran turnamen disaring ke `Tournament Documents`.** Dulu ia
+      menawarkan seluruh perpustakaan, jadi statuta federasi bisa menempel di
+      sebuah turnamen dan kategori itu tidak berarti apa-apa. Lampiran yang sudah
+      ada TIDAK ikut disaring — memutus tautan yang sudah dibuat orang bukan
+      tugas sebuah dropdown.
 - [x] **Undangan admin tidak lagi menembus 2FA.** `InvitationController::accept()`
       memanggil `Auth::login()` tanpa syarat, dengan komentar yang menyatakan
       bahwa middleware `auth` akan mengalihkan ke pendaftaran TOTP — middleware
@@ -378,3 +400,4 @@ handler-nya. Rinciannya di
       redirect-nya melainkan `assertGuest()` — kalau ada yang
       "memperbaikinya" dengan login dulu lalu mengalihkan lewat middleware,
       baris itulah yang merah.
+
