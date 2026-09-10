@@ -364,9 +364,8 @@ handler-nya. Rinciannya di
       = terbit), jadi situs publik tetap benar tanpa cron. Tapi kolom `status`
       di database tetap `scheduled` selamanya — kalau nanti ada laporan yang
       membaca kolom itu langsung, ia akan salah.
-- [ ] **Avatar pengguna belum bisa diunggah.** Kolom `avatar_path` sudah ada dan
-      sidebar sudah menampilkannya; yang belum ada layar untuk mengisinya —
-      sementara ini sidebar menggambar inisial nama.
+- [x] **Avatar pengguna bisa diunggah sejak 2026-09-10**, lewat layar `/profile`.
+      Sidebar tetap menggambar inisial nama untuk yang belum mengunggah.
 - [x] **"Documents per Halaman" (`/documents/sections`) memilih isi tiap rak
       situs publik.** Sembilan rak, satu kartu masing-masing, disimpan per kartu
       — bentuknya sengaja meniru `/faq/pages`, sampai ke nama kolom tabelnya
@@ -400,4 +399,51 @@ handler-nya. Rinciannya di
       redirect-nya melainkan `assertGuest()` — kalau ada yang
       "memperbaikinya" dengan login dulu lalu mengalihkan lewat middleware,
       baris itulah yang merah.
+- [x] **Layar profil sendiri (`/profile`) — DI LUAR wireframe.** Permintaan
+      pemilik repo 2026-09-10. Nama, surel, foto, dan sandi milik akun yang
+      sedang masuk. Route-nya sengaja TANPA `can:` — yang disunting selalu
+      `$request->user()`, dan menjaganya dengan `users.update` justru berarti
+      `viewer` tidak bisa mengganti sandinya sendiri, padahal izin itu tentang
+      menyunting akun ORANG LAIN. Yang menahan penyalahgunaannya daftar putih
+      di controller, bukan aturan validasi: `roles`, `is_active`,
+      `two_factor_enabled`, dan `member_federation_id` semuanya ada di
+      `#[Fillable]` karena User Management membutuhkannya, jadi satu
+      `fill($request->validated())` yang tampak wajar sudah cukup untuk membuat
+      `viewer` mengangkat dirinya jadi super admin. Ada tes yang mengirim
+      keempatnya langsung ke endpoint-nya.
+      Ganti sandi menuntut sandi LAMA (`current_password`) dan berdiri sebagai
+      formulir terpisah — sesi backoffice bertahan berjam-jam, jadi layar yang
+      terbuka di laptop yang ditinggal adalah jalan mengambil alih akun secara
+      permanen tanpa pemeriksaan itu. Perangkat lain TIDAK ikut dikeluarkan:
+      driver sesi `database` tanpa `AuthenticateSession` tidak punya jalan
+      membatalkan sesi lain, dan menjanjikannya di layar tanpa mengerjakannya
+      lebih buruk daripada diam — kalimat di layarnya menyebutkan itu.
+      **Menutup celah yang sudah lama dicatat:** `avatar_path` sudah ada dan
+      sidebar sudah menggambarnya sejak awal, tapi tidak ada satu pun layar
+      untuk mengisinya. Spesifikasinya `dwf.uploads.image_specs.avatar` —
+      persegi, minimal 256×256, WebP seperti seluruh unggahan gambar lain.
+- [x] **Pencarian lintas modul di topbar — DI LUAR wireframe.** Permintaan yang
+      sama. Topbar yang digambar (`251:1212`) hanya matahari dan lonceng; kotak
+      "Search" di `252:2375` adalah penyaring di dalam halaman daftar dan sudah
+      lama ada. `GET /search?q=` menjawab JSON berkelompok, dipakai panel
+      melayang di topbar — `fetch`, bukan kunjungan Inertia, karena kunjungan
+      akan mengganti halaman yang sedang dibaca orang. Ditunda 250 ms, minimal
+      2 huruf, 5 hasil per modul.
+      Dua aturan yang menentukan bentuknya: izin disaring PER KELOMPOK (satu
+      kotak pencarian tidak boleh jadi jalan memutar membaca judul dari modul
+      yang sidebarnya disembunyikan), dan tiap hasil menaut ke tempat yang
+      benar-benar bisa dibuka orangnya — layar baca kalau ada, layar sunting
+      kalau ia boleh menyunting, kalau tidak dua-duanya daftar modulnya dengan
+      `?q=` sudah terisi. Tanpa yang terakhir, daftar hasil seorang `viewer`
+      setengahnya 403, dan itu terbaca sebagai "pencariannya rusak".
+      `ILIKE`, bukan `LIKE`: ini PostgreSQL, dan `LIKE` di sana peka huruf
+      besar-kecil — mencari "dwf" tidak akan pernah menemukan "DWF Annual
+      Report".
+- [x] **Dua pintu ke `/profile`.** Blok akun di kaki sidebar jadi tautan, dan
+      avatar di topbar. Yang di-`<Link>` di sidebar hanya avatar dan namanya,
+      BUKAN seluruh blok — tombol keluar di sebelahnya sudah interaktif, dan
+      `<button>` di dalam `<a>` adalah markup yang tidak sah. Pintu kedua di
+      topbar ada karena sidebar bisa diciutkan dan keadaan ciut itu tersimpan di
+      localStorage sampai kunjungan berikutnya; penyakit yang persis sama pernah
+      menimpa tombol keluar.
 

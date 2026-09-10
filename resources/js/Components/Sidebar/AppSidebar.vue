@@ -266,7 +266,16 @@ const mainItemClass =
             class="relative z-10 flex shrink-0 border-t border-white/10 px-3 pt-3"
             :class="collapsed ? 'flex-col items-center gap-3' : 'items-center justify-between'"
         >
-            <div class="flex min-w-0 items-center gap-2">
+            <!-- Blok akun menaut ke `/profile` sejak 2026-09-10.
+                 Yang di-`<Link>` hanya avatar dan namanya, BUKAN seluruh blok:
+                 tombol keluar di sebelahnya sudah interaktif, dan menaruh
+                 `<button>` di dalam `<a>` menghasilkan markup yang tidak sah
+                 dan tombol yang perilakunya berbeda-beda per browser. -->
+            <Link
+                href="/profile"
+                class="flex min-w-0 items-center gap-2 rounded transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none"
+                :title="t('nav.profile')"
+            >
                 <img
                     v-if="user.avatarUrl"
                     :src="user.avatarUrl"
@@ -285,7 +294,7 @@ const mainItemClass =
                     <span class="truncate text-nav-m text-white">{{ user.name }}</span>
                     <span class="truncate text-nav-m text-shell-muted">{{ user.email }}</span>
                 </span>
-            </div>
+            </Link>
 
             <!-- **Keluar, dan ia harus terbaca sebagai keluar.**
                  Tiga hal membuatnya tidak pernah ketemu: ikonnya

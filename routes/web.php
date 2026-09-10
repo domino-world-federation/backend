@@ -22,8 +22,10 @@ use App\Http\Controllers\Cms\NewsCategoryController;
 use App\Http\Controllers\Cms\NewsletterController;
 use App\Http\Controllers\Cms\NotificationController;
 use App\Http\Controllers\Cms\PeopleController;
+use App\Http\Controllers\Cms\ProfileController;
 use App\Http\Controllers\Cms\ResultController;
 use App\Http\Controllers\Cms\RoleController;
+use App\Http\Controllers\Cms\SearchController;
 use App\Http\Controllers\Cms\SeoController;
 use App\Http\Controllers\Cms\SubCommitteeController;
 use App\Http\Controllers\Cms\TournamentController;
@@ -86,6 +88,30 @@ Route::get('/media/documents/{document}', [MediaController::class, 'document'])
 Route::middleware('auth')->group(function () {
     Route::redirect('/', '/dashboard');
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    /*
+     * Akun sendiri — nama, surel, avatar, sandi.
+     *
+     * Tanpa `can:` apa pun, alasan yang sama dengan lonceng di bawah: yang
+     * disunting selalu pengguna yang sedang masuk, dan tidak ada parameter
+     * route yang bisa menunjuk akun orang lain. Menjaganya dengan
+     * `users.update` justru salah — izin itu untuk menyunting akun ORANG LAIN,
+     * dan memakainya di sini berarti seorang `viewer` tidak bisa mengganti
+     * sandinya sendiri.
+     */
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'password'])
+        ->name('profile.password');
+
+    /*
+     * Pencarian lintas modul untuk kotak di topbar.
+     *
+     * Juga tanpa `can:` — penyaringan izinnya per KELOMPOK hasil, di dalam
+     * controller, karena satu orang boleh melihat sebagian modul dan bukan
+     * sisanya. Satu penjaga di depan cuma bisa menjawab semua-atau-tidak.
+     */
+    Route::get('/search', SearchController::class)->name('search');
 
     /*
      * Lonceng di topbar.

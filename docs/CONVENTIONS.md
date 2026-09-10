@@ -331,6 +331,30 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   dibuat setelah kode terbukti benar. Jangan menggantinya dengan "login dulu
   lalu dialihkan middleware" — cara itu memberi penyerang yang sudah punya
   sandi sebuah sesi yang sah, dan yang menahannya cuma redirect.
+- **`/profile` dan `/search` sengaja TANPA `can:`, dan itu bukan kelalaian.**
+  Keduanya bukan modul. `/profile` selalu menyunting `$request->user()` sendiri;
+  menjaganya dengan `users.update` berarti `viewer` tidak bisa mengganti
+  sandinya sendiri, padahal izin itu tentang menyunting akun ORANG LAIN.
+  `/search` menyaring izin PER KELOMPOK hasil di dalam controller, karena satu
+  orang boleh melihat sebagian modul dan bukan sisanya — satu penjaga di depan
+  cuma bisa menjawab semua-atau-tidak. Pola yang sama dipakai lonceng
+  notifikasi.
+- **Layar profil TIDAK memakai `$request->validated()` untuk `fill()`.**
+  `roles`, `is_active`, `two_factor_enabled`, dan `member_federation_id`
+  semuanya ada di `#[Fillable]` milik `User` karena User Management
+  membutuhkannya — jadi satu `fill()` yang tampak wajar di
+  `ProfileController` sudah cukup untuk membuat `viewer` mengangkat dirinya
+  jadi super admin, tanpa satu pun galat. Yang dipakai daftar putih yang
+  ditulis tangan; `ProfileTest` mengirim keempatnya langsung ke endpoint-nya
+  dan memastikan tidak satu pun berubah.
+- **Pencarian topbar memakai `ILIKE`, bukan `LIKE`.** Ini PostgreSQL, dan
+  `LIKE` di sana peka huruf besar-kecil: mencari "dwf" tidak akan pernah
+  menemukan "DWF Annual Report". Tiap hasil juga menghitung tujuannya sendiri —
+  layar baca kalau modulnya punya, layar sunting kalau orangnya boleh
+  menyunting, kalau tidak dua-duanya daftar modulnya dengan `?q=` terisi.
+  Menaut ke `/{modul}/{id}/edit` tanpa memeriksa akan membuat daftar hasil
+  seorang `viewer` setengahnya 403, dan itu terbaca sebagai "pencariannya
+  rusak".
 - **`/logout` sengaja DI LUAR grup `auth`.** Pengguna yang berhenti di layar
   2FA belum login, jadi `auth` akan menolaknya dan penanda "menunggu 2FA" di
   sesinya tidak akan pernah terhapus.

@@ -13,6 +13,7 @@
  */
 return [
     'common' => [
+        'clear' => 'Clear',
         /* Dibacakan pembaca layar saat sebuah langkah formulir terisi penuh. */
         'done' => 'Done',
         'save' => 'Save',
@@ -36,6 +37,12 @@ return [
     ],
 
     'nav' => [
+        'profile' => 'Your profile',
+        'search' => 'Search',
+        'search_placeholder' => 'Search across the backoffice',
+        'search_hint' => 'Type at least 2 characters',
+        'search_empty' => 'Nothing matched that.',
+        'search_busy' => 'Searching…',
         'toggle_sidebar_open' => 'Open sidebar',
         'toggle_sidebar_close' => 'Close sidebar',
         'main' => 'Main menu',
@@ -558,6 +565,35 @@ return [
         'question_placeholder' => 'How do I join a tournament',
     ],
 
+    'profile' => [
+        'title' => 'Profile',
+        'heading' => 'Your profile',
+        'hint' => 'Your own name, email and password. Roles and access are set in User Management.',
+        'account' => 'Account',
+        'name' => 'Full name',
+        'email' => 'Email address',
+        'email_hint' => 'This is what you sign in with.',
+        'avatar' => 'Profile picture',
+        'avatar_hint' => 'WebP, square, at least :width×:height px.',
+        'avatar_dimensions' => 'The picture must be square and at least :width×:height px.',
+        'avatar_remove' => 'Remove current picture',
+        'saved' => 'Profile saved.',
+        'password_section' => 'Password',
+        'password_hint' => 'Changing your password does not sign out your other devices.',
+        'current_password' => 'Current password',
+        'new_password' => 'New password',
+        'confirm_password' => 'Confirm new password',
+        'password_saved' => 'Password changed.',
+        'change_password' => 'Change password',
+        'read_only' => 'Managed elsewhere',
+        'read_only_hint' => 'These are set in User Management and cannot be changed here.',
+        'roles' => 'Roles',
+        'two_factor' => 'Two-factor authentication',
+        'two_factor_enrolled' => 'Enrolled',
+        'two_factor_setup_required' => 'Not set up yet',
+        'last_login' => 'Last signed in',
+        'never' => 'Never',
+    ],
     'documents' => [
         // "Documents per Halaman" — memilih isi tiap rak di situs publik.
         'sections_title' => 'Documents per Page',

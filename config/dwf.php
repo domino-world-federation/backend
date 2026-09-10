@@ -462,6 +462,19 @@ return [
         'image_specs' => [
             'hero' => ['min_width' => 1920, 'min_height' => 800, 'ratio' => '12/5'],
             'landscape' => ['min_width' => 1600, 'min_height' => 900, 'ratio' => '16/9'],
+
+            /*
+             * Avatar. Persegi, dan angkanya jauh lebih kecil dari dua di atas
+             * karena tempat tayangnya memang kecil: 40px di blok akun sidebar,
+             * 32px di topbar. 256 memberi ruang untuk layar retina dan untuk
+             * ukuran yang lebih besar kalau suatu saat dipakai di layar profil
+             * itu sendiri.
+             *
+             * `ratio` 1/1 ditegakkan, bukan dipotong otomatis: `object-cover`
+             * di sidebar akan memotong foto lanskap tepat di tengah, dan yang
+             * paling sering hilang di sana adalah kepala orangnya.
+             */
+            'avatar' => ['min_width' => 256, 'min_height' => 256, 'ratio' => '1/1'],
         ],
 
         // Gambar yang disisipkan di dalam editor teks. Tanpa rasio: ia

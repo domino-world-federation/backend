@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { usePage } from '@inertiajs/vue3'
+import { computed, onMounted, ref, watch } from 'vue'
+import { Link, usePage } from '@inertiajs/vue3'
 import { PhMoon, PhSun } from '@phosphor-icons/vue'
 import AppSidebar from '@/Components/Sidebar/AppSidebar.vue'
 import LanguageSwitcher from '@/Components/LanguageSwitcher.vue'
 import NotificationBell from '@/Components/NotificationBell.vue'
+import GlobalSearch from '@/Components/GlobalSearch.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useTheme } from '@/composables/useTheme'
 import type { SharedProps } from '@/types'
@@ -17,6 +18,16 @@ import type { SharedProps } from '@/types'
 const page = usePage<SharedProps>()
 const { theme, toggle } = useTheme()
 const { t, localeSwitchable } = useI18n()
+
+/** Dua huruf yang menggantikan avatar yang belum diunggah — sama dengan sidebar. */
+const initials = computed(() =>
+    (page.props.auth.user?.name ?? '')
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? '')
+        .join(''),
+)
 
 const COLLAPSE_KEY = 'dwf.sidebar.collapsed'
 const collapsed = ref(false)
@@ -51,6 +62,12 @@ watch(collapsed, (value) => {
             <header
                 class="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-end gap-4 bg-surface px-6"
             >
+                <!-- Pencarian lintas modul, ditambahkan 2026-09-10 atas
+                     permintaan pemilik repo. TIDAK ada di wireframe: topbar
+                     yang digambar (`251:1212`) cuma matahari dan lonceng.
+                     Penyimpangannya dicatat di docs/PROGRESS.md. -->
+                <GlobalSearch />
+
                 <LanguageSwitcher v-if="localeSwitchable" />
 
                 <button
@@ -67,6 +84,33 @@ watch(collapsed, (value) => {
                      notifikasi — dan tooltip itu dihapus bersama alasannya,
                      bukan dibiarkan menua jadi keterangan yang salah. -->
                 <NotificationBell />
+
+                <!-- Pintu kedua ke `/profile`. Yang pertama blok akun di kaki
+                     sidebar — dan itu justru yang mudah tidak ketemu: sidebar
+                     bisa diciutkan, dan keadaan ciut itu tersimpan di
+                     localStorage sampai kunjungan berikutnya. Penyakit yang
+                     sama pernah menimpa tombol keluar. -->
+                <Link
+                    v-if="page.props.auth.user"
+                    href="/profile"
+                    class="flex shrink-0 items-center rounded-full focus-visible:ring-2 focus-visible:ring-cool-60 focus-visible:outline-none"
+                    :title="t('nav.profile')"
+                    :aria-label="t('nav.profile')"
+                >
+                    <img
+                        v-if="page.props.auth.user.avatarUrl"
+                        :src="page.props.auth.user.avatarUrl"
+                        alt=""
+                        class="size-8 rounded-full object-cover"
+                    />
+                    <span
+                        v-else
+                        class="flex size-8 items-center justify-center rounded-full bg-cool-10 text-body-xs text-cool-90"
+                        aria-hidden="true"
+                    >
+                        {{ initials }}
+                    </span>
+                </Link>
             </header>
 
             <!--

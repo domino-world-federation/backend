@@ -14,6 +14,7 @@
  */
 return [
     'common' => [
+        'clear' => 'Bersihkan',
         /* Dibacakan pembaca layar saat sebuah langkah formulir terisi penuh. */
         'done' => 'Selesai',
         'save' => 'Simpan',
@@ -37,6 +38,12 @@ return [
     ],
 
     'nav' => [
+        'profile' => 'Profil Anda',
+        'search' => 'Cari',
+        'search_placeholder' => 'Cari di seluruh backoffice',
+        'search_hint' => 'Ketik minimal 2 huruf',
+        'search_empty' => 'Tidak ada yang cocok.',
+        'search_busy' => 'Mencari…',
         'toggle_sidebar_open' => 'Buka sidebar',
         'toggle_sidebar_close' => 'Tutup sidebar',
         'main' => 'Menu utama',
@@ -559,6 +566,35 @@ return [
         'question_placeholder' => 'Bagaimana cara ikut turnamen',
     ],
 
+    'profile' => [
+        'title' => 'Profil',
+        'heading' => 'Profil Anda',
+        'hint' => 'Nama, surel, dan sandi Anda sendiri. Peran dan hak akses diatur di User Management.',
+        'account' => 'Akun',
+        'name' => 'Nama lengkap',
+        'email' => 'Alamat surel',
+        'email_hint' => 'Ini yang Anda pakai untuk masuk.',
+        'avatar' => 'Foto profil',
+        'avatar_hint' => 'WebP, persegi, minimal :width×:height px.',
+        'avatar_dimensions' => 'Fotonya harus persegi dan minimal :width×:height px.',
+        'avatar_remove' => 'Hapus foto yang sekarang',
+        'saved' => 'Profil tersimpan.',
+        'password_section' => 'Sandi',
+        'password_hint' => 'Mengganti sandi tidak mengeluarkan perangkat Anda yang lain.',
+        'current_password' => 'Sandi sekarang',
+        'new_password' => 'Sandi baru',
+        'confirm_password' => 'Ulangi sandi baru',
+        'password_saved' => 'Sandi diganti.',
+        'change_password' => 'Ganti sandi',
+        'read_only' => 'Diatur di tempat lain',
+        'read_only_hint' => 'Yang berikut diatur di User Management dan tidak bisa diubah dari sini.',
+        'roles' => 'Peran',
+        'two_factor' => 'Otentikasi dua langkah',
+        'two_factor_enrolled' => 'Sudah terdaftar',
+        'two_factor_setup_required' => 'Belum disiapkan',
+        'last_login' => 'Terakhir masuk',
+        'never' => 'Belum pernah',
+    ],
     'documents' => [
         // "Documents per Halaman" — memilih isi tiap rak di situs publik.
         'sections_title' => 'Documents per Halaman',
