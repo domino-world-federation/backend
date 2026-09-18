@@ -29,11 +29,26 @@ class TournamentTest extends TestCase
         return User::factory()->superAdmin()->create();
     }
 
-    /** @param array<string, mixed> $overrides @return array<string, mixed> */
+    /**
+     * Formulir yang LENGKAP — sejak 2026-09-18 seluruh field wajib, jadi yang
+     * ini mengisi semuanya dan tiap tes hanya menimpa yang sedang ia uji.
+     *
+     * Dokumennya dibuat di sini, bukan diminta dari pemanggil: minimal satu
+     * lampiran kini wajib, dan tes yang tidak sedang menguji lampiran tidak
+     * seharusnya perlu tahu soal itu.
+     *
+     * @param  array<string, mixed>  $overrides  @return array<string, mixed>
+     */
     private function payload(array $overrides = []): array
     {
+        $document = Document::factory()->create([
+            'category' => 'Tournament Documents',
+            'status' => Document::STATUS_PUBLISHED,
+        ]);
+
         return array_merge([
             'name' => 'Asian Domino Open 2026',
+            'slug' => 'asian-domino-open-2026',
             'coverage' => 'Continental',
             'starts_on' => '2027-03-18',
             'ends_on' => '2027-03-21',
@@ -48,8 +63,28 @@ class TournamentTest extends TestCase
             'venue_lat' => 13.7563,
             'venue_lng' => 100.5018,
 
+            'prize_amount' => 50000,
+            'prize_currency' => 'USD',
+            'prize_description' => 'Gold medal and 500 ranking points',
+            'prize_image' => UploadedFile::fake()->image('prize.webp', 800, 800),
+
+            'contact_email' => 'open@dwf.test',
+            'contact_phone' => '+66 2 000 0000',
+
+            'officials' => [$this->official('Maria Santos', 'Chief Referee', 'Spain')],
+
+            'registration_starts_on' => '2027-01-01',
+            'registration_ends_on' => '2027-03-01',
+            'dwf_id_requirement' => 'Required for all participants',
             'eligibility' => 'Open to all DWF member federations',
             'registration_method' => 'Through national federation',
+
+            'schedule' => [
+                ['held_on' => '2027-03-18', 'starts_at' => '09:00', 'activity' => 'Opening Ceremony', 'area' => 'Main Hall'],
+            ],
+
+            'participant_count' => 16,
+            'documents' => [$document->id],
 
             'participant_type' => 'Teams',
             'competition_system' => '16 groups of four; top two advance to knockout',
@@ -57,6 +92,22 @@ class TournamentTest extends TestCase
 
             'posting' => 'now',
         ], $overrides);
+    }
+
+    /**
+     * Satu baris ofisial LENGKAP, termasuk fotonya — yang juga wajib sejak
+     * 2026-09-18.
+     *
+     * @return array<string, mixed>
+     */
+    private function official(string $name, string $role, string $country): array
+    {
+        return [
+            'name' => $name,
+            'role' => $role,
+            'country' => $country,
+            'photo' => UploadedFile::fake()->image('official.webp', 400, 400),
+        ];
     }
 
     // ------------------------------------------------------------ menyimpan
@@ -67,12 +118,12 @@ class TournamentTest extends TestCase
 
         $this->actingAs($this->actor())->post('/tournaments', $this->payload([
             'officials' => [
-                ['name' => 'Maria Santos', 'role' => 'Chief Referee', 'country' => 'Spain'],
-                ['name' => 'Kenji Mori', 'role' => 'Deputy Referee', 'country' => 'Japan'],
+                $this->official('Maria Santos', 'Chief Referee', 'Spain'),
+                $this->official('Kenji Mori', 'Deputy Referee', 'Japan'),
             ],
             'schedule' => [
                 ['held_on' => '2027-03-18', 'starts_at' => '09:00', 'activity' => 'Opening Ceremony', 'area' => 'Main Hall'],
-                ['held_on' => '2027-03-19', 'starts_at' => '10:00', 'activity' => 'Group Stage'],
+                ['held_on' => '2027-03-19', 'starts_at' => '10:00', 'activity' => 'Group Stage', 'area' => 'Hall B'],
             ],
         ]))->assertRedirect('/tournaments');
 
@@ -103,8 +154,8 @@ class TournamentTest extends TestCase
 
         $this->actingAs($actor)->post('/tournaments', $this->payload([
             'officials' => [
-                ['name' => 'A', 'role' => 'Referee', 'country' => 'Spain'],
-                ['name' => 'B', 'role' => 'Referee', 'country' => 'Japan'],
+                $this->official('A', 'Referee', 'Spain'),
+                $this->official('B', 'Referee', 'Japan'),
             ],
         ]));
 
@@ -112,7 +163,8 @@ class TournamentTest extends TestCase
 
         $this->actingAs($actor)->put("/tournaments/{$tournament->id}", $this->payload([
             'hero_image' => null,
-            'officials' => [['name' => 'B', 'role' => 'Chief Referee', 'country' => 'Japan']],
+            'prize_image' => null,
+            'officials' => [$this->official('B', 'Chief Referee', 'Japan')],
         ]))->assertSessionHasNoErrors();
 
         $officials = $tournament->fresh()->officials;
@@ -198,7 +250,10 @@ class TournamentTest extends TestCase
         Storage::fake('public');
 
         $this->actingAs($this->actor())
-            ->post('/tournaments', $this->payload(['registration_starts_on' => '2027-01-01']))
+            ->post('/tournaments', $this->payload([
+                'registration_starts_on' => '2027-01-01',
+                'registration_ends_on' => null,
+            ]))
             ->assertSessionHasErrors('registration_ends_on');
     }
 
@@ -235,31 +290,72 @@ class TournamentTest extends TestCase
         Storage::fake('public');
 
         $this->actingAs($this->actor())
-            ->post('/tournaments', $this->payload(['prize_amount' => 50000]))
+            ->post('/tournaments', $this->payload(['prize_amount' => 50000, 'prize_currency' => null]))
             ->assertSessionHasErrors('prize_currency');
     }
 
-    /** Mata uang dikosongkan kalau nominalnya dihapus. */
-    public function test_clearing_the_prize_amount_clears_its_currency(): void
+    /**
+     * Seluruh formulir wajib sejak 2026-09-18 — termasuk yang desainnya tandai
+     * opsional.
+     *
+     * Tes ini menggantikan "mengosongkan nominal hadiah ikut mengosongkan mata
+     * uangnya": nominal hadiah memang tidak bisa dikosongkan lagi. Yang diuji
+     * mewakili tiap kelompok yang dulu opsional, bukan seluruh daftar satu per
+     * satu — daftar lengkapnya ada di `TournamentRequest::rules()`.
+     */
+    public function test_every_field_is_required_including_the_ones_that_used_to_be_optional(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->actor())
+            ->post('/tournaments', $this->payload([
+                'slug' => '',
+                'prize_amount' => null,
+                'contact_email' => null,
+                'dwf_id_requirement' => null,
+                'participant_count' => null,
+                'officials' => [],
+                'schedule' => [],
+                'documents' => [],
+            ]))
+            ->assertSessionHasErrors([
+                'slug', 'prize_amount', 'contact_email', 'dwf_id_requirement',
+                'participant_count', 'officials', 'schedule', 'documents',
+            ]);
+
+        $this->assertSame(0, Tournament::query()->count());
+    }
+
+    /**
+     * Foto ofisial wajib — tapi baris yang SUDAH punya foto tersimpan tidak
+     * dituntut mengunggahnya ulang saat turnamennya disunting.
+     */
+    public function test_an_official_needs_a_photo_unless_one_is_already_stored(): void
     {
         Storage::fake('public');
         $actor = $this->actor();
 
-        $this->actingAs($actor)->post('/tournaments', $this->payload([
-            'prize_amount' => 50000,
-            'prize_currency' => 'USD',
-        ]))->assertSessionHasNoErrors();
+        $this->actingAs($actor)
+            ->post('/tournaments', $this->payload([
+                'officials' => [['name' => 'A', 'role' => 'Referee', 'country' => 'Spain']],
+            ]))
+            ->assertSessionHasErrors('officials.0.photo');
+
+        $this->actingAs($actor)->post('/tournaments', $this->payload())->assertSessionHasNoErrors();
 
         $tournament = Tournament::query()->sole();
-        $this->assertSame('USD', $tournament->prize_currency);
+        $stored = $tournament->officials()->sole();
 
         $this->actingAs($actor)->put("/tournaments/{$tournament->id}", $this->payload([
             'hero_image' => null,
-            'prize_amount' => null,
-            'prize_currency' => 'USD',
+            'prize_image' => null,
+            'officials' => [[
+                'id' => $stored->id,
+                'name' => $stored->name,
+                'role' => $stored->role,
+                'country' => $stored->country,
+            ]],
         ]))->assertSessionHasNoErrors();
-
-        $this->assertNull($tournament->fresh()->prize_currency);
     }
 
     /**
@@ -297,7 +393,7 @@ class TournamentTest extends TestCase
         $actor = $this->actor();
 
         $this->actingAs($actor)->post('/tournaments', $this->payload([
-            'officials' => [['name' => 'A', 'role' => 'Referee', 'country' => 'Spain']],
+            'officials' => [$this->official('A', 'Referee', 'Spain')],
         ]));
 
         $mine = Tournament::query()->sole();
@@ -352,6 +448,8 @@ class TournamentTest extends TestCase
      */
     public function test_the_overview_is_purified(): void
     {
+        Storage::fake('public');
+
         $this->actingAs(User::factory()->superAdmin()->create())
             ->post('/tournaments', $this->payload([
                 'overview' => '<p>Turnamen tahunan yang diikuti federasi dari lima benua, digelar selama sepekan penuh.</p><script>alert(1)</script>',

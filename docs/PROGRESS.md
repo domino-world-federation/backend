@@ -446,4 +446,25 @@ handler-nya. Rinciannya di
       topbar ada karena sidebar bisa diciutkan dan keadaan ciut itu tersimpan di
       localStorage sampai kunjungan berikutnya; penyakit yang persis sama pernah
       menimpa tombol keluar.
-
+- [x] **Formulir turnamen: SELURUH field wajib** (2026-09-18, permintaan pemilik
+      repo) — menyimpang dari desain `585:11241`, yang menandai Prize, Contact,
+      jendela pendaftaran, syarat DWF ID, foto ofisial, area jadwal, jumlah
+      peserta, dan dokumen sebagai opsional. Ofisial dan jadwal kini minimal
+      satu baris, dokumen minimal satu lampiran.
+      Dua pengecualian yang disengaja, dan keduanya "sudah terisi", bukan
+      "opsional": gambar (hero, hadiah, foto ofisial) saat MENYUNTING tidak
+      dituntut unggah ulang kalau yang tersimpan sudah ada — foto ofisial
+      dicocokkan lewat id barisnya di `checkOfficialsHavePhotos()` — dan
+      `published_at` yang hanya berarti untuk Publish Time = Schedule.
+      Slug wajib tapi terisi sendiri dari nama selama orangnya belum
+      mengubahnya, dan HANYA saat membuat: saat menyunting ia tidak pernah
+      bergerak sendiri, karena slug adalah alamat publik dan memperbaiki typo di
+      nama tidak boleh mematikan tautan yang sudah beredar.
+      **Dua akibat yang perlu diketahui:** (1) formulir ini tidak bisa disimpan
+      sama sekali selama belum ada satu pun dokumen berkategori `Tournament
+      Documents` yang terbit — layar kosongnya sekarang mengatakan itu; (2)
+      turnamen yang dibuat sebelum aturan ini, saat disunting, harus dilengkapi
+      dulu. Di database kerja per hari ini: 3 dari 3 turnamen belum lengkap.
+      Cincin progres ikut dihitung ulang supaya penuh berarti "bisa disimpan";
+      Contact, yang tidak punya langkah sendiri di stepper desain, dihitung di
+      cincin Prize.
