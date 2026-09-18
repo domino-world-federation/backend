@@ -53,6 +53,25 @@ class TournamentDetailResource extends PublicResource
                     'portraitUrl' => StoredFile::url($o->photo_path),
                 ], static fn ($v) => $v !== null))->all(),
             'contact' => $this->contact(),
+
+            /*
+             * Alamat album galeri turnamen ini (`/gallery/{gallerySlug}`), untuk
+             * panah "lihat semua" di kolase halaman detail. Sebelumnya panah itu
+             * membawa ke `/gallery` — seluruh arsip — dari halaman yang kolasenya
+             * justru hanya berisi foto turnamen ini.
+             *
+             * Dikirim, bukan ditebak situs publik: slug album lahir dari NAMA
+             * turnamen (`dubai-grand-masters-domino-series`), bukan dari slug
+             * turnamennya (`dubai-masters-2026`).
+             *
+             * Dihilangkan kalau albumnya tidak ada ATAU belum punya satu pun aset
+             * tayang — `/gallery/albums` membuang album kosong, jadi halaman
+             * albumnya akan 404. Panah yang menuju 404 lebih buruk daripada
+             * panah ke arsip.
+             */
+            'gallerySlug' => $this->relationLoaded('galleryAlbum') && $this->galleryAlbum?->has_live_items
+                ? $this->galleryAlbum->slug
+                : null,
             'winners' => $this->winners->isEmpty() ? null : $this->winners
                 ->map(fn ($w) => [
                     'id' => (string) $w->id,

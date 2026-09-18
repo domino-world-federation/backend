@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Satu turnamen — formulir `585:11241`.
@@ -134,6 +135,17 @@ class Tournament extends Model
     public function documents(): BelongsToMany
     {
         return $this->belongsToMany(Document::class)->withPivot('position')->orderBy('position');
+    }
+
+    /**
+     * Album galeri milik turnamen ini — paling banyak satu
+     * (`gallery_events.tournament_id` unik; lihat `GalleryEvent::forTournament()`).
+     *
+     * @return HasOne<GalleryEvent, $this>
+     */
+    public function galleryAlbum(): HasOne
+    {
+        return $this->hasOne(GalleryEvent::class);
     }
 
     /** Yang benar-benar tampil di situs publik — sama seperti modul lain. */

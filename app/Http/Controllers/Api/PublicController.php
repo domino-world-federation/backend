@@ -384,7 +384,15 @@ class PublicController extends Controller
     public function tournament(string $slug): JsonResponse
     {
         $tournament = Tournament::query()
-            ->with(['officials', 'scheduleEntries', 'winners', 'documents' => fn ($q) => $q->live()])
+            ->with([
+                'officials', 'scheduleEntries', 'winners',
+                'documents' => fn ($q) => $q->live(),
+                // Hanya slug-nya yang dibutuhkan, dan hanya kalau albumnya
+                // punya aset tayang — lihat `gallerySlug` di resource.
+                'galleryAlbum' => fn ($q) => $q
+                    ->select('id', 'slug', 'tournament_id')
+                    ->withExists(['items as has_live_items' => fn ($i) => $i->live()]),
+            ])
             ->live()
             ->where('slug', $slug)
             ->firstOrFail();

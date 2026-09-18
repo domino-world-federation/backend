@@ -480,4 +480,11 @@ handler-nya. Rinciannya di
       **Menyimpang dari desain:** hint gambar di Figma menulis "JPG, PNG, or
       WebP. Maximum 2 MB"; yang ditegakkan tetap WebP 1 MB, aturan unggahan
       seluruh aplikasi.
+- [x] **`gallerySlug` di detail turnamen** (`/api/v1/tournaments/{slug}`,
+      2026-09-18) — slug album galeri turnamen itu, untuk panah "see all" di
+      kolase halaman detail, yang sebelumnya membawa ke seluruh arsip
+      `/gallery`. Dikirim karena tidak bisa ditebak: slug album lahir dari NAMA
+      turnamen, bukan dari slug-nya. Dihilangkan kalau album tidak ada atau belum
+      punya aset tayang — `/gallery/albums` membuang album kosong, jadi halaman
+      albumnya akan 404. Relasi baru `Tournament::galleryAlbum()` (hasOne).
 

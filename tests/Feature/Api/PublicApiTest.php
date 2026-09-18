@@ -191,6 +191,43 @@ class PublicApiTest extends TestCase
         $this->assertCount(3, $this->getJson('/api/v1/gallery')->json());
     }
 
+    /**
+     * `gallerySlug` menunjuk album turnamen itu — dan HANYA kalau albumnya punya
+     * aset tayang, karena album kosong menjawab 404 di situs publik.
+     *
+     * Slug album lahir dari nama turnamen, bukan dari slug turnamennya, jadi
+     * situs publik tidak bisa menebaknya sendiri.
+     */
+    public function test_a_tournament_detail_names_its_gallery_album(): void
+    {
+        $tournament = Tournament::factory()->create([
+            'name' => 'Dubai Grand Masters Domino Series',
+            'slug' => 'dubai-masters-2026',
+        ]);
+        $album = GalleryEvent::forTournament($tournament);
+
+        // Album ada tapi isinya draf: panah yang menuju 404 lebih buruk
+        // daripada tidak ada panah ke album.
+        GalleryItem::factory()->create([
+            'gallery_event_id' => $album->id, 'status' => 'draft', 'published_at' => null,
+        ]);
+        $this->assertArrayNotHasKey(
+            'gallerySlug',
+            $this->getJson('/api/v1/tournaments/dubai-masters-2026')->json(),
+        );
+
+        GalleryItem::factory()->create(['gallery_event_id' => $album->id]);
+        $this->assertSame(
+            $album->slug,
+            $this->getJson('/api/v1/tournaments/dubai-masters-2026')->json('gallerySlug'),
+        );
+        $this->assertNotSame('dubai-masters-2026', $album->slug);
+
+        // Turnamen tanpa album sama sekali.
+        $bare = Tournament::factory()->create();
+        $this->assertArrayNotHasKey('gallerySlug', $this->getJson("/api/v1/tournaments/{$bare->slug}")->json());
+    }
+
     /** Turnamen tanpa aset menjawab kosong — bukan jatuh ke seluruh galeri. */
     public function test_a_tournament_without_assets_answers_empty(): void
     {
