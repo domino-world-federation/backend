@@ -118,46 +118,6 @@ function syncPublishedAt(): void {
         : ''
 }
 
-/*
- * Slug terisi sendiri dari nama — HANYA saat membuat.
- *
- * Wajib sejak 2026-09-18, tapi "wajib" tidak boleh berarti orang harus
- * mengetik alamat URL dengan tangan. Selama kolomnya masih memegang hasil
- * isian otomatis terakhir, mengetik nama memperbaruinya; begitu orangnya
- * mengubah slug sendiri, isian otomatis berhenti dan tidak menimpanya lagi.
- *
- * Saat MENYUNTING ia tidak pernah bergerak sendiri. Slug adalah alamat publik
- * turnamen: memperbaiki typo di namanya tidak boleh diam-diam memindahkan
- * halamannya dan mematikan setiap tautan yang sudah beredar.
- *
- * Bentuknya meniru `Str::slug()` di server — huruf kecil, aksen dilepas, apa
- * pun selain huruf dan angka jadi satu tanda hubung — supaya yang terlihat di
- * kolom ini sama dengan yang lolos `regex:/^[a-z0-9-]+$/`.
- */
-function slugify(value: string): string {
-    return value
-        .normalize('NFKD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-}
-
-let autoSlug: string | null = isEdit ? null : form.slug
-
-watch(
-    () => form.name,
-    (name) => {
-        if (autoSlug === null || form.slug !== autoSlug) {
-            autoSlug = null
-            return
-        }
-
-        autoSlug = slugify(name)
-        form.slug = autoSlug
-    },
-)
-
 function toOptions(values: string[]) {
     return values.map((v) => ({ value: v, label: v }))
 }
@@ -174,14 +134,10 @@ function toOptions(values: string[]) {
  * ── Yang dihitung cincinnya: field WAJIB saja. ──
  *
  * Ia menjawab "berapa banyak lagi sebelum ini bisa disimpan", bukan "berapa
- * banyak kotak yang ada". Sejak 2026-09-18 SELURUH field wajib, jadi tiap
- * cincin menghitung seluruh isinya — termasuk Prize dan Regulations, yang dulu
- * penuh begitu ada satu isian karena isinya opsional.
- *
- * Kontak tidak punya langkah sendiri di stepper desain, tapi kedua field-nya
- * kini wajib. Ia dihitung di cincin PRIZE, kartu tepat di atasnya: tanpa itu
- * kedelapan cincin bisa penuh sementara Simpan tetap ditolak — cincin yang
- * berbohong soal "tinggal berapa lagi" lebih buruk daripada tidak ada cincin.
+ * banyak kotak yang ada". Section yang seluruhnya opsional — Prize dan
+ * Regulations — karena itu memakai ukurannya sendiri: penuh begitu ada satu
+ * isian, nol kalau kosong. Cincin yang tidak pernah bisa penuh mengajari orang
+ * mengabaikannya.
  */
 function filledCount(...values: unknown[]): number {
     return values.filter((v) => v !== null && v !== undefined && v !== '').length
@@ -200,41 +156,27 @@ const progress = computed(() => ({
         9,
     ),
     venue: ratio(filledCount(form.venue_name, form.venue_address, form.venue_lat, form.venue_lng), 4),
-    prize: ratio(
-        filledCount(
-            form.prize_amount, form.prize_currency, form.prize_description,
-            form.contact_email, form.contact_phone,
-        ) + (form.prize_image || props.tournament?.prizeImageUrl ? 1 : 0),
-        6,
-    ),
+    prize: filledCount(
+        form.prize_amount, form.prize_description, form.prize_image, props.tournament?.prizeImageUrl,
+    ) > 0 ? 1 : 0,
     officials: form.officials.length === 0
         ? 0
         : ratio(
-            form.officials.filter(
-                (o) => o.name !== '' && o.role !== '' && o.country !== '' && (o.photo || o.photoUrl),
-            ).length,
+            form.officials.filter((o) => o.name !== '' && o.role !== '' && o.country !== '').length,
             form.officials.length,
         ),
-    eligibility: ratio(
-        filledCount(
-            form.registration_starts_on, form.registration_ends_on, form.dwf_id_requirement,
-            form.eligibility, form.registration_method,
-        ),
-        5,
-    ),
+    eligibility: ratio(filledCount(form.eligibility, form.registration_method), 2),
     schedule: form.schedule.length === 0
         ? 0
         : ratio(
-            form.schedule.filter(
-                (i) => i.held_on !== '' && i.starts_at !== '' && i.activity !== '' && i.area !== '',
-            ).length,
+            form.schedule.filter((i) => i.held_on !== '' && i.starts_at !== '' && i.activity !== '').length,
             form.schedule.length,
         ),
     // Satu field, bukan empat: penilaian, sistem kompetisi, dan format
     // permainan tidak lagi diisi orang, jadi menghitungnya sebagai kemajuan
     // berarti langkah ini terlihat setengah selesai padahal tidak ada lagi yang
     // bisa dikerjakan di sana. Yang tersisa untuk dipilih hanya aturan mainnya.
-    format: ratio(filledCount(form.rules_format, form.participant_count), 2),
+    format: form.rules_format ? 1 : 0,
     regulations: form.documents.length > 0 ? 1 : 0,
 }))
 
@@ -489,7 +431,7 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                             </template>
                         </FormRow>
 
-                        <FormRow :label="t('news.field_slug')" :description="t('tournaments.slug_hint')" required>
+                        <FormRow :label="t('news.field_slug')" :description="t('tournaments.slug_hint')">
                             <template #default="{ id }">
                                 <AppField :id="id" v-model="form.slug" :error="form.errors.slug" />
                             </template>
@@ -550,7 +492,7 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
 
                     <!-- ============================= Prize -->
                     <CardSection id="section-prize" :title="t('tournaments.section_prize')">
-                        <FormRow :label="t('tournaments.prize_amount')" :description="t('tournaments.prize_amount_hint')" required>
+                        <FormRow :label="t('tournaments.prize_amount')" :description="t('tournaments.prize_amount_hint')">
                             <template #default="{ id }">
                                 <AppField
                                     :id="id"
@@ -564,7 +506,7 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                             </template>
                         </FormRow>
 
-                        <FormRow :label="t('tournaments.prize_currency')" :description="t('tournaments.prize_currency_hint')" required>
+                        <FormRow :label="t('tournaments.prize_currency')" :description="t('tournaments.prize_currency_hint')">
                             <template #default="{ id }">
                                 <SelectField
                                     :id="id"
@@ -578,7 +520,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                         <FormRow
                             :label="t('tournaments.prize_description')"
                             :description="t('tournaments.prize_description_hint')"
-                            required
                         >
                             <template #default="{ id }">
                                 <AppField
@@ -590,13 +531,7 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                             </template>
                         </FormRow>
 
-                        <!-- Wajib kalau belum ada gambar tersimpan; saat menyunting, tidak
-                             mengunggah apa pun berarti mempertahankan yang lama. -->
-                        <FormRow
-                            :label="t('tournaments.prize_image')"
-                            :description="t('tournaments.prize_image_hint')"
-                            :required="!tournament?.prizeImageUrl"
-                        >
+                        <FormRow :label="t('tournaments.prize_image')" :description="t('tournaments.prize_image_hint')">
                             <template #default="{ id }">
                                 <MediaUpload
                                     :id="id"
@@ -611,7 +546,7 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
 
                     <!-- ============================= Contact -->
                     <CardSection :title="t('tournaments.section_contact')">
-                        <FormRow :label="t('tournaments.contact_email')" :description="t('tournaments.contact_email_hint')" required>
+                        <FormRow :label="t('tournaments.contact_email')" :description="t('tournaments.contact_email_hint')">
                             <template #default="{ id }">
                                 <AppField
                                     :id="id"
@@ -623,7 +558,7 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                             </template>
                         </FormRow>
 
-                        <FormRow :label="t('tournaments.contact_phone')" :description="t('tournaments.contact_phone_hint')" required>
+                        <FormRow :label="t('tournaments.contact_phone')" :description="t('tournaments.contact_phone_hint')">
                             <template #default="{ id }">
                                 <AppField
                                     :id="id"
@@ -709,7 +644,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                         <FormRow
                             :label="t('tournaments.registration_starts_on')"
                             :description="t('tournaments.registration_starts_on_hint')"
-                            required
                         >
                             <template #default="{ id }">
                                 <AppField
@@ -724,7 +658,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                         <FormRow
                             :label="t('tournaments.registration_ends_on')"
                             :description="t('tournaments.registration_ends_on_hint')"
-                            required
                         >
                             <template #default="{ id }">
                                 <AppField
@@ -739,7 +672,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                         <FormRow
                             :label="t('tournaments.dwf_id_requirement')"
                             :description="t('tournaments.dwf_id_requirement_hint')"
-                            required
                         >
                             <template #default="{ id }">
                                 <SelectField
@@ -889,7 +821,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                         <FormRow
                             :label="participantCountLabel"
                             :description="t('tournaments.participant_count_hint')"
-                            required
                         >
                             <template #default="{ id }">
                                 <SelectField
@@ -938,7 +869,6 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                             :label="t('tournaments.documents')"
                             :description="t('tournaments.documents_hint', { max: options.maxDocuments })"
                             compact
-                            required
                         >
                             <div class="flex flex-col gap-3">
                                 <p v-if="documentOptions.length === 0" class="text-body-s text-cool-60">

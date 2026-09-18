@@ -15,18 +15,6 @@ use Illuminate\Validation\Validator;
  * Tiap baris di bawah punya pasangannya di desain: teks kecil di bawah field
  * ("Required • 2–120 characters.") adalah kontrak, bukan hiasan, dan angkanya
  * disalin apa adanya.
- *
- * **SELURUH field wajib sejak 2026-09-18**, atas permintaan pemilik repo —
- * termasuk yang desainnya tandai opsional (hadiah, kontak, pendaftaran, foto
- * ofisial, area jadwal, jumlah peserta, dokumen), dan minimal satu baris
- * ofisial dan satu baris jadwal. Dua pengecualian yang disengaja, dan
- * keduanya bukan "opsional" melainkan "sudah terisi":
- *
- *   - Gambar (hero, hadiah, foto ofisial) saat MENYUNTING: tidak mengunggah
- *     apa pun berarti mempertahankan yang tersimpan. Menuntut unggah ulang
- *     berarti memperbaiki satu typo di nama memaksa mengunggah tiga gambar
- *     lagi. Yang tetap dituntut adalah gambar yang memang BELUM ada.
- *   - `published_at`, yang hanya berarti kalau Publish Time = Schedule.
  */
 class TournamentRequest extends FormRequest
 {
@@ -51,11 +39,8 @@ class TournamentRequest extends FormRequest
         return [
             // --- Basic Information ---
             'name' => ['required', 'string', 'max:160'],
-            // Wajib, tapi layar mengisinya sendiri dari nama selama orangnya
-            // belum menyentuh kolom ini — jadi "wajib" tidak berarti harus
-            // mengetik alamat URL dengan tangan.
             'slug' => [
-                'required', 'string', 'max:180', 'regex:/^[a-z0-9-]+$/',
+                'nullable', 'string', 'max:180', 'regex:/^[a-z0-9-]+$/',
                 Rule::unique('tournaments', 'slug')->ignore($tournament?->id),
             ],
             'coverage' => ['required', Rule::in($options['coverage'])],
@@ -79,24 +64,18 @@ class TournamentRequest extends FormRequest
             'venue_lat' => ['required', 'numeric', 'between:-90,90'],
             'venue_lng' => ['required', 'numeric', 'between:-180,180'],
 
-            // --- Prize Information ---
-            'prize_amount' => ['required', 'numeric', 'min:0'],
-            'prize_currency' => ['required', Rule::in($options['currencies'])],
-            'prize_description' => ['required', 'string', 'max:240'],
-            // Wajib saat membuat, dan saat menyunting turnamen yang BELUM
-            // punya gambar hadiah — turnamen lama yang dibuat ketika field ini
-            // masih opsional tidak boleh lolos hanya karena ia disunting.
-            'prize_image' => [
-                $tournament === null || blank($tournament->prize_image_path) ? 'required' : 'nullable',
-                ...$image,
-            ],
+            // --- Prize Information (opsional) ---
+            'prize_amount' => ['nullable', 'numeric', 'min:0'],
+            'prize_currency' => ['nullable', Rule::in($options['currencies'])],
+            'prize_description' => ['nullable', 'string', 'max:240'],
+            'prize_image' => ['nullable', ...$image],
 
-            // --- Tournament Contact ---
-            'contact_email' => ['required', 'email', 'max:160'],
-            'contact_phone' => ['required', 'string', 'max:40'],
+            // --- Tournament Contact (opsional) ---
+            'contact_email' => ['nullable', 'email', 'max:160'],
+            'contact_phone' => ['nullable', 'string', 'max:40'],
 
             // --- Officials & Referees (berulang) ---
-            'officials' => ['required', 'array', 'min:1', 'max:50'],
+            'officials' => ['array', 'max:50'],
 
             /*
              * `id`, BUKAN `photo_path`.
@@ -116,24 +95,21 @@ class TournamentRequest extends FormRequest
             'officials.*.name' => ['required', 'string', 'max:120'],
             'officials.*.role' => ['required', 'string', 'max:120'],
             'officials.*.country' => ['required', 'string', 'max:120'],
-            // `nullable` di SINI, wajibnya di `checkOfficialsHavePhotos()`:
-            // baris yang sudah punya foto tersimpan tidak mengirim ulang
-            // berkasnya, dan aturan statis tidak bisa melihat itu.
             'officials.*.photo' => ['nullable', ...$image],
 
             // --- Eligibility & Registration ---
-            'registration_starts_on' => ['required', 'date'],
-            'registration_ends_on' => ['required', 'date'],
-            'dwf_id_requirement' => ['required', Rule::in($options['dwf_id_requirements'])],
+            'registration_starts_on' => ['nullable', 'date'],
+            'registration_ends_on' => ['nullable', 'date'],
+            'dwf_id_requirement' => ['nullable', Rule::in($options['dwf_id_requirements'])],
             'eligibility' => ['required', Rule::in($options['eligibility'])],
             'registration_method' => ['required', Rule::in($options['registration_methods'])],
 
             // --- Schedule (berulang) ---
-            'schedule' => ['required', 'array', 'min:1', 'max:200'],
+            'schedule' => ['array', 'max:200'],
             'schedule.*.held_on' => ['required', 'date'],
             'schedule.*.starts_at' => ['required', 'date_format:H:i'],
             'schedule.*.activity' => ['required', 'string', 'min:3', 'max:120'],
-            'schedule.*.area' => ['required', 'string', 'max:120'],
+            'schedule.*.area' => ['nullable', 'string', 'max:120'],
 
             // --- Tournament Format ---
             /*
@@ -157,7 +133,7 @@ class TournamentRequest extends FormRequest
              * divalidasi terhadap pasangan yang benar.
              */
             'participant_count' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::in(TournamentRules::countsFor($this->string('rules_format')->toString())),
             ],
@@ -172,7 +148,7 @@ class TournamentRequest extends FormRequest
 
             // --- Regulations & Rules ---
             // "select up to 10 existing published documents".
-            'documents' => ['required', 'array', 'min:1', 'max:'.$options['max_documents']],
+            'documents' => ['array', 'max:'.$options['max_documents']],
             'documents.*' => [Rule::exists('documents', 'id')],
 
             'posting' => ['required', Rule::in(['draft', 'now', 'schedule'])],
@@ -185,23 +161,29 @@ class TournamentRequest extends FormRequest
         $validator->after(function (Validator $validator) {
             $this->checkRegistrationWindow($validator);
             $this->checkScheduleWithinTournament($validator);
-            $this->checkOfficialsHavePhotos($validator);
+            $this->checkCurrencyAccompaniesAmount($validator);
             $this->checkDocumentsArePublished($validator);
         });
     }
 
     /**
-     * "must be on or after Registration Start Date and before tournament start"
-     * (`596:11304`).
+     * "if provided, Registration End Date is also required" dan "must be on or
+     * after Registration Start Date and before tournament start" (`596:11304`).
      *
-     * Cabang "mulai diisi, akhir kosong" sudah dibuang: sejak keduanya wajib,
-     * aturan `required` yang menangkapnya, dan mempertahankan cabang itu
-     * berarti field yang sama mencetak dua galat untuk satu kesalahan.
+     * Ketiganya diperiksa di sini, bukan lewat `after_or_equal` biasa, karena
+     * keduanya opsional: aturan bawaan akan diam saja kalau salah satu kosong,
+     * dan yang lolos adalah jendela pendaftaran separuh jadi.
      */
     private function checkRegistrationWindow(Validator $validator): void
     {
         $start = $this->input('registration_starts_on');
         $end = $this->input('registration_ends_on');
+
+        if (filled($start) && blank($end)) {
+            $validator->errors()->add('registration_ends_on', __('backoffice.tournaments.registration_end_required'));
+
+            return;
+        }
 
         if (blank($start) || blank($end)) {
             return;
@@ -242,43 +224,11 @@ class TournamentRequest extends FormRequest
         }
     }
 
-    /**
-     * Tiap ofisial wajib punya foto — yang baru diunggah, ATAU yang sudah
-     * tersimpan di baris itu.
-     *
-     * Tidak bisa jadi aturan statis: saat menyunting, baris yang fotonya tidak
-     * diganti tidak mengirim berkas apa pun, dan hanya id barisnya yang bisa
-     * mengatakan apakah foto lama itu ada. Id-nya sudah dikunci ke turnamen ini
-     * oleh `Rule::exists` di atas, jadi yang dicocokkan di sini memang baris
-     * miliknya — bukan foto ofisial turnamen lain.
-     *
-     * (Pemeriksaan "mata uang wajib kalau nominal diisi" yang dulu ada di
-     * tempat ini sudah dibuang: keduanya kini wajib, jadi `required` yang
-     * menangkapnya, dan mempertahankannya berarti dua galat untuk satu hal.)
-     */
-    private function checkOfficialsHavePhotos(Validator $validator): void
+    /** "required when Prize Pool Amount is filled" (`596:11158`). */
+    private function checkCurrencyAccompaniesAmount(Validator $validator): void
     {
-        $tournament = $this->route('tournament');
-
-        $withPhoto = $tournament === null
-            ? []
-            : $tournament->officials()->whereNotNull('photo_path')->pluck('id')->all();
-
-        foreach ((array) $this->input('officials', []) as $index => $official) {
-            if ($this->hasFile("officials.{$index}.photo")) {
-                continue;
-            }
-
-            $id = $official['id'] ?? null;
-
-            if (filled($id) && in_array((int) $id, $withPhoto, true)) {
-                continue;
-            }
-
-            $validator->errors()->add(
-                "officials.{$index}.photo",
-                __('backoffice.tournaments.official_photo_required'),
-            );
+        if (filled($this->input('prize_amount')) && blank($this->input('prize_currency'))) {
+            $validator->errors()->add('prize_currency', __('backoffice.tournaments.currency_required'));
         }
     }
 
@@ -320,24 +270,6 @@ class TournamentRequest extends FormRequest
             'venue_lng' => __('backoffice.tournaments.map_location'),
             'eligibility' => __('backoffice.tournaments.eligibility'),
             'registration_method' => __('backoffice.tournaments.registration_method'),
-
-            // Field yang baru wajib 2026-09-18. Tanpa nama tampilannya, galat
-            // `required` bawaan Laravel mencetak nama kolomnya mentah —
-            // "The dwf id requirement field is required".
-            'slug' => __('backoffice.news.field_slug'),
-            'prize_amount' => __('backoffice.tournaments.prize_amount'),
-            'prize_currency' => __('backoffice.tournaments.prize_currency'),
-            'prize_description' => __('backoffice.tournaments.prize_description'),
-            'prize_image' => __('backoffice.tournaments.prize_image'),
-            'contact_email' => __('backoffice.tournaments.contact_email'),
-            'contact_phone' => __('backoffice.tournaments.contact_phone'),
-            'registration_starts_on' => __('backoffice.tournaments.registration_starts_on'),
-            'registration_ends_on' => __('backoffice.tournaments.registration_ends_on'),
-            'dwf_id_requirement' => __('backoffice.tournaments.dwf_id_requirement'),
-            'participant_count' => __('backoffice.tournaments.participant_count'),
-            'officials' => __('backoffice.tournaments.section_officials'),
-            'schedule' => __('backoffice.tournaments.section_schedule'),
-            'documents' => __('backoffice.tournaments.documents'),
         ];
     }
 
