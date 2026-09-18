@@ -48,6 +48,10 @@ class TournamentTest extends TestCase
             'venue_lat' => 13.7563,
             'venue_lng' => 100.5018,
 
+            // "No Prize" — jenis yang tidak menuntut apa pun lagi. Tes yang
+            // menguji hadiah menimpanya dengan `cash` atau `item`.
+            'prize_type' => 'none',
+
             'eligibility' => 'Open to all DWF member federations',
             'registration_method' => 'Through national federation',
 
@@ -229,37 +233,110 @@ class TournamentTest extends TestCase
             ->assertSessionHasErrors('schedule.0.held_on');
     }
 
-    /** "required when Prize Pool Amount is filled" (`596:11158`). */
-    public function test_a_prize_amount_without_a_currency_is_refused(): void
+    // ------------------------------------------------------ jenis hadiah
+
+    /**
+     * "Select Grand Prize Type" (`700:10891`) — tiap jenis menuntut field-nya
+     * sendiri, dan hanya itu.
+     */
+    public function test_no_prize_asks_for_nothing_else(): void
     {
         Storage::fake('public');
 
         $this->actingAs($this->actor())
-            ->post('/tournaments', $this->payload(['prize_amount' => 50000]))
-            ->assertSessionHasErrors('prize_currency');
+            ->post('/tournaments', $this->payload(['prize_type' => 'none']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('none', Tournament::query()->sole()->prize_type);
     }
 
-    /** Mata uang dikosongkan kalau nominalnya dihapus. */
-    public function test_clearing_the_prize_amount_clears_its_currency(): void
+    public function test_a_cash_prize_needs_a_currency_an_amount_and_an_image(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->actor())
+            ->post('/tournaments', $this->payload(['prize_type' => 'cash']))
+            ->assertSessionHasErrors(['prize_currency', 'prize_amount', 'prize_image'])
+            ->assertSessionDoesntHaveErrors(['prize_name', 'prize_description']);
+    }
+
+    public function test_a_physical_item_needs_a_name_and_an_image(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->actor())
+            ->post('/tournaments', $this->payload(['prize_type' => 'item']))
+            ->assertSessionHasErrors(['prize_name', 'prize_image'])
+            ->assertSessionDoesntHaveErrors(['prize_currency', 'prize_amount', 'prize_description']);
+    }
+
+    /**
+     * Field milik jenis LAIN dikosongkan saat menyimpan.
+     *
+     * Formulir menyembunyikannya, jadi tanpa ini "Cash" yang diganti "Physical
+     * Item" akan menyimpan nominal yang tak bisa dilihat maupun dihapus siapa
+     * pun — dan muncul lagi begitu pilihannya dikembalikan.
+     */
+    public function test_switching_the_prize_type_clears_the_fields_of_the_old_one(): void
     {
         Storage::fake('public');
         $actor = $this->actor();
 
         $this->actingAs($actor)->post('/tournaments', $this->payload([
-            'prize_amount' => 50000,
+            'prize_type' => 'cash',
             'prize_currency' => 'USD',
+            'prize_amount' => 50000,
+            'prize_image' => UploadedFile::fake()->image('prize.webp', 800, 800),
         ]))->assertSessionHasNoErrors();
 
         $tournament = Tournament::query()->sole();
-        $this->assertSame('USD', $tournament->prize_currency);
+        $image = $tournament->prize_image_path;
 
+        // Ke barang: gambar yang tersimpan cukup, tidak perlu unggah ulang.
         $this->actingAs($actor)->put("/tournaments/{$tournament->id}", $this->payload([
             'hero_image' => null,
-            'prize_amount' => null,
-            'prize_currency' => 'USD',
+            'prize_type' => 'item',
+            'prize_name' => 'Handphone',
         ]))->assertSessionHasNoErrors();
 
-        $this->assertNull($tournament->fresh()->prize_currency);
+        $tournament->refresh();
+        $this->assertSame('Handphone', $tournament->prize_name);
+        $this->assertNull($tournament->prize_amount);
+        $this->assertNull($tournament->prize_currency);
+        $this->assertSame($image, $tournament->prize_image_path);
+
+        // Ke "No Prize": gambarnya ikut dibuang, dari baris DAN dari disk.
+        $this->actingAs($actor)->put("/tournaments/{$tournament->id}", $this->payload([
+            'hero_image' => null,
+            'prize_type' => 'none',
+        ]))->assertSessionHasNoErrors();
+
+        $tournament->refresh();
+        $this->assertNull($tournament->prize_name);
+        $this->assertNull($tournament->prize_image_path);
+        Storage::disk('public')->assertMissing($image);
+    }
+
+    /** Situs publik mencetak `headline` apa adanya — nominal untuk cash, nama untuk barang. */
+    public function test_the_public_headline_follows_the_prize_type(): void
+    {
+        $cash = Tournament::factory()->create([
+            'prize_type' => 'cash', 'prize_currency' => 'USD', 'prize_amount' => 50000,
+        ]);
+        $item = Tournament::factory()->create([
+            'prize_type' => 'item', 'prize_name' => 'Handphone',
+        ]);
+        $none = Tournament::factory()->create(['prize_type' => 'none']);
+
+        $this->assertSame(
+            'USD 50.000 Prize pool',
+            $this->getJson("/api/v1/tournaments/{$cash->slug}")->json('prize.headline'),
+        );
+        $this->assertSame(
+            'Handphone',
+            $this->getJson("/api/v1/tournaments/{$item->slug}")->json('prize.headline'),
+        );
+        $this->assertArrayNotHasKey('prize', $this->getJson("/api/v1/tournaments/{$none->slug}")->json());
     }
 
     /**

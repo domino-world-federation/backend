@@ -28,6 +28,9 @@ interface Official {
     photoUrl?: string | null
 }
 
+/** "Select Grand Prize Type" (`700:10891`) — kuncinya, bukan labelnya. */
+type PrizeType = 'none' | 'cash' | 'item'
+
 interface ScheduleItem {
     held_on: string
     starts_at: string
@@ -41,6 +44,7 @@ const props = defineProps<{
         coverage: string[]
         rulesFormats: RuleFormatOption[]
         currencies: string[]
+        prizeTypes: Array<{ value: PrizeType; label: string }>
         dwfIdRequirements: string[]
         eligibility: string[]
         registrationMethods: string[]
@@ -71,6 +75,8 @@ const form = useForm({
     venue_lat: props.tournament?.venueLat ?? '',
     venue_lng: props.tournament?.venueLng ?? '',
 
+    prize_type: (props.tournament?.prizeType ?? 'none') as PrizeType,
+    prize_name: props.tournament?.prizeName ?? '',
     prize_amount: props.tournament?.prizeAmount ?? '',
     prize_currency: props.tournament?.prizeCurrency ?? null,
     prize_description: props.tournament?.prizeDescription ?? '',
@@ -147,6 +153,20 @@ function ratio(done: number, total: number): number {
     return total === 0 ? 0 : done / total
 }
 
+const hasPrizeImage = computed(() => Boolean(form.prize_image || props.tournament?.prizeImageUrl))
+
+function prizeProgress(): number {
+    if (form.prize_type === 'cash') {
+        return ratio(filledCount(form.prize_currency, form.prize_amount) + (hasPrizeImage.value ? 1 : 0), 3)
+    }
+
+    if (form.prize_type === 'item') {
+        return ratio(filledCount(form.prize_name) + (hasPrizeImage.value ? 1 : 0), 2)
+    }
+
+    return 1
+}
+
 const progress = computed(() => ({
     basic: ratio(
         filledCount(
@@ -156,9 +176,10 @@ const progress = computed(() => ({
         9,
     ),
     venue: ratio(filledCount(form.venue_name, form.venue_address, form.venue_lat, form.venue_lng), 4),
-    prize: filledCount(
-        form.prize_amount, form.prize_description, form.prize_image, props.tournament?.prizeImageUrl,
-    ) > 0 ? 1 : 0,
+    // Mengikuti jenisnya: "No Prize" sudah selesai begitu dipilih — memang
+    // tidak ada lagi yang bisa diisi — sedangkan Cash dan Physical Item
+    // menghitung field WAJIB-nya saja. Keterangan opsional, jadi tidak ikut.
+    prize: prizeProgress(),
     officials: form.officials.length === 0
         ? 0
         : ratio(
@@ -491,57 +512,108 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                     </CardSection>
 
                     <!-- ============================= Prize -->
+                    <!-- Isi kartu mengikuti jenis hadiahnya (`700:10891`): "No Prize"
+                         hanya dropdown ini, "Cash" menambah mata uang dan nominal,
+                         "Physical Item" menambah nama barangnya. Field milik jenis
+                         lain disembunyikan DAN dikosongkan server saat menyimpan —
+                         kalau hanya disembunyikan, nominal lama tetap tersimpan
+                         tanpa terlihat oleh siapa pun. Urutan field mengikuti
+                         desain: mata uang sebelum nominal. -->
                     <CardSection id="section-prize" :title="t('tournaments.section_prize')">
-                        <FormRow :label="t('tournaments.prize_amount')" :description="t('tournaments.prize_amount_hint')">
-                            <template #default="{ id }">
-                                <AppField
-                                    :id="id"
-                                    v-model="form.prize_amount"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="50000"
-                                    :error="form.errors.prize_amount"
-                                />
-                            </template>
-                        </FormRow>
-
-                        <FormRow :label="t('tournaments.prize_currency')" :description="t('tournaments.prize_currency_hint')">
+                        <FormRow :label="t('tournaments.prize_type')" :description="t('tournaments.prize_type_hint')" required>
                             <template #default="{ id }">
                                 <SelectField
                                     :id="id"
-                                    v-model="form.prize_currency"
-                                    :options="toOptions(options.currencies)"
-                                    :error="form.errors.prize_currency"
+                                    v-model="form.prize_type"
+                                    :options="options.prizeTypes"
+                                    :error="form.errors.prize_type"
                                 />
                             </template>
                         </FormRow>
 
+                        <template v-if="form.prize_type === 'cash'">
+                            <FormRow :label="t('tournaments.prize_currency')" :description="t('tournaments.prize_currency_hint')" required>
+                                <template #default="{ id }">
+                                    <SelectField
+                                        :id="id"
+                                        v-model="form.prize_currency"
+                                        :options="toOptions(options.currencies)"
+                                        :placeholder="t('tournaments.prize_currency_placeholder')"
+                                        :error="form.errors.prize_currency"
+                                    />
+                                </template>
+                            </FormRow>
+
+                            <FormRow :label="t('tournaments.prize_amount')" :description="t('tournaments.prize_amount_hint')" required>
+                                <template #default="{ id }">
+                                    <AppField
+                                        :id="id"
+                                        v-model="form.prize_amount"
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="50000"
+                                        :error="form.errors.prize_amount"
+                                    />
+                                </template>
+                            </FormRow>
+                        </template>
+
                         <FormRow
-                            :label="t('tournaments.prize_description')"
-                            :description="t('tournaments.prize_description_hint')"
+                            v-if="form.prize_type === 'item'"
+                            :label="t('tournaments.prize_name')"
+                            :description="t('tournaments.prize_name_hint')"
+                            required
                         >
                             <template #default="{ id }">
                                 <AppField
                                     :id="id"
-                                    v-model="form.prize_description"
-                                    textarea
-                                    :error="form.errors.prize_description"
+                                    v-model="form.prize_name"
+                                    placeholder="Handphone"
+                                    :error="form.errors.prize_name"
                                 />
                             </template>
                         </FormRow>
 
-                        <FormRow :label="t('tournaments.prize_image')" :description="t('tournaments.prize_image_hint')">
-                            <template #default="{ id }">
-                                <MediaUpload
-                                    :id="id"
-                                    v-model="form.prize_image"
-                                    kind="image"
-                                    :existing-url="tournament?.prizeImageUrl"
-                                    :error="form.errors.prize_image"
-                                />
-                            </template>
-                        </FormRow>
+                        <template v-if="form.prize_type !== 'none'">
+                            <FormRow
+                                :label="t('tournaments.prize_description')"
+                                :description="
+                                    form.prize_type === 'item'
+                                        ? t('tournaments.prize_item_description_hint')
+                                        : t('tournaments.prize_description_hint')
+                                "
+                            >
+                                <template #default="{ id }">
+                                    <AppField
+                                        :id="id"
+                                        v-model="form.prize_description"
+                                        textarea
+                                        :placeholder="t('tournaments.prize_description_placeholder')"
+                                        :error="form.errors.prize_description"
+                                    />
+                                </template>
+                            </FormRow>
+
+                            <!-- Wajib kecuali sudah ada gambar tersimpan: tidak
+                                 mengunggah apa pun saat menyunting berarti
+                                 mempertahankannya, sama seperti gambar hero. -->
+                            <FormRow
+                                :label="t('tournaments.prize_image')"
+                                :description="t('tournaments.prize_image_hint')"
+                                :required="!tournament?.prizeImageUrl"
+                            >
+                                <template #default="{ id }">
+                                    <MediaUpload
+                                        :id="id"
+                                        v-model="form.prize_image"
+                                        kind="image"
+                                        :existing-url="tournament?.prizeImageUrl"
+                                        :error="form.errors.prize_image"
+                                    />
+                                </template>
+                            </FormRow>
+                        </template>
                     </CardSection>
 
                     <!-- ============================= Contact -->

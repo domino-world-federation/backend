@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'name', 'slug', 'coverage', 'starts_on', 'ends_on', 'city', 'country',
     'rules_format', 'attendance', 'hero_image_path', 'overview',
     'venue_name', 'venue_address', 'venue_lat', 'venue_lng',
-    'prize_amount', 'prize_currency', 'prize_description', 'prize_image_path',
+    'prize_amount', 'prize_currency', 'prize_description', 'prize_image_path', 'prize_type', 'prize_name',
     'contact_email', 'contact_phone',
     'registration_starts_on', 'registration_ends_on', 'dwf_id_requirement',
     'eligibility', 'registration_method',

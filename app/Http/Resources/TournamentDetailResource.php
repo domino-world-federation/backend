@@ -103,22 +103,46 @@ class TournamentDetailResource extends PublicResource
         ], static fn ($v) => $v !== null);
     }
 
-    /** @return array<string, mixed>|null */
+    /**
+     * Blok hadiah, atau `null` kalau turnamennya tanpa hadiah.
+     *
+     * Bentuknya SAMA untuk hadiah tunai dan barang — yang berbeda hanya kalimat
+     * di `headline`. Situs publik mencetak `headline` apa adanya, jadi ia tidak
+     * perlu tahu ada dua jenis hadiah, dan kontrak API tidak berubah saat jenis
+     * "Physical Item" ditambahkan (`700:10891`).
+     *
+     *   cash — "USD 50.000 Prize pool", dirangkai DI SINI: satu headline di
+     *          desain, bukan angka dan mata uang terpisah.
+     *   item — nama barangnya apa adanya ("Handphone").
+     *   none — `null`, dan blok hadiahnya tidak digambar.
+     *
+     * @return array<string, mixed>|null
+     */
     private function prize(): ?array
     {
-        if ($this->prize_amount === null) {
+        $headline = match ($this->prize_type) {
+            'cash' => $this->prize_amount === null
+                ? null
+                : trim($this->prize_currency.' '.number_format((float) $this->prize_amount, 0, ',', '.').' Prize pool'),
+            'item' => $this->prize_name,
+            default => null,
+        };
+
+        // Baris lama yang jenisnya cash tapi nominalnya kosong — atau item
+        // tanpa nama — tidak punya apa pun untuk dijadikan judul. Lebih baik
+        // tanpa blok daripada blok hadiah dengan judul kosong.
+        if (blank($headline)) {
             return null;
         }
 
-        // Nominalnya dirangkai jadi kalimat DI SINI — "USD 50.000 Prize pool"
-        // adalah satu headline di desain, bukan angka dan mata uang terpisah.
-        $amount = number_format((float) $this->prize_amount, 0, ',', '.');
-
         return array_filter([
-            'headline' => trim("{$this->prize_currency} {$amount} Prize pool"),
+            'headline' => $headline,
             'note' => $this->prize_description,
             'imageUrl' => StoredFile::url($this->prize_image_path),
-            'imageAlt' => $this->prize_description,
+            // Keterangan kalau ada, judulnya kalau tidak — keterangan kini
+            // opsional untuk kedua jenis, dan gambar tanpa alt adalah gambar
+            // yang tidak ada bagi pembaca layar.
+            'imageAlt' => $this->prize_description ?? $headline,
         ], static fn ($v) => $v !== null);
     }
 

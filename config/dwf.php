@@ -149,6 +149,21 @@ return [
             'By invitation only',
         ],
 
+        /*
+         * "Select Grand Prize Type" (`700:10891`) — kuncinya yang TERSIMPAN di
+         * `tournaments.prize_type`, labelnya yang tercetak di dropdown.
+         *
+         * Jenisnya menentukan field mana yang ada di kartu Prize: `none` tidak
+         * punya apa-apa lagi, `cash` menuntut mata uang + nominal + gambar,
+         * `item` menuntut nama barang + gambar. Keterangan opsional di dua
+         * yang terakhir. Aturannya di `TournamentRequest`.
+         */
+        'prize_types' => [
+            'none' => 'No Prize',
+            'cash' => 'Cash',
+            'item' => 'Physical Item',
+        ],
+
         // "select up to 10 existing published documents" (`596:11467`).
         'max_documents' => 10,
     ],

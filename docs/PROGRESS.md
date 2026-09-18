@@ -457,4 +457,27 @@ handler-nya. Rinciannya di
       SELURUH galeri di bawah nama satu turnamen. Turnamen tanpa aset menjawab
       `[]`, bukan seluruh galeri. Halaman daftar `/tournaments` tetap memanggil
       tanpa saringan dan memang menampilkan semuanya.
+- [x] **Jenis hadiah utama di formulir turnamen** (`700:10891`, 2026-09-18).
+      Dropdown "Select Grand Prize Type" di kepala kartu Prize menentukan isinya:
+      **No Prize** (tidak ada field lain), **Cash** (mata uang\*, nominal\*,
+      keterangan, gambar\*), **Physical Item** (nama hadiah\*, keterangan,
+      gambar\*). Dua kolom baru, `prize_type` (`none|cash|item`, daftarnya di
+      `dwf.tournaments.prize_types`) dan `prize_name`.
+      Field milik jenis LAIN dikosongkan server saat menyimpan, bukan hanya
+      disembunyikan layar — kalau tidak, "Cash" yang diganti "Physical Item"
+      menyimpan nominal yang tak terlihat siapa pun. "No Prize" ikut membuang
+      berkas gambar hadiahnya dari disk. Gambar tetap tidak dituntut unggah
+      ulang saat menyunting kalau yang tersimpan sudah ada.
+      Migrasi mengisi `cash` untuk turnamen yang sudah punya nominal dan `none`
+      untuk sisanya — aturan yang sama dengan yang dipakai API selama ini, jadi
+      tidak satu halaman publik pun berubah pada hari migrasi (di database kerja:
+      1 cash, 2 none).
+      **Kontrak API tidak berubah.** `prize.headline` tetap satu kalimat siap
+      cetak: "USD 50.000 Prize pool" untuk cash, nama barangnya ("Handphone")
+      untuk item, dan blok `prize` dihilangkan untuk none. Situs publik tidak
+      perlu disentuh. `imageAlt` kini jatuh ke judulnya kalau keterangan
+      kosong, karena keterangan opsional untuk kedua jenis.
+      **Menyimpang dari desain:** hint gambar di Figma menulis "JPG, PNG, or
+      WebP. Maximum 2 MB"; yang ditegakkan tetap WebP 1 MB, aturan unggahan
+      seluruh aplikasi.
 

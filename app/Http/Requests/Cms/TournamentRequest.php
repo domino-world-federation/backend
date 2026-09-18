@@ -64,11 +64,34 @@ class TournamentRequest extends FormRequest
             'venue_lat' => ['required', 'numeric', 'between:-90,90'],
             'venue_lng' => ['required', 'numeric', 'between:-180,180'],
 
-            // --- Prize Information (opsional) ---
-            'prize_amount' => ['nullable', 'numeric', 'min:0'],
-            'prize_currency' => ['nullable', Rule::in($options['currencies'])],
+            // --- Prize Information (`700:10891`) ---
+            /*
+             * Jenisnya yang menentukan field mana yang wajib:
+             *
+             *   none — tidak ada lagi yang diminta.
+             *   cash — mata uang, nominal, gambar.
+             *   item — nama barang, gambar.
+             *
+             * Keterangan opsional untuk keduanya. Field milik jenis LAIN tidak
+             * divalidasi di sini tapi dibuang controller saat menyimpan —
+             * formulir menyembunyikannya, jadi tanpa itu "Cash" yang diganti
+             * "Physical Item" akan menyimpan nominal yang tidak lagi terlihat.
+             */
+            'prize_type' => ['required', Rule::in(array_keys($options['prize_types']))],
+            'prize_currency' => ['required_if:prize_type,cash', 'nullable', Rule::in($options['currencies'])],
+            'prize_amount' => ['required_if:prize_type,cash', 'nullable', 'numeric', 'min:0'],
+            'prize_name' => ['required_if:prize_type,item', 'nullable', 'string', 'max:120'],
             'prize_description' => ['nullable', 'string', 'max:240'],
-            'prize_image' => ['nullable', ...$image],
+
+            // Wajib untuk cash dan item — kecuali turnamen yang disunting sudah
+            // punya gambar tersimpan: tidak mengunggah apa pun berarti
+            // mempertahankannya, sama seperti gambar hero.
+            'prize_image' => [
+                Rule::requiredIf(fn () => in_array($this->input('prize_type'), ['cash', 'item'], true)
+                    && blank($tournament?->prize_image_path)),
+                'nullable',
+                ...$image,
+            ],
 
             // --- Tournament Contact (opsional) ---
             'contact_email' => ['nullable', 'email', 'max:160'],
@@ -161,7 +184,6 @@ class TournamentRequest extends FormRequest
         $validator->after(function (Validator $validator) {
             $this->checkRegistrationWindow($validator);
             $this->checkScheduleWithinTournament($validator);
-            $this->checkCurrencyAccompaniesAmount($validator);
             $this->checkDocumentsArePublished($validator);
         });
     }
@@ -224,14 +246,6 @@ class TournamentRequest extends FormRequest
         }
     }
 
-    /** "required when Prize Pool Amount is filled" (`596:11158`). */
-    private function checkCurrencyAccompaniesAmount(Validator $validator): void
-    {
-        if (filled($this->input('prize_amount')) && blank($this->input('prize_currency'))) {
-            $validator->errors()->add('prize_currency', __('backoffice.tournaments.currency_required'));
-        }
-    }
-
     /**
      * "select up to 10 existing PUBLISHED documents" (`596:11467`).
      *
@@ -268,6 +282,11 @@ class TournamentRequest extends FormRequest
             'venue_address' => __('backoffice.tournaments.venue_address'),
             'venue_lat' => __('backoffice.tournaments.map_location'),
             'venue_lng' => __('backoffice.tournaments.map_location'),
+            'prize_type' => __('backoffice.tournaments.prize_type'),
+            'prize_currency' => __('backoffice.tournaments.prize_currency'),
+            'prize_amount' => __('backoffice.tournaments.prize_amount'),
+            'prize_name' => __('backoffice.tournaments.prize_name'),
+            'prize_image' => __('backoffice.tournaments.prize_image'),
             'eligibility' => __('backoffice.tournaments.eligibility'),
             'registration_method' => __('backoffice.tournaments.registration_method'),
         ];

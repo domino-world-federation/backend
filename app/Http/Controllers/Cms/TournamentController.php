@@ -235,6 +235,8 @@ class TournamentController extends Controller
                 'venueLat' => (float) $tournament->venue_lat,
                 'venueLng' => (float) $tournament->venue_lng,
 
+                'prizeType' => $tournament->prize_type,
+                'prizeName' => $tournament->prize_name,
                 'prizeAmount' => $tournament->prize_amount,
                 'prizeCurrency' => $tournament->prize_currency,
                 'prizeDescription' => $tournament->prize_description,
@@ -339,11 +341,20 @@ class TournamentController extends Controller
             'venue_lat' => $data['venue_lat'],
             'venue_lng' => $data['venue_lng'],
 
-            'prize_amount' => $data['prize_amount'] ?? null,
-            // Mata uang dikosongkan kalau nominalnya dihapus — kalau tidak,
-            // "USD" bertahan sendirian tanpa angka di sebelahnya.
-            'prize_currency' => filled($data['prize_amount'] ?? null) ? ($data['prize_currency'] ?? null) : null,
-            'prize_description' => $data['prize_description'] ?? null,
+            /*
+             * Field milik jenis LAIN dikosongkan, bukan dibiarkan.
+             *
+             * Formulir menyembunyikan field yang bukan milik jenis terpilih,
+             * jadi nilai lama di sana tidak terlihat lagi oleh siapa pun —
+             * "Cash" yang diganti "Physical Item" akan menyimpan nominal yang
+             * tak bisa dilihat maupun dihapus, dan menunggu untuk muncul lagi
+             * begitu seseorang mengembalikan pilihannya.
+             */
+            'prize_type' => $data['prize_type'],
+            'prize_amount' => $data['prize_type'] === 'cash' ? $data['prize_amount'] : null,
+            'prize_currency' => $data['prize_type'] === 'cash' ? $data['prize_currency'] : null,
+            'prize_name' => $data['prize_type'] === 'item' ? $data['prize_name'] : null,
+            'prize_description' => $data['prize_type'] === 'none' ? null : ($data['prize_description'] ?? null),
 
             'contact_email' => $data['contact_email'] ?? null,
             'contact_phone' => $data['contact_phone'] ?? null,
@@ -397,7 +408,12 @@ class TournamentController extends Controller
             );
         }
 
-        if ($request->hasFile('prize_image')) {
+        if ($data['prize_type'] === 'none') {
+            // "No Prize" berarti tidak ada gambar hadiah juga — berkasnya
+            // dibuang, bukan ditinggal di disk tanpa baris yang menyebutnya.
+            StoredFile::forget($tournament?->prize_image_path);
+            $payload['prize_image_path'] = null;
+        } elseif ($request->hasFile('prize_image')) {
             $payload['prize_image_path'] = StoredFile::put(
                 $request->file('prize_image'),
                 'tournaments',
@@ -493,6 +509,10 @@ class TournamentController extends Controller
                 // jumlah pesertanya, dan label kolomnya untuk tiap aturan.
                 'rulesFormats' => TournamentRules::options(),
                 'currencies' => $options['currencies'],
+                'prizeTypes' => collect($options['prize_types'])
+                    ->map(fn (string $label, string $value) => ['value' => $value, 'label' => $label])
+                    ->values()
+                    ->all(),
                 'dwfIdRequirements' => $options['dwf_id_requirements'],
                 'eligibility' => $options['eligibility'],
                 'registrationMethods' => $options['registration_methods'],
