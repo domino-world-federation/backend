@@ -468,3 +468,10 @@ handler-nya. Rinciannya di
       Cincin progres ikut dihitung ulang supaya penuh berarti "bisa disimpan";
       Contact, yang tidak punya langkah sendiri di stepper desain, dihitung di
       cincin Prize.
+- [x] **`/api/v1/gallery?tournament=<id>`** (2026-09-18) — kolase satu turnamen
+      saja, lewat `gallery_events.tournament_id`. Halaman detail turnamen di
+      situs publik dulu memanggil `/gallery` tanpa saringan dan menampilkan
+      SELURUH galeri di bawah nama satu turnamen. Turnamen tanpa aset menjawab
+      `[]`, bukan seluruh galeri. Halaman daftar `/tournaments` tetap memanggil
+      tanpa saringan dan memang menampilkan semuanya.
+

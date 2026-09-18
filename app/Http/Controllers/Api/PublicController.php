@@ -139,11 +139,38 @@ class PublicController extends Controller
 
     // --------------------------------------------------------- Gallery
 
+    /**
+     * Kolase galeri. `?tournament=` mempersempitnya ke aset SATU turnamen.
+     *
+     * Halaman detail turnamen dulu memanggil ini tanpa saringan apa pun, jadi
+     * kolase di bawah sebuah turnamen menampilkan foto seluruh galeri — acara
+     * lain, turnamen lain — di bawah judul turnamen itu. Hubungannya sudah ada
+     * sejak lama (`gallery_events.tournament_id`, unik, diisi layar Gallery
+     * saat aset bertipe turnamen diunggah); yang tidak ada cuma cara
+     * memintanya.
+     *
+     * Turnamen tanpa aset menjawab array kosong, BUKAN 404 dan bukan seluruh
+     * galeri: "turnamen ini belum punya foto" adalah jawaban yang benar, dan
+     * situs publik menyembunyikan kolasenya kalau kosong. Jatuh ke seluruh
+     * galeri justru bug yang sedang diperbaiki di sini.
+     *
+     * Nilainya id turnamen, dicocokkan sebagai bilangan bulat. Yang bukan angka
+     * jadi 0 dan tidak cocok dengan apa pun — array kosong, bukan 500.
+     */
     public function gallery(Request $request): JsonResponse
     {
+        $tournament = $request->string('tournament')->toString();
+
         $items = GalleryItem::query()
             ->with('event:id,name')
             ->live()
+            ->when(
+                $tournament !== '',
+                fn ($q) => $q->whereHas(
+                    'event',
+                    fn ($e) => $e->where('tournament_id', (int) $tournament),
+                ),
+            )
             ->ordered()
             ->limit($this->limit($request, default: 24, max: 60))
             ->get();

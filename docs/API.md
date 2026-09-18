@@ -214,8 +214,13 @@ tidak pernah memeriksanya.
 
 | Endpoint | Parameter | Balasan |
 |---|---|---|
-| `/gallery` | `limit` (24, maks 60) | array `GalleryItem` |
+| `/gallery` | `limit` (24, maks 60), `tournament` (id) | array `GalleryItem` |
 | `/gallery/albums` | `slug` | array `GalleryAlbum` (album tanpa isi tayang dibuang) |
+
+`?tournament=<id>` mempersempit kolase ke aset milik SATU turnamen — lewat
+`gallery_events.tournament_id`. Dipakai halaman detail turnamen; halaman daftar
+`/tournaments` memanggilnya tanpa saringan dan memang menampilkan seluruh
+galeri. Turnamen tanpa aset menjawab `[]`, bukan seluruh galeri.
 
 ### FAQ
 

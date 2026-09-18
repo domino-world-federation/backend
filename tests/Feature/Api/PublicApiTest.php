@@ -162,6 +162,46 @@ class PublicApiTest extends TestCase
         $this->assertNotContains('mati', $names);
     }
 
+    /**
+     * `?tournament=` hanya mengirim aset milik turnamen itu.
+     *
+     * Halaman detail turnamen dulu menampilkan SELURUH galeri di bawah judul
+     * satu turnamen. Tiga kasus dikunci sekaligus: aset turnamen lain tidak
+     * ikut, aset acara non-turnamen tidak ikut, dan tanpa saringan semuanya
+     * tetap keluar — halaman daftar `/tournaments` memang menampilkan semua.
+     */
+    public function test_the_gallery_narrows_to_one_tournament(): void
+    {
+        $mine = Tournament::factory()->create();
+        $other = Tournament::factory()->create();
+
+        $mineItem = GalleryItem::factory()->create([
+            'gallery_event_id' => GalleryEvent::forTournament($mine)->id,
+        ]);
+        GalleryItem::factory()->create([
+            'gallery_event_id' => GalleryEvent::forTournament($other)->id,
+        ]);
+        GalleryItem::factory()->create(); // acara biasa, bukan turnamen
+
+        $this->assertSame(
+            [(string) $mineItem->id],
+            collect($this->getJson("/api/v1/gallery?tournament={$mine->id}")->json())->pluck('id')->all(),
+        );
+
+        $this->assertCount(3, $this->getJson('/api/v1/gallery')->json());
+    }
+
+    /** Turnamen tanpa aset menjawab kosong — bukan jatuh ke seluruh galeri. */
+    public function test_a_tournament_without_assets_answers_empty(): void
+    {
+        GalleryItem::factory()->count(2)->create();
+        $bare = Tournament::factory()->create();
+
+        $this->getJson("/api/v1/gallery?tournament={$bare->id}")
+            ->assertOk()
+            ->assertExactJson([]);
+    }
+
     /** Album yang seluruh asetnya draf dibuang, bukan dikirim kosong. */
     public function test_an_album_with_no_live_items_is_dropped(): void
     {
