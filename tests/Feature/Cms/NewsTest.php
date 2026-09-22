@@ -108,7 +108,12 @@ class NewsTest extends TestCase
         $this->assertStringContainsString('Aman', $body);
     }
 
-    public function test_a_small_image_is_rejected(): void
+    /**
+     * Ukuran BUKAN syarat. 640×480 jauh di bawah "Recommended size: 1920 × 800"
+     * dan tetap diterima — angka itu saran, dan menolak unggahan atas dasar
+     * saran berarti redaksi tidak bisa menerbitkan sama sekali.
+     */
+    public function test_a_small_image_is_accepted(): void
     {
         Storage::fake('public');
         $category = NewsCategory::factory()->create();
@@ -121,8 +126,11 @@ class NewsTest extends TestCase
                 'is_highlighted' => false,
                 'posting' => 'now',
                 'hero' => UploadedFile::fake()->image('hero.webp', 640, 480),
+                'landscape' => UploadedFile::fake()->image('landscape.webp', 640, 480),
             ])
-            ->assertSessionHasErrors('hero');
+            ->assertRedirect('/news');
+
+        $this->assertSame(1, NewsArticle::query()->count());
     }
 
     public function test_editing_without_a_new_image_keeps_the_existing_one(): void
@@ -378,9 +386,8 @@ class NewsTest extends TestCase
         Storage::fake('public');
         $category = NewsCategory::factory()->create();
 
-        // Ukuran dan rasionya BENAR; yang salah cuma formatnya. Tanpa
-        // memisahkan keduanya, tes ini akan tetap hijau kalau suatu saat aturan
-        // formatnya hilang tapi aturan dimensinya bertahan.
+        // Yang salah cuma formatnya — PNG, bukan WebP. Format dan berat adalah
+        // satu-satunya syarat yang tersisa untuk gambar berita.
         $this->actingAs($this->actor())->post('/news', [
             'title' => 'Format salah',
             'news_category_id' => $category->id,
@@ -392,24 +399,30 @@ class NewsTest extends TestCase
         ])->assertSessionHasErrors(['hero', 'landscape']);
     }
 
-    public function test_the_ratio_from_the_design_is_enforced(): void
+    /**
+     * Rasio pun BUKAN syarat. Potret 800×1200 di slot hero yang desainnya 12:5
+     * tetap masuk; yang memotongnya ke kotak itu `object-cover` di situs
+     * publik, bukan form ini.
+     */
+    public function test_any_ratio_is_accepted(): void
     {
         Storage::fake('public');
         $category = NewsCategory::factory()->create();
 
-        // Cukup besar, format benar, rasio salah — 1920×1080 bukan 12:5.
         $this->actingAs($this->actor())->post('/news', [
-            'title' => 'Rasio salah',
+            'title' => 'Rasio lain',
             'news_category_id' => $category->id,
             'body' => '<p>Isi.</p>',
             'is_highlighted' => false,
             'posting' => 'now',
-            'hero' => UploadedFile::fake()->image('hero.webp', 1920, 1080),
-            'landscape' => UploadedFile::fake()->image('landscape.webp', 1600, 900),
-        ])->assertSessionHasErrors('hero');
+            'hero' => UploadedFile::fake()->image('hero.webp', 800, 1200),
+            'landscape' => UploadedFile::fake()->image('landscape.webp', 1920, 1080),
+        ])->assertRedirect('/news');
+
+        $this->assertSame(1, NewsArticle::query()->count());
     }
 
-    public function test_a_bigger_image_with_the_right_ratio_is_accepted(): void
+    public function test_a_bigger_image_is_accepted(): void
     {
         Storage::fake('public');
         $category = NewsCategory::factory()->create();

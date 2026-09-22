@@ -636,10 +636,14 @@ menentukan apa yang melayani web adalah soket yang ada di `/run/php/` — kalau
 di sana hanya ada `php8.2-fpm.sock`, maka 8.2 yang melayani, seberapa pun
 barunya versi CLI-nya.
 
-**`php8.4-gd` bukan opsional.** Aturan validasi `dimensions:` di Add News
-(minimal 1920×800, rasio 12:5) membacanya lewat GD; tanpa ekstensi itu, tiap
-unggahan gambar ditolak dengan pesan yang menyebut ukuran, bukan menyebut
-ekstensi yang hilang.
+**`php8.4-gd` sudah tidak dituntut jalur unggahan.** Dulu ia wajib karena
+aturan `dimensions:` di Add News membacanya lewat GD, dan tanpa ekstensi itu
+tiap unggahan ditolak dengan pesan yang menyebut ukuran alih-alih menyebut
+ekstensi yang hilang. Aturan itu dibuang 2026-09-22 — yang tersisa (`image`,
+`mimes:webp`) membaca fileinfo, bukan GD. Biarkan tetap terpasang: `php artisan
+dwf:demo-images` memakai `imagecreatetruecolor()`, dan mencabutnya cuma
+menghemat beberapa megabyte sambil menyiapkan kejutan untuk perintah berikutnya
+yang butuh GD.
 
 Beberapa versi PHP bisa hidup berdampingan. Yang menentukan mana yang dipakai
 adalah `fastcgi_pass` di config nginx — bukan `php -v`, yang menunjukkan versi

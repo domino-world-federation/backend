@@ -413,7 +413,6 @@ return [
         'field_content' => 'News Content',
         'field_content_hint' => 'This is the main body of your post.',
         'image_hero' => 'Image Hero',
-        'image_dimensions' => 'The image must be at least :width × :height px with a :ratio ratio.',
         'schedule_required' => 'A publish date and time is required when Schedule is selected.',
         'image_hint_hero' => 'Recommended size: 1920 × 800 px (12:5). WebP only. Maximum 1 MB.',
         'image_hint_landscape' => 'Recommended size: 1600 × 900 px (16:9). WebP only. Maximum 1 MB.',

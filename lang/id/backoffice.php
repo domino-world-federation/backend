@@ -414,7 +414,6 @@ return [
         'field_content' => 'Isi Berita',
         'field_content_hint' => 'Ini badan utama beritanya.',
         'image_hero' => 'Gambar Hero',
-        'image_dimensions' => 'Gambarnya minimal :width × :height px dengan rasio :ratio.',
         'schedule_required' => 'Tanggal dan jam tayang wajib diisi kalau memilih Schedule.',
         'image_hint_hero' => 'Ukuran disarankan: 1920 × 800 px (12:5). WebP saja. Maksimal 1 MB.',
         'image_hint_landscape' => 'Ukuran disarankan: 1600 × 900 px (16:9). WebP saja. Maksimal 1 MB.',

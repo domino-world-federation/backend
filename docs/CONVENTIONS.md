@@ -541,11 +541,18 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   ditolak. `accept="image/webp"` di komponennya cuma menyaring dialog berkas —
   ia bisa dilewati dengan memilih "Semua berkas", jadi jangan pernah
   memperlakukannya sebagai penjagaan.
-- **Ukuran gambar per slot ada di `dwf.uploads.image_specs`,** bukan diketik di
-  aturan validasi. Angkanya muncul di tiga tempat (aturan, kalimat galat, hint
-  di bawah label) dan tiga salinan pasti berpisah. Yang dijaga `min_width` +
-  `min_height` + `ratio`, BUKAN ukuran persis: 3840×1600 mengisi kotak hero sama
-  baiknya dengan 1920×800 dan lebih tajam di layar retina.
+- **Ukuran gambar per slot di `dwf.uploads.image_specs` adalah SARAN, bukan
+  syarat.** Sejak 2026-09-22 `NewsArticleRequest` tidak lagi memakai
+  `dimensions:` — berita menerima ukuran dan rasio apa pun. Angka itu sekarang
+  cuma mengisi hint di bawah label (`news.image_hint_*`) dan menggambar
+  `dwf:demo-images`. Alasannya: label di desain berbunyi "Recommended size", dan
+  menegakkan saran sebagai syarat berarti redaksi yang punya foto bagus dengan
+  potongan lain tidak bisa menerbitkan sama sekali. Yang memotong ke kotak
+  desain `object-cover` di situs publik, bukan formulirnya. Yang MASIH
+  ditegakkan cuma format (WebP) dan berat (1 MB) — keduanya menentukan apakah
+  halamannya terbuka, bukan apakah ia rapi. Avatar profil DIKECUALIKAN: rasio
+  1/1-nya masih wajib, karena `object-cover` di sidebar memotong foto lanskap
+  tepat di kepala orangnya.
 - **Gambar di dalam editor diunggah ke `/editor/images`, bukan disisipkan sebagai
   base64.** Ekstensi tiptap dipasang dengan `allowBase64: false` — gambar 1 MB
   sebagai data URI jadi ~1,4 MB teks di kolom `body`, ikut terkirim tiap muat

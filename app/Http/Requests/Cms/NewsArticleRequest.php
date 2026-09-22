@@ -41,9 +41,16 @@ class NewsArticleRequest extends FormRequest
     /**
      * Aturan untuk satu slot gambar.
      *
-     * Rasio dan ukuran minimumnya diambil dari `dwf.uploads.image_specs`, bukan
-     * diketik di sini — angka yang sama muncul di tiga tempat (aturan validasi,
-     * kalimat galat, dan hint di bawah label) dan tiga salinan pasti berpisah.
+     * TANPA `dimensions:`. Ukuran dan rasio di `dwf.uploads.image_specs` tetap
+     * ada, tapi kini SARAN — ia mengisi hint di bawah label dan menggambar
+     * demo image, bukan menolak unggahan. Angkanya dibaca dari label
+     * "Recommended size" di desain, dan menegakkan saran sebagai syarat berarti
+     * redaksi yang punya foto bagus dengan potongan lain tidak bisa menerbitkan
+     * sama sekali. Yang memotong ke kotak desain adalah `object-cover` di situs
+     * publik, bukan form ini.
+     *
+     * Yang tersisa: format dan berat. Keduanya bukan selera — WebP dan batas
+     * 1 MB menentukan apakah halamannya terbuka, bukan apakah ia rapi.
      *
      * Wajib hanya saat MEMBUAT. Kalau wajib juga saat menyunting, memperbaiki
      * satu typo di judul memaksa mengunggah ulang gambar yang sudah ada.
@@ -53,43 +60,21 @@ class NewsArticleRequest extends FormRequest
     private function imageRules(string $slot, bool $isCreate): array
     {
         $uploads = config('dwf.uploads');
-        $spec = $uploads['image_specs'][$slot];
 
         return [
             $isCreate ? 'required' : 'nullable',
             'image',
             'mimes:'.implode(',', $uploads['image_mimes']),
             'max:'.$uploads['image_max_kb'],
-            'dimensions:min_width='.$spec['min_width']
-                .',min_height='.$spec['min_height']
-                .',ratio='.$spec['ratio'],
         ];
     }
 
     /** @return array<string, string> */
     public function messages(): array
     {
-        $specs = config('dwf.uploads.image_specs');
-
         return [
             'published_at.required_if' => __('backoffice.news.schedule_required'),
-            // Kalimat `dimensions` bawaan Laravel cuma bilang "dimensinya
-            // salah". Yang perlu diketahui orangnya justru angkanya.
-            'hero.dimensions' => $this->dimensionMessage('hero', $specs['hero']),
-            'landscape.dimensions' => $this->dimensionMessage('landscape', $specs['landscape']),
         ];
-    }
-
-    /** @param array{min_width: int, min_height: int, ratio: string} $spec */
-    private function dimensionMessage(string $slot, array $spec): string
-    {
-        $ratio = str_replace('/', ':', $spec['ratio']);
-
-        return __('backoffice.news.image_dimensions', [
-            'width' => $spec['min_width'],
-            'height' => $spec['min_height'],
-            'ratio' => $ratio,
-        ]);
     }
 
     /** @return array<string, string> */
