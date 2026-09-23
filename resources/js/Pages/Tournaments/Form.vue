@@ -10,6 +10,7 @@ import FormRow from '@/Components/FormRow.vue'
 import AppField from '@/Components/AppField.vue'
 import AppRadio from '@/Components/AppRadio.vue'
 import AppCheckbox from '@/Components/AppCheckbox.vue'
+import AppToggle from '@/Components/AppToggle.vue'
 import AppButton from '@/Components/AppButton.vue'
 import SelectField from '@/Components/SelectField.vue'
 import MediaUpload from '@/Components/MediaUpload.vue'
@@ -105,6 +106,8 @@ const form = useForm({
     participant_count: props.tournament?.participantCount ?? '',
 
     documents: [...((props.tournament?.documents ?? []) as number[])],
+
+    is_featured: props.tournament?.isFeatured ?? false,
 
     posting: props.tournament?.status === 'scheduled' ? 'schedule' : 'now',
     published_at: props.tournament?.publishedAt ?? '',
@@ -967,8 +970,22 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                          layar ini, supaya tidak dicari orang. -->
                     <ContextNote tone="info">{{ t('tournaments.cms_behavior') }}</ContextNote>
 
-                    <!-- ============================= Publish -->
-                    <CardSection :title="t('news.posting_time')">
+                    <!-- ============================= Featured & Publish -->
+                    <CardSection :title="t('tournaments.section_publishing')">
+                        <!-- "Set Featured" — pola yang sama dengan "Set
+                             Highlight" di News, dan duduk di kartu ini karena
+                             pertanyaannya sejenis dengan jadwal terbit: bukan
+                             tentang turnamennya, melainkan tentang di mana ia
+                             muncul. Yang ditandai mengisi pita Featured Event
+                             di beranda; yang tidak, tidak. -->
+                        <FormRow
+                            :label="t('tournaments.featured')"
+                            :description="t('tournaments.featured_hint')"
+                            compact
+                        >
+                            <AppToggle v-model="form.is_featured" :label="t('common.active')" />
+                        </FormRow>
+
                         <FormRow
                             :label="t('news.posting_time')"
                             :description="t('news.posting_time_hint')"

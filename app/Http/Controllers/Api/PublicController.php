@@ -445,11 +445,50 @@ class PublicController extends Controller
         ], static fn ($v) => $v !== null));
     }
 
-    /** `ShowcaseEvent` — kartu event di beranda, sepuluh field. */
+    /**
+     * `ShowcaseEvent` — kartu event di beranda, sepuluh field.
+     *
+     * SATU syarat isi: `is_featured`, sakelar "Set Featured" di formulir
+     * turnamen. Tidak ada saringan tanggal — **turnamen yang sudah berakhir
+     * boleh diunggulkan**, atas keputusan pemilik repo. Pita ini karena itu
+     * bukan "apa yang akan datang" melainkan "apa yang dipilih federasi", dan
+     * sebuah kejuaraan yang baru usai adalah pilihan yang sah untuk halaman
+     * depan.
+     *
+     * Konsekuensinya ditanggung di sini: satu-satunya yang menahan turnamen
+     * 2023 tetap terpampang di beranda adalah seseorang yang ingat mencabut
+     * centangnya. Tidak ada layar yang mengingatkan, dan halamannya akan
+     * terlihat normal sepenuhnya. Kalau suatu saat itu terjadi, yang
+     * mengembalikannya satu baris: `whereDate('ends_on', '>=', ...)`.
+     *
+     * ── Urutannya, dan kenapa ia tidak bisa `starts_on` saja ──
+     *
+     * Begitu yang berakhir ikut masuk, `orderBy('starts_on')` menaik menaruh
+     * turnamen PALING TUA di kartu pertama — sebuah acara 2023 memimpin di
+     * atas yang bulan depan. Jadi urutannya dua tingkat: yang belum berakhir
+     * lebih dulu (paling dekat duluan), baru yang sudah berakhir (paling baru
+     * usai duluan). Yang masih hidup selalu di depan, dan di antara arsip yang
+     * dipilih, yang paling segar yang bicara.
+     *
+     * Balasan kosong adalah keadaan NORMAL, bukan galat: situs publik
+     * menyembunyikan seluruh section-nya saat daftar ini kosong, karena pita
+     * itu setinggi satu layar penuh dan scroll snap memarkir pembaca tepat di
+     * situ.
+     */
     public function showcaseEvents(): JsonResponse
     {
+        $today = now()->startOfDay()->toDateString();
+
         $tournaments = Tournament::query()->live()
-            ->whereDate('ends_on', '>=', now()->startOfDay())
+            ->where('is_featured', true)
+            // Yang belum berakhir dulu. `false` (0) mendahului `true` (1).
+            ->orderByRaw('(ends_on < ?) asc', [$today])
+            // Di antara yang SUDAH berakhir: yang paling baru usai duluan.
+            // Barisnya yang belum berakhir semuanya NULL di sini, jadi mereka
+            // seri dan jatuh ke `starts_on` di bawah — dan mereka sudah
+            // dipisahkan klausa pertama, jadi letak NULL tidak berpengaruh.
+            ->orderByRaw('case when ends_on < ? then ends_on end desc', [$today])
+            // Yang belum berakhir: paling dekat duluan.
             ->orderBy('starts_on')
             ->limit(6)
             ->get();

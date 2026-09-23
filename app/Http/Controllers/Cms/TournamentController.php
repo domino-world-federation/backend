@@ -275,6 +275,7 @@ class TournamentController extends Controller
 
                 'documents' => $tournament->documents->pluck('id')->all(),
 
+                'isFeatured' => $tournament->is_featured,
                 'status' => $tournament->status,
                 'publishedAt' => $tournament->published_at?->format('Y-m-d\TH:i'),
             ],
@@ -330,6 +331,15 @@ class TournamentController extends Controller
              * kolomnya supaya pil di kartu publik punya isi.
              */
             'attendance' => config('dwf.tournaments.attendance_default'),
+            /*
+             * `boolean()`, BUKAN `$data['is_featured']`. Formulir ini selalu
+             * multipart (berkas ada di hero, hadiah, dan tiap foto ofisial),
+             * jadi yang tiba selalu STRING — `'1'` atau `'0'`, bentuk yang
+             * ditulis `objectToFormData` milik Inertia. `validated()`
+             * mengembalikan string itu apa adanya; `boolean()` yang
+             * menormalkannya. Pola yang sama dipakai News.
+             */
+            'is_featured' => $request->boolean('is_featured'),
             // Ditulis lewat `RichTextEditor`, jadi isinya HTML — dan HTML dari
             // editor WAJIB dibersihkan sebelum disimpan. Sempat terlewat: satu-
             // satunya kolom editor di repo ini yang menyimpan mentah, dan ia

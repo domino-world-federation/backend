@@ -674,6 +674,9 @@ return [
         'section_schedule' => 'Jadwal',
         'section_format' => 'Format Turnamen',
         'section_regulations' => 'Regulasi & Aturan',
+        'section_publishing' => 'Unggulan & Penayangan',
+        'featured' => 'Jadikan Unggulan',
+        'featured_hint' => 'Turnamen ini akan tampil di section Featured Event pada halaman depan.',
 
         'name' => 'Nama Turnamen',
         'name_hint' => 'Isi nama resmi turnamen yang tampil ke publik.',

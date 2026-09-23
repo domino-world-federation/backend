@@ -362,6 +362,11 @@ class FrontendContentSeeder extends Seeder
                     'participant_type' => 'Teams',
                     'competition_system' => '16 groups of four; top two advance to knockout',
                     'scoring' => 'First team to reach 101 points wins the match',
+                    // Semuanya unggulan: data contoh ini disalin dari
+                    // `MOCK_SHOWCASE_EVENTS` di situs publik, yang memang enam
+                    // kartu pita Featured Event. Tanpa ini pita itu kosong dan
+                    // section-nya hilang dari beranda.
+                    'is_featured' => true,
                     'status' => Tournament::STATUS_PUBLISHED,
                     'published_at' => now(),
                 ],

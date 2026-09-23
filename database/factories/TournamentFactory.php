@@ -45,9 +45,22 @@ class TournamentFactory extends Factory
             'competition_system' => '16 groups of four; top two advance to knockout',
             'scoring' => 'First team to reach 101 points wins the match',
 
+            /*
+             * Unggulan secara bawaan, sebaris dengan `status` di bawahnya:
+             * turnamen "biasa" di tes adalah turnamen yang TAMPIL, dan pita
+             * Featured Event di beranda bagian dari tampil itu. Yang menguji
+             * saringannya memakai `notFeatured()`.
+             */
+            'is_featured' => true,
+
             'status' => Tournament::STATUS_PUBLISHED,
             'published_at' => now(),
         ];
+    }
+
+    public function notFeatured(): static
+    {
+        return $this->state(fn () => ['is_featured' => false]);
     }
 
     public function draft(): static

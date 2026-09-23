@@ -170,6 +170,100 @@ class PublicApiTest extends TestCase
      * ikut, aset acara non-turnamen tidak ikut, dan tanpa saringan semuanya
      * tetap keluar — halaman daftar `/tournaments` memang menampilkan semua.
      */
+    /**
+     * Pita "Featured Event" di beranda menyaring HANYA dengan "Set Featured".
+     *
+     * Tidak ada saringan tanggal: turnamen yang sudah berakhir pun ikut kalau
+     * ditandai — keputusan pemilik repo, dan tes ini yang menguncinya supaya
+     * tidak "diperbaiki" kembali oleh orang yang mengira itu kelalaian.
+     * Satu-satunya yang menentukan adalah centangnya.
+     */
+    public function test_the_home_showcase_takes_every_featured_tournament_including_finished_ones(): void
+    {
+        Tournament::factory()->create([
+            'name' => 'unggulan mendatang',
+            'starts_on' => now()->addWeek(),
+            'ends_on' => now()->addWeeks(2),
+        ]);
+
+        Tournament::factory()->create([
+            'name' => 'unggulan sudah selesai',
+            'starts_on' => now()->subMonths(2),
+            'ends_on' => now()->subMonth(),
+        ]);
+
+        Tournament::factory()->notFeatured()->create([
+            'name' => 'tidak diunggulkan',
+            'starts_on' => now()->addWeek(),
+            'ends_on' => now()->addWeeks(2),
+        ]);
+
+        $names = collect($this->getJson('/api/v1/tournaments/showcase')->json())->pluck('name');
+
+        $this->assertContains('unggulan mendatang', $names);
+        $this->assertContains('unggulan sudah selesai', $names);
+        $this->assertNotContains('tidak diunggulkan', $names);
+    }
+
+    /**
+     * Yang belum berakhir SELALU di depan yang sudah.
+     *
+     * Ini yang runtuh kalau urutannya disederhanakan kembali jadi
+     * `orderBy('starts_on')`: turnamen paling tua akan memimpin kartu pertama,
+     * dan acara tahun lalu berdiri di atas yang bulan depan. Di antara yang
+     * sudah berakhir, yang paling baru usai yang bicara duluan.
+     */
+    public function test_the_home_showcase_puts_unfinished_tournaments_first(): void
+    {
+        Tournament::factory()->create([
+            'name' => 'selesai lama',
+            'starts_on' => now()->subYear(),
+            'ends_on' => now()->subYear()->addDays(3),
+        ]);
+
+        Tournament::factory()->create([
+            'name' => 'selesai baru saja',
+            'starts_on' => now()->subMonth(),
+            'ends_on' => now()->subMonth()->addDays(3),
+        ]);
+
+        Tournament::factory()->create([
+            'name' => 'nanti sekali',
+            'starts_on' => now()->addMonths(6),
+            'ends_on' => now()->addMonths(6)->addDays(3),
+        ]);
+
+        Tournament::factory()->create([
+            'name' => 'paling dekat',
+            'starts_on' => now()->addWeek(),
+            'ends_on' => now()->addWeeks(2),
+        ]);
+
+        $names = collect($this->getJson('/api/v1/tournaments/showcase')->json())->pluck('name');
+
+        $this->assertSame(
+            ['paling dekat', 'nanti sekali', 'selesai baru saja', 'selesai lama'],
+            $names->all(),
+        );
+    }
+
+    /**
+     * Tidak ada satu pun yang ditandai — dan itu keadaan NORMAL, bukan galat.
+     *
+     * Balasannya array kosong dengan status 200, karena situs publik
+     * menyembunyikan seluruh section-nya saat daftar ini kosong. Membalas 404
+     * di sini akan membuat beranda melempar, bukan merapikan diri.
+     */
+    public function test_the_home_showcase_is_empty_rather_than_an_error(): void
+    {
+        Tournament::factory()->notFeatured()->create();
+
+        $response = $this->getJson('/api/v1/tournaments/showcase');
+
+        $response->assertOk();
+        $this->assertSame([], $response->json());
+    }
+
     public function test_the_gallery_narrows_to_one_tournament(): void
     {
         $mine = Tournament::factory()->create();

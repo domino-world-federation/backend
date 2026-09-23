@@ -673,6 +673,12 @@ return [
         'section_schedule' => 'Schedule',
         'section_format' => 'Tournament Format',
         'section_regulations' => 'Regulations & Rules',
+        // Kartu terakhir formulir. Dulu bernama "Publish Time" dan cuma berisi
+        // jadwal terbit; sejak "Set Featured" duduk di dalamnya, judul itu
+        // menyebut sebagian isinya saja.
+        'section_publishing' => 'Featured & Publishing',
+        'featured' => 'Set Featured',
+        'featured_hint' => 'This tournament will be shown in the Featured Event section on the home page.',
 
         'name' => 'Tournament Name',
         'name_hint' => 'Enter the official public-facing tournament name.',

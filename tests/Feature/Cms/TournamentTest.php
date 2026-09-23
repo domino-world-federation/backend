@@ -59,8 +59,59 @@ class TournamentTest extends TestCase
             'competition_system' => '16 groups of four; top two advance to knockout',
             'scoring' => 'First team to reach 101 points wins the match',
 
+            'is_featured' => false,
             'posting' => 'now',
         ], $overrides);
+    }
+
+    /**
+     * "Set Featured" (`585:11241`) — sakelar yang menentukan apakah turnamen
+     * ini ikut pita Featured Event di beranda.
+     *
+     * Nilainya dikirim sebagai `'1'`/`'0'`, BUKAN `true`/`false` — itu yang
+     * benar-benar tiba di server: formulir turnamen selalu multipart (ada
+     * berkas di hero, hadiah, dan tiap foto ofisial), dan `objectToFormData`
+     * milik Inertia menuliskan boolean sebagai `'1'`/`'0'`. Tes yang mengirim
+     * boolean PHP asli akan lolos lewat jalur yang tidak pernah dipakai layar
+     * mana pun; yang mengirim `'true'` malah ditolak aturan `boolean`, yang
+     * tidak mengenal kata itu.
+     */
+    public function test_the_featured_switch_is_saved_both_ways(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->actor())
+            ->post('/tournaments', $this->payload(['is_featured' => '1']))
+            ->assertRedirect('/tournaments');
+
+        $tournament = Tournament::query()->firstOrFail();
+        $this->assertTrue($tournament->is_featured);
+
+        $this->actingAs($this->actor())
+            ->put("/tournaments/{$tournament->id}", $this->payload(['is_featured' => '0']))
+            ->assertRedirect('/tournaments');
+
+        $this->assertFalse($tournament->fresh()->is_featured);
+    }
+
+    /**
+     * Layar sunting membawa keadaan sakelarnya, dengan NAMA yang dibaca Vue.
+     *
+     * Kalau `isFeatured` di controller dan `props.tournament?.isFeatured` di
+     * `Form.vue` berpisah, tidak ada yang melempar: sakelarnya cuma digambar
+     * MATI untuk turnamen yang sebenarnya unggulan — lalu simpan pertama
+     * benar-benar mematikannya. Kegagalan diam yang cuma bisa dilihat dengan
+     * membandingkan dua berkas, jadi dikunci di sini.
+     */
+    public function test_the_edit_screen_carries_the_featured_state(): void
+    {
+        $tournament = Tournament::factory()->create(['is_featured' => true]);
+
+        $this->actingAs($this->actor())
+            ->get("/tournaments/{$tournament->id}/edit")
+            ->assertInertia(fn (AssertableInertia $p) => $p
+                ->where('tournament.isFeatured', true)
+                ->etc());
     }
 
     // ------------------------------------------------------------ menyimpan

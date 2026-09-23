@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 #[Fillable([
     'name', 'slug', 'coverage', 'starts_on', 'ends_on', 'city', 'country',
-    'rules_format', 'attendance', 'hero_image_path', 'overview',
+    'rules_format', 'attendance', 'is_featured', 'hero_image_path', 'overview',
     'venue_name', 'venue_address', 'venue_lat', 'venue_lng',
     'prize_amount', 'prize_currency', 'prize_description', 'prize_image_path', 'prize_type', 'prize_name',
     'contact_email', 'contact_phone',
@@ -84,6 +84,7 @@ class Tournament extends Model
             'venue_lat' => 'decimal:7',
             'venue_lng' => 'decimal:7',
             'participant_count' => 'integer',
+            'is_featured' => 'boolean',
         ];
     }
 

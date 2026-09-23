@@ -174,6 +174,12 @@ class TournamentRequest extends FormRequest
             'documents' => ['array', 'max:'.$options['max_documents']],
             'documents.*' => [Rule::exists('documents', 'id')],
 
+            // "Set Featured" — menentukan apakah turnamen ini ikut pita
+            // Featured Event di beranda. `required` seperti `is_highlighted`
+            // di News: sakelar yang tidak dikirim berarti formulirnya rusak,
+            // bukan berarti "tidak".
+            'is_featured' => ['required', 'boolean'],
+
             'posting' => ['required', Rule::in(['draft', 'now', 'schedule'])],
             'published_at' => ['required_if:posting,schedule', 'nullable', 'date'],
         ];

@@ -182,6 +182,27 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   Jangan tertukar dengan `visibility`: yang itu menjawab "apakah halamannya
   tayang", yang ini "apakah pertandingannya sedang berlangsung" — turnamen bisa
   `published` DAN `completed` sekaligus.
+- **Pita "Featured Event" di beranda dipilih `tournaments.is_featured` SAJA —
+  tanpa saringan tanggal, dan itu disengaja.** Turnamen yang sudah berakhir
+  boleh diunggulkan (keputusan pemilik repo): pita itu menjawab "apa yang
+  dipilih federasi", bukan "apa yang akan datang". Jangan menambahkan kembali
+  `whereDate('ends_on', ...)` dengan anggapan ia kelalaian — ada tes yang gagal
+  kalau turnamen selesai berhenti muncul. **Harganya**: yang menahan turnamen
+  2023 tetap terpampang di beranda cuma seseorang yang ingat mencabut
+  centangnya; tidak ada layar yang mengingatkan.
+- **Karena itu urutan `showcaseEvents()` dua tingkat, bukan `orderBy('starts_on')`.**
+  Dengan turnamen selesai ikut masuk, urutan menaik polos menaruh yang PALING
+  TUA di kartu pertama — acara tahun lalu memimpin di atas yang bulan depan.
+  Yang belum berakhir selalu di depan (paling dekat duluan), baru yang sudah
+  (paling baru usai duluan). Ada tesnya.
+- **Daftar showcase yang kosong adalah keadaan NORMAL.** Situs publik
+  menyembunyikan seluruh section-nya, karena pita itu setinggi satu layar penuh
+  (`snap-screen`) dan scroll snap memarkir pembaca tepat di situ. Jangan
+  membalasnya 404.
+- **`/tournaments/featured` (countdown S3) dan `/tournaments/highlighted` (hero
+  halaman turnamen) TIDAK membaca flag ini** — keduanya menjawab "apa yang
+  paling dekat" dan tetap derivasi tanggal murni. Nama yang mirip, tiga aturan
+  berbeda.
 - **Kelompok berulang di Add Tournament DITULIS ULANG tiap simpan**, bukan
   dicocokkan baris per baris. Ofisial dan jadwal bisa ditambah, dihapus, DAN
   diurutkan ulang; mencocokkan yang lama dengan yang baru menuntut id di
