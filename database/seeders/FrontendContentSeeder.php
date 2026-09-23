@@ -355,7 +355,8 @@ class FrontendContentSeeder extends Seeder
             Tournament::query()->updateOrCreate(
                 ['slug' => $row['slug']],
                 $row + [
-                    'rules_format' => 'Double 101',
+                    'tournament_mode' => 'Double',
+                    'domino_rules' => '101',
                     'overview' => 'The federation brings together its member bodies for a full week of competition, with qualification rounds, a knockout stage, and an awards ceremony on the closing day.',
                     'eligibility' => 'Open to all DWF member federations',
                     'registration_method' => 'Through national federation',
@@ -605,8 +606,8 @@ class FrontendContentSeeder extends Seeder
             'hero_secondary_cta' => 'Official Rules',
             'hero_secondary_cta_url' => '#',
 
-            'closing_headline' => "Bring Your Nation\nTo The World Stage",
-            'closing_body' => 'We are currently accepting applications for new associate and full member federations. Benefit from technical support, sanctioned event hosting, and global ranking integration.',
+            'closing_headline' => "Join DWF Through\nYour National Federation",
+            'closing_body' => "Contact your country's national federation to apply for DWF membership and obtain your DWF ID.",
             'closing_cta' => 'Get In Touch',
             'closing_cta_url' => '/contact',
         ], SiteSetting::GROUP_HOME);
