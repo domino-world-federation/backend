@@ -114,6 +114,44 @@ class TournamentTest extends TestCase
                 ->etc());
     }
 
+    /**
+     * Sakelar unggulan bekerja LANGSUNG dari daftar, tanpa membuka formulir.
+     *
+     * Dua arah, dan arah mematikan yang penting: `'0'` lewat `validate()`
+     * dengan aturan `boolean` tiba sebagai string, dan `$data['is_featured']`
+     * yang ditugaskan ke kolom ber-cast boolean harus tetap jadi `false`.
+     */
+    public function test_featured_can_be_toggled_from_the_list(): void
+    {
+        $tournament = Tournament::factory()->create(['is_featured' => false]);
+
+        $this->actingAs($this->actor())
+            ->patch("/tournaments/{$tournament->id}/featured", ['is_featured' => '1']);
+        $this->assertTrue($tournament->fresh()->is_featured);
+
+        $this->actingAs($this->actor())
+            ->patch("/tournaments/{$tournament->id}/featured", ['is_featured' => '0']);
+        $this->assertFalse($tournament->fresh()->is_featured);
+    }
+
+    /** Ekspor CSV ikut membawa kolomnya — daftar dan ekspor tidak boleh beda. */
+    public function test_the_export_carries_the_featured_column(): void
+    {
+        Tournament::factory()->create(['name' => 'Yang diunggulkan', 'is_featured' => true]);
+        Tournament::factory()->notFeatured()->create(['name' => 'Yang biasa']);
+
+        $csv = $this->actingAs($this->actor())->get('/tournaments/export')->streamedContent();
+
+        $this->assertStringContainsString('Featured', $csv);
+
+        $lines = collect(explode("\n", $csv));
+        $featured = $lines->first(fn (string $l) => str_contains($l, 'Yang diunggulkan'));
+        $plain = $lines->first(fn (string $l) => str_contains($l, 'Yang biasa'));
+
+        $this->assertStringContainsString('yes', (string) $featured);
+        $this->assertStringContainsString('no', (string) $plain);
+    }
+
     // ------------------------------------------------------------ menyimpan
 
     public function test_a_tournament_is_created_with_its_officials_and_schedule(): void

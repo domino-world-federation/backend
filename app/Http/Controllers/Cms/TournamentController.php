@@ -49,6 +49,7 @@ class TournamentController extends Controller
                     'startsOn' => $t->starts_on?->toIso8601String(),
                     'endsOn' => $t->ends_on?->toIso8601String(),
                     'stage' => $t->stage,
+                    'isFeatured' => $t->is_featured,
                     'registrationState' => $t->registration_state,
                     'visibility' => $t->visibility,
                     'scheduledFor' => $t->visibility === 'scheduled' ? $t->published_at?->toIso8601String() : null,
@@ -117,7 +118,7 @@ class TournamentController extends Controller
 
         return Csv::stream('tournaments', [
             'ID', 'Name', 'Slug', 'Coverage', 'City', 'Country', 'Starts On', 'Ends On',
-            'Stage', 'Registration', 'Participants', 'Participant Type',
+            'Stage', 'Featured', 'Registration', 'Participants', 'Participant Type',
             'Visibility', 'Published At', 'Published By', 'Last Modified At', 'Last Modified By',
         ], $rows->map(fn (Tournament $t) => [
             $t->id,
@@ -129,6 +130,7 @@ class TournamentController extends Controller
             $t->starts_on?->toDateString(),
             $t->ends_on?->toDateString(),
             $t->stage,
+            $t->is_featured ? 'yes' : 'no',
             $t->registration_state,
             $t->participant_count,
             $t->participant_type,
@@ -184,6 +186,29 @@ class TournamentController extends Controller
         }
 
         $tournament->status = $data['status'];
+        $tournament->save();
+
+        return back()->with('success', __('backoffice.tournaments.updated'));
+    }
+
+    /**
+     * Sakelar "Set Featured" langsung dari daftar — pola yang sama dengan
+     * Toggle Highlight di News.
+     *
+     * Ada di daftar, bukan cuma di formulir, karena pertanyaannya sering
+     * dijawab untuk BEBERAPA turnamen sekaligus: menyusun pita beranda berarti
+     * membandingkan satu turnamen dengan yang lain, dan membuka delapan
+     * formulir penuh untuk memindahkan empat centang berarti delapan kali
+     * risiko mengubah sesuatu yang lain tanpa sadar.
+     *
+     * Tidak seperti `visibility()`, tidak ada keadaan yang perlu ditolak di
+     * sini: turnamen apa pun boleh diunggulkan, termasuk yang sudah berakhir.
+     */
+    public function featured(Request $request, Tournament $tournament): RedirectResponse
+    {
+        $data = $request->validate(['is_featured' => ['required', 'boolean']]);
+
+        $tournament->is_featured = $data['is_featured'];
         $tournament->save();
 
         return back()->with('success', __('backoffice.tournaments.updated'));

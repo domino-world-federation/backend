@@ -679,6 +679,11 @@ return [
         'section_publishing' => 'Featured & Publishing',
         'featured' => 'Set Featured',
         'featured_hint' => 'This tournament will be shown in the Featured Event section on the home page.',
+        // Judul kolom di daftar, dan label sakelarnya. Labelnya menyebut nama
+        // turnamennya karena di dalam sel ia `hide-label`: pembaca layar
+        // mendarat langsung di sakelar, tanpa judul kolom maupun nama baris.
+        'featured_badge' => 'Featured',
+        'toggle_featured' => 'Feature :name',
 
         'name' => 'Tournament Name',
         'name_hint' => 'Enter the official public-facing tournament name.',

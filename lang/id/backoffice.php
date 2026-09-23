@@ -677,6 +677,8 @@ return [
         'section_publishing' => 'Unggulan & Penayangan',
         'featured' => 'Jadikan Unggulan',
         'featured_hint' => 'Turnamen ini akan tampil di section Featured Event pada halaman depan.',
+        'featured_badge' => 'Unggulan',
+        'toggle_featured' => 'Unggulkan :name',
 
         'name' => 'Nama Turnamen',
         'name_hint' => 'Isi nama resmi turnamen yang tampil ke publik.',

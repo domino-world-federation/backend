@@ -189,7 +189,12 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   `whereDate('ends_on', ...)` dengan anggapan ia kelalaian — ada tes yang gagal
   kalau turnamen selesai berhenti muncul. **Harganya**: yang menahan turnamen
   2023 tetap terpampang di beranda cuma seseorang yang ingat mencabut
-  centangnya; tidak ada layar yang mengingatkan.
+  centangnya; tidak ada layar yang mengingatkan. Sakelarnya ada di DUA tempat —
+  formulir (kartu "Featured & Publishing") dan daftar (`PATCH
+  /tournaments/{id}/featured`), sama seperti Highlight di News — karena
+  menyusun pita beranda berarti membandingkan turnamen satu sama lain, dan itu
+  pekerjaan layar daftar. Ekspor CSV-nya ikut membawa kolom `Featured`: daftar
+  dan ekspor tidak boleh berbeda pendapat.
 - **Karena itu urutan `showcaseEvents()` dua tingkat, bukan `orderBy('starts_on')`.**
   Dengan turnamen selesai ikut masuk, urutan menaik polos menaruh yang PALING
   TUA di kartu pertama — acara tahun lalu memimpin di atas yang bulan depan.

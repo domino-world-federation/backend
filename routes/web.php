@@ -463,6 +463,8 @@ Route::middleware('auth')->group(function () {
         Route::middleware('can:tournaments.update')->group(function () {
             Route::patch('/tournaments/{tournament}/visibility', [TournamentController::class, 'visibility'])
                 ->whereNumber('tournament')->name('tournaments.visibility');
+            Route::patch('/tournaments/{tournament}/featured', [TournamentController::class, 'featured'])
+                ->whereNumber('tournament')->name('tournaments.featured');
         });
 
         Route::resource('tournaments', TournamentController::class)

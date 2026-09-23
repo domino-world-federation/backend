@@ -15,6 +15,7 @@ import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 import RowMenu from '@/Components/RowMenu.vue'
 import PersonStamp from '@/Components/PersonStamp.vue'
 import VisibilitySelect from '@/Components/VisibilitySelect.vue'
+import AppToggle from '@/Components/AppToggle.vue'
 import { useIndexFilters } from '@/composables/useIndexFilters'
 import { formatDate } from '@/utils/format'
 import type { Paginated, TableColumn } from '@/types'
@@ -27,6 +28,7 @@ interface Row {
     startsOn: string | null
     endsOn: string | null
     stage: string
+    isFeatured: boolean
     registrationState: string
     visibility: string
     scheduledFor: string | null
@@ -68,6 +70,7 @@ const columns: TableColumn[] = [
     { key: 'visibility', label: t('news.visibility'), width: '200px' },
     { key: 'dates', label: t('tournaments.dates'), width: '190px' },
     { key: 'stage', label: t('tournaments.stage'), width: '130px' },
+    { key: 'featured', label: t('tournaments.featured_badge'), width: '110px' },
     { key: 'registration', label: t('tournaments.registration_state'), width: '140px' },
     { key: 'updated', label: t('news.last_modified'), width: '180px' },
     { key: 'actions', label: '', width: '40px', align: 'right' },
@@ -78,6 +81,13 @@ const processing = ref(false)
 
 function setVisibility(row: Row, status: string): void {
     router.patch(`/tournaments/${row.id}/visibility`, { status }, {
+        preserveScroll: true,
+        preserveState: true,
+    })
+}
+
+function setFeatured(row: Row, value: boolean): void {
+    router.patch(`/tournaments/${row.id}/featured`, { is_featured: value }, {
         preserveScroll: true,
         preserveState: true,
     })
@@ -213,6 +223,21 @@ function destroy(): void {
                     >
                         {{ t(`tournaments.stage_${row.stage}`) }}
                     </span>
+                </template>
+
+                <!-- "Set Featured" tanpa membuka formulirnya. `hide-label`
+                     karena ia di dalam sel: judul kolomnya sudah terbaca di
+                     kepala tabel, dan mencetak ulang labelnya di tiap baris
+                     berarti nama turnamennya muncul dua kali bersebelahan.
+                     Labelnya tetap ditulis — pembaca layar mendarat langsung
+                     di sakelar dan tidak punya konteks apa pun tanpa itu. -->
+                <template #cell.featured="{ row }">
+                    <AppToggle
+                        :model-value="row.isFeatured"
+                        :label="t('tournaments.toggle_featured', { name: row.name })"
+                        hide-label
+                        @update:model-value="setFeatured(row as Row, $event)"
+                    />
                 </template>
 
                 <template #cell.registration="{ row }">

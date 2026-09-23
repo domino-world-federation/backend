@@ -69,6 +69,7 @@ class WritePermissionTest extends TestCase
             'hapus pesan' => ['delete', '/contact-messages/{message}'],
 
             'tayangkan turnamen' => ['patch', '/tournaments/{tournament}/visibility'],
+            'unggulkan turnamen' => ['patch', '/tournaments/{tournament}/featured'],
             'hapus turnamen' => ['delete', '/tournaments/{tournament}'],
         ];
     }
