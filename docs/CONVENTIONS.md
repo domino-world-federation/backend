@@ -182,6 +182,22 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   Jangan tertukar dengan `visibility`: yang itu menjawab "apakah halamannya
   tayang", yang ini "apakah pertandingannya sedang berlangsung" — turnamen bisa
   `published` DAN `completed` sekaligus.
+- **Aturan main turnamen DUA kolom, bukan satu.** `tournament_mode`
+  (Single/Double) dan `domino_rules` (101 / 1 Round / Double Win) menggantikan
+  `rules_format` sejak 2026-09-23. Enam nama lama adalah hasil silang keduanya,
+  jadi kombinasinya tetap enam yang sama. Pembagian kerjanya bukan sembarang:
+  **mode** menentukan siapa yang bertanding — sisi, jenis peserta, pilihan
+  jumlah peserta, dan kalimat sistem kompetisi; **aturan** menentukan bagaimana
+  satu pertandingan dimenangkan, dan itu satu kalimat saja. Kalimat penilaian
+  butuh KEDUANYA: naskahnya milik aturan, subjeknya ("player"/"team") milik
+  mode. Ada tes yang gagal kalau aturan mulai ikut menentukan jumlah peserta.
+- **`config('dwf.tournaments.domino_rules')` punya kunci `101`, dan PHP
+  menjadikannya INTEGER.** `TournamentRules::ruleNames()` dan `ruleOptions()`
+  karena itu mengecor ke string. Tanpa itu `SelectField` menerima `101`
+  sementara kolomnya menyimpan `'101'`, perbandingannya `===`, dan layar sunting
+  turnamen beraturan 101 membuka dropdown KOSONG — lalu simpan berikutnya
+  menulis `null` ke kolom yang tadinya benar. Tidak ada galat di mana pun.
+  Berlaku untuk setiap daftar config yang kuncinya angka.
 - **Pita "Featured Event" di beranda dipilih `tournaments.is_featured` SAJA —
   tanpa saringan tanggal, dan itu disengaja.** Turnamen yang sudah berakhir
   boleh diunggulkan (keputusan pemilik repo): pita itu menjawab "apa yang

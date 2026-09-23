@@ -43,7 +43,8 @@ const props = defineProps<{
     tournament: Record<string, any> | null
     options: {
         coverage: string[]
-        rulesFormats: RuleFormatOption[]
+        tournamentModes: TournamentModeOption[]
+        dominoRules: DominoRuleOption[]
         currencies: string[]
         prizeTypes: Array<{ value: PrizeType; label: string }>
         dwfIdRequirements: string[]
@@ -67,7 +68,8 @@ const form = useForm({
     ends_on: props.tournament?.endsOn ?? '',
     city: props.tournament?.city ?? '',
     country: props.tournament?.country ?? '',
-    rules_format: props.tournament?.rulesFormat ?? null,
+    tournament_mode: props.tournament?.tournamentMode ?? null,
+    domino_rules: props.tournament?.dominoRules ?? null,
     hero_image: null as File | null,
     overview: props.tournament?.overview ?? '',
 
@@ -174,7 +176,7 @@ const progress = computed(() => ({
     basic: ratio(
         filledCount(
             form.name, form.coverage, form.starts_on, form.ends_on,
-            form.city, form.country, form.rules_format, form.overview,
+            form.city, form.country, form.tournament_mode, form.domino_rules, form.overview,
         ) + (form.hero_image || props.tournament?.heroImageUrl ? 1 : 0),
         9,
     ),
@@ -200,7 +202,7 @@ const progress = computed(() => ({
     // permainan tidak lagi diisi orang, jadi menghitungnya sebagai kemajuan
     // berarti langkah ini terlihat setengah selesai padahal tidak ada lagi yang
     // bisa dikerjakan di sana. Yang tersisa untuk dipilih hanya aturan mainnya.
-    format: form.rules_format ? 1 : 0,
+    format: form.tournament_mode && form.domino_rules ? 1 : 0,
     regulations: form.documents.length > 0 ? 1 : 0,
 }))
 
@@ -212,30 +214,44 @@ const progress = computed(() => ({
  * dengan satu perjalanan ke server per klik, dan label yang berubah beberapa
  * ratus milidetik setelah pilihannya terbaca sebagai layar yang tersendat.
  */
-interface RuleFormatOption {
+interface TournamentModeOption {
     value: string
     label: string
     side: 'single' | 'double'
     participantType: string
     counts: number[]
+    /** Subjek kalimat penilaian — "player" atau "team". */
+    subject: string
+    /** "who" untuk pemain, "that" untuk tim. Menjaga tata bahasa lama. */
+    relative: string
     /** Naskah mentah — `$n` diisi di layar, lihat `derived`. */
-    scoring: string
     competitionSystem: string
 }
 
-const selectedRule = computed(() =>
-    props.options.rulesFormats.find((r) => r.value === form.rules_format),
+interface DominoRuleOption {
+    value: string
+    label: string
+    /** Naskah ber-placeholder; subjeknya milik MODE, bukan aturan. */
+    scoring: string
+}
+
+const selectedMode = computed(() =>
+    props.options.tournamentModes.find((m) => m.value === form.tournament_mode),
 )
 
-/** "Player Count" untuk aturan tunggal, "Team Count" untuk ganda. */
+const selectedRule = computed(() =>
+    props.options.dominoRules.find((r) => r.value === form.domino_rules),
+)
+
+/** "Player Count" untuk mode tunggal, "Team Count" untuk ganda. */
 const participantCountLabel = computed(() =>
-    selectedRule.value === undefined
+    selectedMode.value === undefined
         ? t('tournaments.participant_count')
-        : t('tournaments.participant_count_of', { type: selectedRule.value.participantType }),
+        : t('tournaments.participant_count_of', { type: selectedMode.value.participantType }),
 )
 
 const participantCountOptions = computed(() =>
-    (selectedRule.value?.counts ?? []).map((n) => ({ value: n, label: String(n) })),
+    (selectedMode.value?.counts ?? []).map((n) => ({ value: n, label: String(n) })),
 )
 
 /**
@@ -247,8 +263,9 @@ const participantCountOptions = computed(() =>
  * berdiri supaya kalimatnya jelas belum selesai.
  */
 const derived = computed(() => {
+    const mode = selectedMode.value
     const rule = selectedRule.value
-    if (rule === undefined) return { scoring: '', competitionSystem: '' }
+    if (mode === undefined) return { scoring: '', competitionSystem: '' }
 
     const n = Number(form.participant_count)
 
@@ -260,8 +277,17 @@ const derived = computed(() => {
             : text
 
     return {
-        scoring: rule.scoring,
-        competitionSystem: render(rule.competitionSystem),
+        // Naskah milik ATURAN, subjek milik MODE — sama persis dengan
+        // `TournamentRules::scoringFor()` di server. Kosong selama aturannya
+        // belum dipilih: kalimat yang masih menyebut ":subject" terbaca seperti
+        // kalimat utuh sampai seseorang membacanya sampai habis.
+        scoring:
+            rule === undefined
+                ? ''
+                : rule.scoring
+                      .replaceAll(':subject', mode.subject)
+                      .replaceAll(':relative', mode.relative),
+        competitionSystem: render(mode.competitionSystem),
     }
 })
 
@@ -273,9 +299,9 @@ const derived = computed(() => {
  * setelah Simpan, di kartu yang sudah digulir lewat.
  */
 watch(
-    () => form.rules_format,
+    () => form.tournament_mode,
     () => {
-        const allowed = selectedRule.value?.counts ?? []
+        const allowed = selectedMode.value?.counts ?? []
         if (!allowed.includes(Number(form.participant_count))) form.participant_count = null
     },
 )
@@ -872,24 +898,48 @@ function submit(posting: 'draft' | 'now' | 'schedule'): void {
                              memilihnya di kartu lain berarti pembaca mengubah
                              sesuatu dan melihat akibatnya di layar yang sudah ia
                              lewati. -->
+                        <!-- DUA kotak, bukan satu. "Double BO3" dulu satu
+                             pilihan, dan itu menuntut orang merakit dua
+                             keputusan di kepalanya sebelum memilih — lalu
+                             menguraikannya lagi setiap kali membacanya. Yang
+                             ditanya sekarang apa adanya: siapa yang bertanding,
+                             dan bagaimana satu pertandingan dimenangkan.
+                             Kombinasinya tetap enam yang sama. -->
                         <FormRow
-                            :label="t('tournaments.rules_format')"
-                            :description="t('tournaments.rules_format_hint')"
+                            :label="t('tournaments.tournament_mode')"
+                            :description="t('tournaments.tournament_mode_hint')"
                             required
                         >
                             <template #default="{ id }">
                                 <SelectField
                                     :id="id"
-                                    v-model="form.rules_format"
-                                    :options="options.rulesFormats"
-                                    :error="form.errors.rules_format"
+                                    v-model="form.tournament_mode"
+                                    :options="options.tournamentModes"
+                                    :error="form.errors.tournament_mode"
                                 />
                             </template>
                         </FormRow>
 
-                        <!-- Label DAN pilihannya mengikuti aturan yang dipilih:
-                             "Player Count" dengan 16/64/256/1024 untuk aturan
-                             tunggal, "Team Count" dengan 8…1024 untuk ganda.
+                        <FormRow
+                            :label="t('tournaments.domino_rules')"
+                            :description="t('tournaments.domino_rules_hint')"
+                            required
+                        >
+                            <template #default="{ id }">
+                                <SelectField
+                                    :id="id"
+                                    v-model="form.domino_rules"
+                                    :options="options.dominoRules"
+                                    :error="form.errors.domino_rules"
+                                />
+                            </template>
+                        </FormRow>
+
+                        <!-- Label DAN pilihannya mengikuti MODE yang dipilih:
+                             "Player Count" dengan 16/64/256/1024 untuk Single,
+                             "Team Count" dengan 8…1024 untuk Double. Aturan
+                             dominonya tidak ikut menentukan ini — berapa peserta
+                             yang masuk akal ditentukan siapa yang bertanding.
                              Angka bebas dibuang — babak gugur hanya bekerja pada
                              pangkat dua, dan kalimat sistem kompetisi menghitung
                              `($n / 2)` atau `($n / 4)` dari angka ini. -->

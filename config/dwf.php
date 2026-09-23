@@ -41,10 +41,11 @@ return [
         ],
 
         /*
-         * "Tournament Rules Format" — aturan main, dan apa yang mengikutinya.
+         * Aturan main, dan apa yang mengikutinya.
          *
-         * Kuncinya yang TERSIMPAN di `tournaments.rules_format`; sisanya
-         * diturunkan darinya dan tidak pernah diketik siapa pun:
+         * Kuncinya yang TERSIMPAN di `tournaments.tournament_mode` dan
+         * `tournaments.domino_rules`; sisanya diturunkan darinya dan tidak
+         * pernah diketik siapa pun:
          *
          *   `side`  — menentukan apakah pesertanya pemain atau tim, dan karena
          *             itu menentukan label kolom jumlah peserta beserta pilihan
@@ -61,37 +62,49 @@ return [
          * `TournamentRules::render()`. Ia BUKAN `eval`: hanya pola itu yang
          * dikenali, karena naskah ini akan tercetak di situs publik.
          */
-        'rules_formats' => [
-            'Double 101' => [
-                'side' => 'double',
-                'scoring' => 'First team to reach 101 points wins the match.',
-                'competition_system' => '$n-team knockout bracket with ($n / 2) opening-round matches. Each match consists of two teams (four players).',
-            ],
-            'Single 101' => [
+        /*
+         * Aturan main, DUA SUMBU — bukan satu daftar enam nama.
+         *
+         * Sampai 2026-09-23 ini satu field "Tournament Rules Format" dengan
+         * enam pilihan: Single 101, Double 101, Single Knockout, Double
+         * Knockout, Single BO3, Double BO3. Enam nama itu ternyata hasil silang
+         * dua pertanyaan yang berdiri sendiri — berapa orang per sisi, dan
+         * bagaimana satu pertandingan dimenangkan — dan menyatukannya memaksa
+         * orang mengurai lagi "Double BO3" jadi dua keputusan setiap kali.
+         * Sekarang keduanya ditanya terpisah (permintaan pemilik repo), dan
+         * enam kombinasinya tetap enam yang sama.
+         *
+         * Kalimat penilaian lahir dari KEDUANYA, kalimat sistem kompetisi dari
+         * modenya saja. Karena itu mode membawa `subject` dan `relative`: yang
+         * pertama "player"/"team", yang kedua menjaga "the player WHO" dan "the
+         * team THAT" tetap seperti sebelumnya — keduanya sudah tercetak di
+         * halaman publik dan tidak ada alasan menggeser tata bahasanya.
+         */
+        'tournament_modes' => [
+            'Single' => [
                 'side' => 'single',
-                'scoring' => 'First player to reach 101 points wins the match.',
+                'subject' => 'player',
+                'relative' => 'who',
                 'competition_system' => '$n-player knockout format with ($n / 4) opening-round groups. Each group consists of four players, and the winner advances to the next stage.',
             ],
-            'Double Knockout' => [
+            'Double' => [
                 'side' => 'double',
-                'scoring' => 'The team that wins the round wins the match.',
+                'subject' => 'team',
+                'relative' => 'that',
                 'competition_system' => '$n-team knockout bracket with ($n / 2) opening-round matches. Each match consists of two teams (four players).',
             ],
-            'Single Knockout' => [
-                'side' => 'single',
-                'scoring' => 'The player who wins the round wins the match.',
-                'competition_system' => '$n-player knockout format with ($n / 4) opening-round groups. Each group consists of four players, and the winner advances to the next stage.',
-            ],
-            'Double BO3' => [
-                'side' => 'double',
-                'scoring' => 'The first team to win two rounds wins the match.',
-                'competition_system' => '$n-team knockout bracket with ($n / 2) opening-round matches. Each match consists of two teams (four players).',
-            ],
-            'Single BO3' => [
-                'side' => 'single',
-                'scoring' => 'The first player to win two rounds wins the match.',
-                'competition_system' => '$n-player knockout format with ($n / 4) opening-round groups. Each group consists of four players, and the winner advances to the next stage.',
-            ],
+        ],
+
+        /*
+         * `Knockout` dan `BO3` berganti nama jadi `1 Round` dan `Double Win`
+         * atas permintaan pemilik repo — nama yang dipakai federasi sendiri.
+         * Mekanismenya tidak berubah: satu ronde menentukan, atau dua
+         * kemenangan ronde yang menentukan.
+         */
+        'domino_rules' => [
+            '101' => ['scoring' => 'First :subject to reach 101 points wins the match.'],
+            '1 Round' => ['scoring' => 'The :subject :relative wins the round wins the match.'],
+            'Double Win' => ['scoring' => 'The first :subject to win two rounds wins the match.'],
         ],
 
         /*

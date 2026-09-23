@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Support\Media\StoredFile;
+use App\Support\TournamentRules;
 use Illuminate\Http\Request;
 
 /**
@@ -39,16 +40,18 @@ class TournamentResource extends PublicResource
             'registrationLabel' => $this->registrationLabel(),
             'attendance' => $this->attendance,
             /*
-             * Dari `rules_format`, bukan `game_format`.
+             * Dari `tournament_mode` + `domino_rules`, bukan `game_format`.
              *
              * Keduanya menjawab pertanyaan yang sama — "dimainkan dengan aturan
-             * apa" — dan yang kedua diketik bebas sementara yang pertama dipilih
-             * dari daftar tertutup yang juga menentukan jumlah peserta dan
-             * kalimat sistem kompetisinya. Kolom `game_format` disembunyikan
+             * apa" — dan `game_format` diketik bebas sementara pasangan ini
+             * dipilih dari dua daftar tertutup yang juga menentukan jumlah
+             * peserta dan kalimat sistem kompetisinya. Dirangkai jadi satu
+             * string di `TournamentRules::formatLabel()`: situs publik
+             * mencetaknya apa adanya dan tidak pernah menguraikannya. Kolom `game_format` disembunyikan
              * dari layar 2026-09-07; membacanya di sini akan membuat kartu
              * turnamen baru kehilangan baris formatnya.
              */
-            'formatLabel' => $this->rules_format,
+            'formatLabel' => TournamentRules::formatLabel($this->tournament_mode, $this->domino_rules),
             'startsAt' => $this->starts_on?->toIso8601String(),
             'endsAt' => $this->ends_on?->toIso8601String(),
             'venue' => $this->venue_name,

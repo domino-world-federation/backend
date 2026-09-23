@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Support\Media\StoredFile;
+use App\Support\TournamentRules;
 use Illuminate\Http\Request;
 
 /**
@@ -189,7 +190,7 @@ class TournamentDetailResource extends PublicResource
     private function formatFacts(): ?array
     {
         $facts = array_filter([
-            'Game format' => $this->rules_format,
+            'Game format' => TournamentRules::formatLabel($this->tournament_mode, $this->domino_rules),
             'Participants' => $this->participant_count === null
                 ? null
                 : "{$this->participant_count} {$this->participant_type}",

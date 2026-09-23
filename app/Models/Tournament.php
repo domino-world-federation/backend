@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 #[Fillable([
     'name', 'slug', 'coverage', 'starts_on', 'ends_on', 'city', 'country',
-    'rules_format', 'attendance', 'is_featured', 'hero_image_path', 'overview',
+    'tournament_mode', 'domino_rules', 'attendance', 'is_featured', 'hero_image_path', 'overview',
     'venue_name', 'venue_address', 'venue_lat', 'venue_lng',
     'prize_amount', 'prize_currency', 'prize_description', 'prize_image_path', 'prize_type', 'prize_name',
     'contact_email', 'contact_phone',

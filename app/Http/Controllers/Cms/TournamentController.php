@@ -251,7 +251,8 @@ class TournamentController extends Controller
                 'endsOn' => $tournament->ends_on?->toDateString(),
                 'city' => $tournament->city,
                 'country' => $tournament->country,
-                'rulesFormat' => $tournament->rules_format,
+                'tournamentMode' => $tournament->tournament_mode,
+                'dominoRules' => $tournament->domino_rules,
                 'heroImageUrl' => StoredFile::url($tournament->hero_image_path),
                 'overview' => $tournament->overview,
 
@@ -349,7 +350,8 @@ class TournamentController extends Controller
             'ends_on' => $data['ends_on'],
             'city' => $data['city'],
             'country' => $data['country'],
-            'rules_format' => $data['rules_format'],
+            'tournament_mode' => $data['tournament_mode'],
+            'domino_rules' => $data['domino_rules'],
             /*
              * Dipatok, tidak diambil dari layar: seluruh turnamen federasi ini
              * digelar langsung, jadi dropdown-nya dicabut. Tetap ditulis ke
@@ -404,8 +406,8 @@ class TournamentController extends Controller
              * `game_format` tidak lagi ditulis. Kolomnya dibiarkan berisi apa
              * adanya untuk baris lama, dan tidak ada satu pun yang membacanya
              * lagi — `formatLabel` dan fakta "Game format" di halaman publik
-             * sekarang membaca `rules_format`, yang memang mengatakan hal yang
-             * sama dan dipilih dari daftar tertutup.
+             * sekarang dirangkai dari `tournament_mode` + `domino_rules`, yang
+             * memang mengatakan hal yang sama dan dipilih dari daftar tertutup.
              */
             'participant_count' => $data['participant_count'] ?? null,
 
@@ -419,12 +421,12 @@ class TournamentController extends Controller
              * pada jumlah peserta saat disimpan — dan itu yang benar: mengubah
              * jumlahnya berarti menyimpan lagi, yang menuliskannya ulang.
              */
-            'participant_type' => TournamentRules::participantType($data['rules_format']),
+            'participant_type' => TournamentRules::participantType($data['tournament_mode']),
             'competition_system' => TournamentRules::competitionSystemFor(
-                $data['rules_format'],
+                $data['tournament_mode'],
                 $data['participant_count'] ?? null,
             ),
-            'scoring' => TournamentRules::scoringFor($data['rules_format']),
+            'scoring' => TournamentRules::scoringFor($data['tournament_mode'], $data['domino_rules']),
 
             'status' => $request->resolvedStatus(),
             'published_at' => $this->resolvedPublishedAt($data),
@@ -542,7 +544,8 @@ class TournamentController extends Controller
                 'coverage' => $options['coverage'],
                 // Bentuk penuh, bukan daftar nama: layar butuh `side`, pilihan
                 // jumlah pesertanya, dan label kolomnya untuk tiap aturan.
-                'rulesFormats' => TournamentRules::options(),
+                'tournamentModes' => TournamentRules::modeOptions(),
+                'dominoRules' => TournamentRules::ruleOptions(),
                 'currencies' => $options['currencies'],
                 'prizeTypes' => collect($options['prize_types'])
                     ->map(fn (string $label, string $value) => ['value' => $value, 'label' => $label])

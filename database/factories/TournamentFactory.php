@@ -29,7 +29,8 @@ class TournamentFactory extends Factory
             'ends_on' => $end,
             'city' => fake()->city(),
             'country' => fake()->country(),
-            'rules_format' => fake()->randomElement(TournamentRules::names()),
+            'tournament_mode' => fake()->randomElement(TournamentRules::modes()),
+            'domino_rules' => fake()->randomElement(TournamentRules::ruleNames()),
             'hero_image_path' => 'tournaments/hero.webp',
             'overview' => fake()->paragraph(8),
 

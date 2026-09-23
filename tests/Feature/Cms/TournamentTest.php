@@ -39,7 +39,8 @@ class TournamentTest extends TestCase
             'ends_on' => '2027-03-21',
             'city' => 'Bangkok',
             'country' => 'Thailand',
-            'rules_format' => 'Double 101',
+            'tournament_mode' => 'Double',
+            'domino_rules' => '101',
             'hero_image' => UploadedFile::fake()->image('hero.webp', 1600, 900),
             'overview' => str_repeat('Turnamen ini mempertemukan federasi anggota se-Asia. ', 3),
 

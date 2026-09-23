@@ -48,7 +48,11 @@ class TournamentRequest extends FormRequest
             'ends_on' => ['required', 'date', 'after_or_equal:starts_on'],
             'city' => ['required', 'string', 'max:120'],
             'country' => ['required', 'string', 'max:120'],
-            'rules_format' => ['required', Rule::in(TournamentRules::names())],
+            // Dua field, bukan satu: mode turnamen dan aturan domino adalah
+            // dua pertanyaan yang berdiri sendiri, dan enam nama lama adalah
+            // hasil silangnya.
+            'tournament_mode' => ['required', Rule::in(TournamentRules::modes())],
+            'domino_rules' => ['required', Rule::in(TournamentRules::ruleNames())],
 
             // "Primary image displayed in the tournament hero area." Wajib saat
             // membuat; saat menyunting, tidak mengunggah apa pun berarti
@@ -139,9 +143,10 @@ class TournamentRequest extends FormRequest
              * `attendance` dan `game_format` TIDAK lagi diterima dari layar.
              *
              * Yang pertama dipatok "Offline" — seluruh turnamen federasi ini
-             * digelar langsung. Yang kedua disembunyikan karena `rules_format`
-             * sudah mengatakannya: "Double 101" adalah formatnya, dan dua kolom
-             * untuk satu fakta berarti dua jawaban yang suatu saat berbeda.
+             * digelar langsung. Yang kedua disembunyikan karena pasangan
+             * `tournament_mode` + `domino_rules` sudah mengatakannya, dan dua
+             * kolom untuk satu fakta berarti dua jawaban yang suatu saat
+             * berbeda.
              */
 
             /*
@@ -151,14 +156,16 @@ class TournamentRequest extends FormRequest
              * 100 tim akan mencetak "50 opening-round matches" untuk bagan yang
              * tidak bisa disusun.
              *
-             * Daftarnya dibaca dari `rules_format` yang DIKIRIM di permintaan
-             * yang sama, jadi mengganti aturan dan jumlahnya sekaligus tetap
-             * divalidasi terhadap pasangan yang benar.
+             * Daftarnya milik MODE — sisi yang bertanding menentukan berapa
+             * peserta yang masuk akal, dan aturan dominonya tidak. Dibaca dari
+             * `tournament_mode` yang DIKIRIM di permintaan yang sama, jadi
+             * mengganti mode dan jumlahnya sekaligus tetap divalidasi terhadap
+             * pasangan yang benar.
              */
             'participant_count' => [
                 'nullable',
                 'integer',
-                Rule::in(TournamentRules::countsFor($this->string('rules_format')->toString())),
+                Rule::in(TournamentRules::countsFor($this->string('tournament_mode')->toString())),
             ],
 
             /*
