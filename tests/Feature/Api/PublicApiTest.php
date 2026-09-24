@@ -248,6 +248,32 @@ class PublicApiTest extends TestCase
     }
 
     /**
+     * Pita beranda membawa `status` DAN `registration`, karena tombolnya
+     * dipilih dari keduanya.
+     *
+     * Lima keadaan yang digambar desain, dan dua di antaranya tidak bisa
+     * dibedakan tanpa `status`: turnamen yang SEDANG dimainkan dengan
+     * pendaftaran tertutup, dan turnamen yang BELUM mulai dengan pendaftaran
+     * tertutup, sama-sama `registration = closed`. Yang pertama menawarkan
+     * "Watch Live", yang kedua tidak menawarkan apa pun selain detail.
+     */
+    public function test_the_home_showcase_carries_the_state_its_buttons_are_chosen_from(): void
+    {
+        Tournament::factory()->create([
+            'name' => 'sedang dimainkan, pendaftaran tutup',
+            'starts_on' => now()->subDay(),
+            'ends_on' => now()->addDay(),
+            'registration_starts_on' => now()->subMonth(),
+            'registration_ends_on' => now()->subWeek(),
+        ]);
+
+        $event = collect($this->getJson('/api/v1/tournaments/showcase')->json())->firstOrFail();
+
+        $this->assertSame('live', $event['status']);
+        $this->assertSame('closed', $event['registration']);
+    }
+
+    /**
      * Tidak ada satu pun yang ditandai — dan itu keadaan NORMAL, bukan galat.
      *
      * Balasannya array kosong dengan status 200, karena situs publik

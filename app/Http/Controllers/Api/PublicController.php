@@ -515,6 +515,22 @@ class PublicController extends Controller
             'id' => $card['id'],
             'slug' => $t->slug,
             'name' => $t->name,
+            /*
+             * Keduanya ditambahkan 2026-09-24, dan bukan kelengkapan: pita
+             * Featured Event memilih TOMBOLNYA dari sini. Lima keadaan, dan
+             * keduanya diperlukan — `status` menjawab apakah pertandingannya
+             * sudah/sedang/belum berjalan, `registration` menjawab apakah
+             * pendaftarannya menerima. Tanpa `status`, turnamen yang sedang
+             * dimainkan tapi pendaftarannya sudah ditutup tidak bisa dibedakan
+             * dari turnamen yang belum mulai dan pendaftarannya tutup, dan
+             * keduanya menuntut tombol yang berbeda.
+             *
+             * Nilainya diambil dari `TournamentResource`, bukan dihitung lagi
+             * di sini: kartu turnamen dan pita beranda harus menyebut keadaan
+             * yang SAMA untuk turnamen yang sama.
+             */
+            'status' => $card['status'],
+            'registration' => $card['registration'],
             'dateLabel' => $card['dateLabel'],
             'location' => $t->location,
             'summary' => str($t->overview)->stripTags()->limit(200)->toString(),
