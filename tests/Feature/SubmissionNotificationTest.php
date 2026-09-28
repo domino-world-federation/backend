@@ -99,7 +99,7 @@ class SubmissionNotificationTest extends TestCase
         $secret = 'Rahasia yang tidak boleh keluar lewat surel sama sekali.';
 
         $this->postJson('/api/v1/integrity-reports', [
-            'type' => 'Doping',
+            'type' => 'Anti-doping concern',
             'description' => $secret,
         ])->assertNoContent();
 
@@ -110,8 +110,8 @@ class SubmissionNotificationTest extends TestCase
             $this->assertStringNotContainsString($secret, $bell);
             $this->assertStringNotContainsString($secret, $mail);
             // Jenis insidennya pun tidak — ia sudah cukup untuk menebak isinya.
-            $this->assertStringNotContainsString('Doping', $bell);
-            $this->assertStringNotContainsString('Doping', $mail);
+            $this->assertStringNotContainsString('Anti-doping concern', $bell);
+            $this->assertStringNotContainsString('Anti-doping concern', $mail);
 
             return true;
         });
@@ -131,7 +131,7 @@ class SubmissionNotificationTest extends TestCase
         $superAdmin = User::factory()->superAdmin()->create();
 
         $this->postJson('/api/v1/integrity-reports', [
-            'type' => 'Doping',
+            'type' => 'Anti-doping concern',
             'description' => 'Laporan yang cukup panjang untuk lolos validasi.',
         ])->assertNoContent();
 

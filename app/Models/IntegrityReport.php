@@ -20,14 +20,20 @@ class IntegrityReport extends Model
 {
     use HasFactory, RecordsActivity;
 
-    /** Jenis insiden yang digambar `601:17709`, urut seperti di sana. */
+    /**
+     * Jenis laporan yang diterima formulir `/integrity`, urut seperti di sana.
+     *
+     * Kontrak dengan `landing-page-nuxt` (`INTEGRITY_COPY.report.types`):
+     * nilai di luar daftar ini ditolak 422. Diganti revisi tim DWF 2026-09-28;
+     * laporan lama tetap membawa jenis lamanya, dan layar CMS menawarkannya di
+     * filter selama masih ada barisnya.
+     */
     public const TYPES = [
-        'Match manipulation',
-        'Doping',
-        'Betting or insider information',
-        'Harassment or abuse',
-        'Conflict of interest',
-        'Something else',
+        'Cheating or match manipulation',
+        'Corruption or betting',
+        'Abuse, harassment or discrimination',
+        'Anti-doping concern',
+        'Other',
     ];
 
     /** Panjang minimum yang sama dengan yang diperiksa formulirnya sendiri. */

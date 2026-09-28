@@ -46,10 +46,29 @@ class IntegrityReportController extends Controller
                     'isRead' => $r->read_at !== null,
                     'receivedAt' => $r->created_at?->toIso8601String(),
                 ]),
-            'types' => IntegrityReport::TYPES,
+            'types' => $this->filterTypes(),
             'unreadCount' => IntegrityReport::query()->unread()->count(),
             'filters' => ['q' => $search, 'type' => $type, 'status' => $status],
         ]);
+    }
+
+    /**
+     * Jenis yang ditawarkan filter: yang diterima formulir sekarang, lalu jenis
+     * lama yang masih melekat pada laporan yang tersimpan. Tanpa yang kedua,
+     * laporan sebelum revisi 2026-09-28 tidak bisa disaring sama sekali.
+     *
+     * @return list<string>
+     */
+    private function filterTypes(): array
+    {
+        $stored = IntegrityReport::query()
+            ->whereNotIn('type', IntegrityReport::TYPES)
+            ->distinct()
+            ->orderBy('type')
+            ->pluck('type')
+            ->all();
+
+        return [...IntegrityReport::TYPES, ...$stored];
     }
 
     /** Query daftar — dipakai layar daftar DAN ekspor, supaya keduanya sepakat. */

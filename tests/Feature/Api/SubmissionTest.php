@@ -140,17 +140,17 @@ class SubmissionTest extends TestCase
     public function test_an_integrity_report_is_stored(): void
     {
         $this->postJson('/api/v1/integrity-reports', [
-            'type' => 'Match manipulation',
+            'type' => 'Cheating or match manipulation',
             'description' => 'Dua pemain sepakat mengatur hasil babak ketiga.',
         ])->assertNoContent();
 
-        $this->assertSame('Match manipulation', IntegrityReport::query()->sole()->type);
+        $this->assertSame('Cheating or match manipulation', IntegrityReport::query()->sole()->type);
     }
 
     public function test_a_report_shorter_than_the_form_allows_is_refused(): void
     {
         $this->postJson('/api/v1/integrity-reports', [
-            'type' => 'Doping',
+            'type' => 'Anti-doping concern',
             'description' => 'terlalu pendek',
         ])->assertJsonValidationErrors('description');
     }
@@ -164,7 +164,7 @@ class SubmissionTest extends TestCase
     public function test_a_report_carries_no_identity_at_all(): void
     {
         $this->postJson('/api/v1/integrity-reports', [
-            'type' => 'Doping',
+            'type' => 'Anti-doping concern',
             'description' => 'Sampel diganti sebelum pengujian dilakukan.',
         ]);
 
@@ -223,7 +223,7 @@ class SubmissionTest extends TestCase
             ->assertNoContent();
 
         $this->postJson('/api/v1/integrity-reports', [
-            'type' => 'Doping',
+            'type' => 'Anti-doping concern',
             'description' => 'Laporan pertama orang ini, dan ia harus diterima.',
         ])->assertNoContent();
     }

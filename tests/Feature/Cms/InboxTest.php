@@ -115,12 +115,23 @@ class InboxTest extends TestCase
 
     public function test_reports_can_be_filtered_by_type(): void
     {
-        IntegrityReport::factory()->create(['type' => 'Doping']);
+        IntegrityReport::factory()->create(['type' => 'Anti-doping concern']);
+        IntegrityReport::factory()->create(['type' => 'Cheating or match manipulation']);
+
+        $this->actingAs($this->actor())
+            ->get('/integrity-reports?type=Anti-doping%20concern')
+            ->assertInertia(fn (AssertableInertia $p) => $p->has('reports.data', 1));
+    }
+
+    /** Laporan sebelum revisi jenisnya tetap bisa disaring — jenis lamanya ikut ditawarkan. */
+    public function test_a_retired_type_still_on_a_report_is_offered_as_a_filter(): void
+    {
         IntegrityReport::factory()->create(['type' => 'Match manipulation']);
 
         $this->actingAs($this->actor())
-            ->get('/integrity-reports?type=Doping')
-            ->assertInertia(fn (AssertableInertia $p) => $p->has('reports.data', 1));
+            ->get('/integrity-reports')
+            ->assertInertia(fn (AssertableInertia $p) => $p
+                ->where('types', [...IntegrityReport::TYPES, 'Match manipulation']));
     }
 
     public function test_a_viewer_cannot_delete_a_report(): void
