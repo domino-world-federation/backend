@@ -307,8 +307,9 @@ return [
      * rak menarik sendiri "N terbaru dari kategori X", jadi tidak ada seorang
      * pun yang bisa memutuskan dokumen MANA yang tampil di mana — dan dua rak
      * yang kebetulan menarik kategori yang sama menampilkan isi yang sama
-     * persis. Itu keadaan Governance: Statutes & Constitution dan Governance
-     * Repository dua-duanya `Governance Documents`.
+     * persis. Itu dulu keadaan Governance: Statutes & Constitution dan
+     * Governance Repository dua-duanya `Governance Documents` — sampai revisi
+     * 2026-09-28 menyatukan keduanya jadi satu rak, `governance.statutes`.
      *
      * ── Kuncinya kontrak antar-repo, seperti nama kategori ──
      *
@@ -367,13 +368,7 @@ return [
         ],
         'governance.statutes' => [
             'page' => 'Governance',
-            'label' => 'Statutes & Constitution',
-            'category' => 'Governance Documents',
-            'max' => 6,
-        ],
-        'governance.repository' => [
-            'page' => 'Governance',
-            'label' => 'Governance Repository',
+            'label' => 'Governance Documents',
             'category' => 'Governance Documents',
             'max' => 6,
         ],

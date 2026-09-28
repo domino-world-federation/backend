@@ -210,9 +210,9 @@ class FrontendContentSeeder extends Seeder
     private function standingCommittees(): void
     {
         $rows = [
-            ['Technical rules', ['International Rulebook Oversight', 'Equipment Standards', 'Tournament Sanctioning']],
-            ['Medical & Anti-doping', ['WADA Compliance', 'Player Welfare Protocols', 'Mental Health in Sport']],
-            ['Ethics & Compliance', ['Conflict of Interest', 'Disciplinary Tribunal', 'Good Governance Audit']],
+            ['Governance & Ethics', ['Transparent Governance', 'High Ethical Standards']],
+            ['Equality & Representation', ['Gender Equality', 'Athlete Representation']],
+            ['International Commitments', ['World Anti-Doping Code Adherence', 'CAS Jurisdiction']],
         ];
 
         foreach ($rows as $index => [$name, $remit]) {
@@ -403,7 +403,7 @@ class FrontendContentSeeder extends Seeder
             ['/gallery', 'Gallery', 'Gallery | Domino World Federation', 'Photographs and films from Domino World Federation events — world championships, continental masters, and the federation\'s own documentaries.'],
             ['/federation-members', 'Members', 'Members | Domino World Federation', 'The federation\'s global membership — national bodies across six continents, what membership grants, and the four-step pathway to DWF recognition.'],
             ['/player-membership', 'Player Membership', 'Player Membership | Domino World Federation', 'The DWF ID — one verified identity across the federation\'s network. What it is, what it grants, who can apply and how the application works.'],
-            ['/governance', 'Governance', 'Governance | Domino World Federation', 'How the Domino World Federation is run — its mandate and mission, standing committees, statutes and constitution, the 2026–2029 strategic plan, and the public governance repository.'],
+            ['/governance', 'Governance', 'Governance | Domino World Federation', 'How the Domino World Federation is run — its role and commitments, governance documents, and the Domino Agenda 2030 Strategic Plan.'],
             ['/integrity', 'Integrity', 'Integrity | Domino World Federation', 'The federation\'s zero-tolerance policy on competitive integrity — core principles, the code of ethics, how the Tile-Trace engine detects manipulation, how a report is handled, and how to file one.'],
             ['/development', 'Development', 'Development | Domino World Federation', 'How the federation grows the game — youth programmes in partner schools, referee and coaching certification, grassroots initiatives, and support for national member bodies.'],
             ['/contact', 'Contact', 'Contact | Domino World Federation', 'Reach the Domino World Federation for general enquiries, membership information, tournament support, partnerships and media requests.'],

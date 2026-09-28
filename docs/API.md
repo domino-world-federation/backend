@@ -184,7 +184,7 @@ bernama Documents; keduanya hal yang sama.
 
 **`?section=` adalah cara yang dipakai hampir semua rak.** Nilainya kunci di
 `config('dwf.document_sections')` — `home.resources`, `domino.rulebook`,
-`governance.statutes`, `governance.repository`, `development.library`,
+`governance.statutes`, `development.library`,
 `development.youth`, `tournaments.regulations`, `news.press`,
 `news.publications` — dan yang dibalas adalah dokumen yang dipilih admin di
 layar "Documents per Halaman", dalam urutannya, dibatasi `max` rak itu.
