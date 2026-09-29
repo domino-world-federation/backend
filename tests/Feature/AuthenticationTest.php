@@ -44,6 +44,27 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+    /**
+     * "Ingat saya" berlaku 7 hari, bukan ±400 hari bawaan Laravel — dengan
+     * bawaan itu sesi prod praktis tidak pernah berakhir sendiri.
+     */
+    public function test_remember_me_lasts_seven_days(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'remember' => true,
+        ]);
+
+        $cookie = collect($response->headers->getCookies())
+            ->first(fn ($c) => str_starts_with($c->getName(), 'remember_web_'));
+
+        $this->assertNotNull($cookie, 'Login dengan "Ingat saya" harus memasang cookie remember.');
+        $this->assertEqualsWithDelta(now()->addDays(7)->getTimestamp(), $cookie->getExpiresTime(), 60);
+    }
+
     public function test_login_regenerates_the_session_id(): void
     {
         $user = User::factory()->superAdmin()->create();

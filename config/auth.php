@@ -41,6 +41,13 @@ return [
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+            /*
+             * Umur cookie "Ingat saya", dalam menit: 7 hari. Bawaan Laravel
+             * 576000 menit (±400 hari) — praktis tidak pernah logout sendiri,
+             * yang dikeluhkan di prod (2026-09-29). Dibaca `AuthManager` saat
+             * guard dibuat (`setRememberDuration`).
+             */
+            'remember' => (int) env('AUTH_REMEMBER_MINUTES', 60 * 24 * 7),
         ],
     ],
 
