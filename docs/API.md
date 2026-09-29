@@ -289,7 +289,8 @@ di kartu detail halaman `/federation-members`, bukan data pribadi yang bocor.
 | Endpoint | Balasan |
 |---|---|
 | `/legal/{key}` | `privacy-policy` \| `terms` \| `cookie-policy`. `sections[].description` HTML dasar |
-| `/home` | `{ hero, closing }` — naskah beranda yang tidak dimiliki modul lain |
+| `/home` | `{ hero, closing }` — **usang sejak 2026-09-29**; kini dibangun dari naskah Editor Halaman (`/pages/home`) dengan bentuk lamanya, untuk situs yang belum di-deploy ulang. Situs baru membaca `/pages/home` |
+| `/pages/{page}` | `{ values }` — naskah halaman dari editor halaman, kunci `section.field`; hanya field yang terisi, jenis `lines` sebagai larik. `?preview={token}` yang sah membuka DRAF (`no-store`); token salah/kedaluwarsa jatuh ke versi terbit, bukan galat. Halaman tak dikenal 404. Skema: `config('dwf.pages')` |
 | `/settings` | objek kunci-nilai: kontak dan tautan sosial |
 | `/seo` | `{ default, pages }` — halaman mencari rutenya lalu jatuh ke `default` |
 

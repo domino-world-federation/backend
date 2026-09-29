@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\TracksEditor;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,9 +22,11 @@ use Illuminate\Database\Eloquent\Model;
  * Eloquent memperlakukan `key` sebagai integer dan `find('primary_email')`
  * mengembalikan baris yang salah tanpa galat.
  */
-#[Fillable(['key', 'group', 'value'])]
+#[Fillable(['key', 'group', 'value', 'draft'])]
 class SiteSetting extends Model
 {
+    use TracksEditor;
+
     protected $primaryKey = 'key';
 
     public $incrementing = false;

@@ -380,6 +380,7 @@ pendek.
 | Kunci | Kalau salah |
 |---|---|
 | `APP_URL` | API publik mengirim **URL gambar absolut** (§5.2 kontrak API). Salah nilainya = tiap gambar di situs publik menunjuk domain yang salah, sementara backoffice tetap normal |
+| `DWF_SITE_URL` | Alamat situs publik (mis. `https://fed-web.pborado.com`), tanpa garis miring penutup — sumber iframe pratinjau **Editor Halaman**. Salah nilainya = pratinjaunya kosong; bawaannya `http://localhost:3000`. Situs publik sendiri harus mengizinkan backoffice membingkainya lewat `NUXT_PUBLIC_BACKOFFICE_ORIGIN`, dan **nginx situs publik tidak boleh menambahkan `X-Frame-Options`** — header itu menang atas `frame-ancestors` di sebagian browser |
 | `CORS_ALLOWED_ORIGINS` | Daftar domain situs publik, dipisah koma. **Kosong adalah bawaan yang benar** dan menghasilkan galat CORS yang terlihat di konsol; wildcard `*` menghasilkan lubang yang tidak terlihat di mana pun. Jangan pakai `*` |
 | `MAIL_*` | **Dua jalur sekarang.** Pemberitahuan formulir situs publik lewat ANTREAN — butuh `dwf-queue` hidup (§1), dan tanpanya tidak ada surel yang keluar tanpa satu pun tanda. Undangan admin tetap **sinkron** (`Mail::to()->send()`). SMTP yang lambat memperlambat request-nya; SMTP yang mati membuat undangan gagal terkirim — tapi akunnya tetap dibuat, dan layarnya memberi tahu bahwa tautannya perlu dikirim ulang. Tombolnya sudah ada. **Penyetelan lengkapnya di §15** — termasuk kenapa `MAIL_MAILER=log` adalah kegagalan yang terlihat seperti keberhasilan |
 
@@ -512,7 +513,7 @@ menentukan apakah situs publik tampil utuh:
 |---|---|
 | Contact & Social | Kaki halaman tanpa alamat dan tanpa tautan sosial |
 | Legal Pages | `/page/terms`, `/page/privacy-policy`, `/page/cookie-policy` kosong |
-| Home Page | Hero dan ajakan penutup memakai naskah bawaan dari kode |
+| Page Editor (`/pages`) | Tiap halaman memakai naskah bawaan dari kode — tidak kosong, tapi bukan naskah federasi. Naskah beranda yang sudah diisi di layar Home Page lama disalin ke sini oleh migrasi `move_home_copy_to_page_editor` |
 | SEO & Social | Judul halaman memakai bawaan kode; tautan yang dibagikan tanpa gambar |
 
 ### Cadangan

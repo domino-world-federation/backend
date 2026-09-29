@@ -8,110 +8,97 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Halaman Depan.
+ * Naskah beranda — sejak 2026-09-29 disunting di Editor Halaman (`/pages/home`).
  *
- * Layar ini menggantikan grup "Landing Page" berisi delapan submenu placeholder
- * (`252:3403`). Yang dikunci di sini: batasnya (hanya naskah yang tidak dimiliki
- * modul lain), pemisahan kelompok dari pengaturan kontak, dan bentuk response
- * yang dibaca situs publik.
+ * Yang dijaga di sini adalah perpindahannya: layar lama mengalihkan, isi lama
+ * ikut pindah, dan `/api/v1/home` tetap menjawab dengan bentuk lamanya untuk
+ * situs yang belum di-deploy ulang.
  */
 class HomePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @return array<string, string> */
-    private function payload(array $overrides = []): array
+    private function editor(): User
     {
-        return array_merge([
-            'hero_tagline' => 'Domino World Federation',
+        return User::factory()->withRole('editor')->create();
+    }
+
+    public function test_the_old_screen_sends_people_to_the_page_editor(): void
+    {
+        $this->actingAs($this->editor())
+            ->get('/home-page')
+            ->assertRedirect('/pages/home');
+    }
+
+    public function test_the_stored_copy_moves_to_the_page_editor_keys(): void
+    {
+        SiteSetting::putMany([
             'hero_headline' => 'Dominoes Without Borders',
-            'hero_mission' => 'To unite the world through dominoes.',
-            'hero_accountability' => 'Designed and operates under a rigorous framework.',
-            'hero_primary_cta' => 'Explore Membership',
+            'closing_headline' => "Join DWF Through\nYour National Federation",
             'hero_primary_cta_url' => '/federation-members',
-            'hero_secondary_cta' => 'Official Rules',
-            'hero_secondary_cta_url' => '#',
-            'closing_headline' => "Bring Your Nation\nTo The World Stage",
-            'closing_body' => 'We are accepting applications.',
-            'closing_cta' => 'Get In Touch',
-            'closing_cta_url' => '/contact',
-        ], $overrides);
+            'hero_tagline' => '',
+        ], SiteSetting::GROUP_HOME);
+
+        (require database_path('migrations/2026_09_29_120000_move_home_copy_to_page_editor.php'))->up();
+
+        $this->assertSame('Dominoes Without Borders', SiteSetting::query()->find('home.hero.headline')->value);
+        $this->assertSame('page.home', SiteSetting::query()->find('home.hero.headline')->group);
+        $this->assertSame("Join DWF Through\nYour National Federation", SiteSetting::query()->find('home.closing.headline')->value);
+        // Terbit, bukan draf: itulah yang sedang tayang.
+        $this->assertNull(SiteSetting::query()->find('home.hero.headline')->draft);
+        // Yang kosong tidak disalin — situs memakai bawaannya.
+        $this->assertNull(SiteSetting::query()->find('home.hero.tagline'));
     }
 
-    public function test_the_copy_round_trips(): void
+    public function test_the_move_does_not_overwrite_what_the_editor_already_holds(): void
     {
-        $this->actingAs(User::factory()->superAdmin()->create())
-            ->put('/home-page', $this->payload())
-            ->assertSessionHasNoErrors();
+        SiteSetting::putMany(['hero_headline' => 'Old'], SiteSetting::GROUP_HOME);
+        SiteSetting::query()->create(['key' => 'home.hero.headline', 'group' => 'page.home', 'value' => 'Newer']);
 
-        $stored = SiteSetting::map(SiteSetting::GROUP_HOME);
+        (require database_path('migrations/2026_09_29_120000_move_home_copy_to_page_editor.php'))->up();
 
-        $this->assertSame('Dominoes Without Borders', $stored['hero_headline']);
-        $this->assertSame('/contact', $stored['closing_cta_url']);
+        $this->assertSame('Newer', SiteSetting::query()->find('home.hero.headline')->value);
     }
 
-    /**
-     * Tautan yang salah ketik gagal DIAM-DIAM: tombolnya tetap tergambar dan
-     * tetap bisa ditekan, cuma tidak sampai ke mana-mana.
-     */
+    public function test_the_old_endpoint_keeps_its_shape_for_a_site_not_yet_redeployed(): void
+    {
+        $this->actingAs($this->editor())
+            ->post('/pages/home/publish', ['values' => [
+                'hero.headline' => 'Dominoes Without Borders',
+                'hero.primary_cta_url' => '/federation-members',
+                'closing.headline' => "Bring Your Nation\nTo The World Stage",
+            ]])
+            ->assertRedirect();
+
+        $this->getJson('/api/v1/home')
+            ->assertOk()
+            ->assertJsonPath('hero.headline', 'Dominoes Without Borders')
+            ->assertJsonPath('hero.primaryCtaUrl', '/federation-members')
+            ->assertJsonPath('closing.headline', ['Bring Your Nation', 'To The World Stage']);
+    }
+
+    public function test_the_old_endpoint_survives_an_empty_table(): void
+    {
+        $this->getJson('/api/v1/home')->assertOk()->assertExactJson(['hero' => [], 'closing' => []]);
+    }
+
     public function test_a_button_link_must_be_a_path_an_anchor_or_a_url(): void
     {
-        $this->actingAs(User::factory()->superAdmin()->create())
-            ->put('/home-page', $this->payload(['hero_primary_cta_url' => 'federation members']))
-            ->assertSessionHasErrors('hero_primary_cta_url');
+        $this->actingAs($this->editor())
+            ->put('/pages/home/draft', ['values' => ['hero.primary_cta_url' => 'federation members']])
+            ->assertSessionHasErrors('values.hero.primary_cta_url');
+
+        foreach (['/federation-members', '#', 'https://example.org/x'] as $ok) {
+            $this->put('/pages/home/draft', ['values' => ['hero.primary_cta_url' => $ok]])
+                ->assertSessionHasNoErrors();
+        }
     }
 
-    /**
-     * Naskah halaman depan dan pengaturan kontak tinggal di TABEL yang sama,
-     * dipisah kolom `group`. Tanpa pemisahan itu, `/api/v1/settings` akan
-     * mengirim headline hero ke footer yang cuma butuh alamat surel.
-     */
     public function test_home_copy_does_not_leak_into_the_settings_endpoint(): void
     {
-        SiteSetting::putMany(['primary_email' => 'contact@dwf-domino.org'], SiteSetting::GROUP_CONTACT);
+        $this->actingAs($this->editor())
+            ->post('/pages/home/publish', ['values' => ['hero.headline' => 'Dominoes Without Borders']]);
 
-        $this->actingAs(User::factory()->superAdmin()->create())->put('/home-page', $this->payload());
-
-        $settings = $this->getJson('/api/v1/settings')->assertOk()->json();
-
-        // Kuncinya camelCase di API walau snake_case di database — sama
-        // dengan seluruh endpoint lain.
-        $this->assertArrayHasKey('primaryEmail', $settings);
-        $this->assertArrayNotHasKey('heroHeadline', $settings);
-        $this->assertArrayNotHasKey('hero_headline', $settings);
-    }
-
-    /**
-     * Headline penutup dipecah jadi LARIK.
-     *
-     * Figma memutus barisnya secara eksplisit (`56:4683`) dan putusan itu bagian
-     * dari komposisinya — dua baris berbobot sama, di tengah. Mengirimnya
-     * sebagai satu kalimat berarti `<br>` yang harus dibawa-bawa penerjemah.
-     */
-    public function test_the_api_splits_the_closing_headline_into_lines(): void
-    {
-        $this->actingAs(User::factory()->superAdmin()->create())->put('/home-page', $this->payload());
-
-        $body = $this->getJson('/api/v1/home')->assertOk()->json();
-
-        $this->assertSame('Dominoes Without Borders', $body['hero']['headline']);
-        $this->assertSame('/federation-members', $body['hero']['primaryCtaUrl']);
-        $this->assertSame(['Bring Your Nation', 'To The World Stage'], $body['closing']['headline']);
-    }
-
-    /** Tanpa satu baris pun, bentuknya tetap dua objek — bukan larik kosong. */
-    public function test_the_api_shape_survives_an_empty_table(): void
-    {
-        $body = $this->getJson('/api/v1/home')->assertOk()->json();
-
-        $this->assertSame([], $body['hero']);
-        $this->assertSame([], $body['closing']);
-    }
-
-    public function test_a_viewer_cannot_change_the_home_page(): void
-    {
-        $this->actingAs(User::factory()->withRole('viewer')->create())
-            ->put('/home-page', $this->payload())
-            ->assertForbidden();
+        $this->getJson('/api/v1/settings')->assertOk()->assertJsonMissing(['Dominoes Without Borders']);
     }
 }

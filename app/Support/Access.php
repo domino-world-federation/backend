@@ -14,7 +14,7 @@ final class Access
 {
     /** kunci modul => label yang dibaca manusia di layar peran */
     public const MODULES = [
-        'home' => 'Home Page',
+        'pages' => 'Page Editor',
         'news' => 'News',
         'tournaments' => 'Events & Tournaments',
         'federations' => 'Federations & Members',
@@ -45,7 +45,9 @@ final class Access
      * membuat layar peran penuh kotak centang yang tidak berarti apa-apa.
      */
     private const LIMITED = [
-        'home' => ['view', 'update'],
+        // `update` mencakup menyimpan draf DAN menerbitkan — keputusan
+        // 2026-09-29: setiap peran yang boleh menyunting boleh menerbitkan.
+        'pages' => ['view', 'update'],
         'settings' => ['view', 'update'],
         'activity-log' => ['view'],
         'contact-messages' => ['view', 'delete'],
@@ -73,7 +75,7 @@ final class Access
     public const ROLE_META = [
         self::SUPER_ADMIN => ['scope' => 'global', 'summary' => 'Full Backoffice access'],
         'admin' => ['scope' => 'global', 'summary' => 'All modules except admin accounts and IP whitelist'],
-        'editor' => ['scope' => 'global', 'summary' => 'News, FAQ, documents, gallery, tournaments, federations'],
+        'editor' => ['scope' => 'global', 'summary' => 'News, FAQ, documents, gallery, tournaments, federations, page text'],
         'viewer' => ['scope' => 'global', 'summary' => 'Read-only operational access'],
     ];
 
@@ -108,7 +110,7 @@ final class Access
      */
     public static function roles(): array
     {
-        $editorModules = ['news', 'faq', 'documents', 'gallery', 'tournaments', 'federations', 'results', 'people', 'blocks'];
+        $editorModules = ['news', 'faq', 'documents', 'gallery', 'tournaments', 'federations', 'results', 'people', 'blocks', 'pages'];
 
         return [
             self::SUPER_ADMIN => null,

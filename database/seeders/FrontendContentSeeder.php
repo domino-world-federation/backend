@@ -21,6 +21,7 @@ use App\Models\StandingCommittee;
 use App\Models\SubCommittee;
 use App\Models\Tournament;
 use App\Models\User;
+use App\Support\PageContent;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -596,21 +597,23 @@ class FrontendContentSeeder extends Seeder
      */
     private function homeCopy(): void
     {
+        // Kunci Editor Halaman (`config('dwf.pages.home')`), sebagai nilai
+        // TERBIT — layar Home Page lama sudah dialihkan ke sana.
         SiteSetting::putMany([
-            'hero_tagline' => 'Domino World Federation',
-            'hero_headline' => 'Dominoes Without Borders',
-            'hero_mission' => 'To unite the world through dominoes by connecting nations, growing the game, and setting fair global standards for every player.',
-            'hero_accountability' => 'Designed and operates under a rigorous framework of accountability',
-            'hero_primary_cta' => 'Explore Membership',
-            'hero_primary_cta_url' => '/federation-members',
-            'hero_secondary_cta' => 'Official Rules',
-            'hero_secondary_cta_url' => '#',
+            'home.hero.tagline' => 'Domino World Federation',
+            'home.hero.headline' => 'Dominoes Without Borders',
+            'home.hero.mission' => 'To unite the world through dominoes by connecting nations, growing the game, and setting fair global standards for every player.',
+            'home.hero.accountability' => 'Designed and operates under a rigorous framework of accountability',
+            'home.hero.primary_cta' => 'Explore Membership',
+            'home.hero.primary_cta_url' => '/federation-members',
+            'home.hero.secondary_cta' => 'Official Rules',
+            'home.hero.secondary_cta_url' => '#',
 
-            'closing_headline' => "Join DWF Through\nYour National Federation",
-            'closing_body' => "Contact your country's national federation to apply for DWF membership and obtain your DWF ID.",
-            'closing_cta' => 'Get In Touch',
-            'closing_cta_url' => '/contact',
-        ], SiteSetting::GROUP_HOME);
+            'home.closing.headline' => "Join DWF Through\nYour National Federation",
+            'home.closing.body' => "Contact your country's national federation to apply for DWF membership and obtain your DWF ID.",
+            'home.closing.cta' => 'Get In Touch',
+            'home.closing.cta_url' => '/contact',
+        ], PageContent::group('home'));
     }
 
     /**

@@ -53,10 +53,19 @@ tidak ada di halaman itu akan ditulis ulang oleh orang berikutnya.
   kelompok terakhir yang memakainya (Header & Navigation, Footer, Landing Page)
   semuanya berakhir dibuang atau diganti layar sungguhan.
 - **`site_settings` punya kolom `group`, dan `map()`/`putMany()` MENUNTUTnya.**
-  `contact` dibaca footer lewat `/api/v1/settings`; `home` naskah halaman depan
-  lewat `/api/v1/home`. Tanpa pemisahan itu endpoint pertama mengirim headline
+  `contact` dibaca footer lewat `/api/v1/settings`; `page.{halaman}` naskah
+  halaman dari Editor Halaman lewat `/api/v1/pages/{halaman}` (termasuk beranda,
+  `page.home`, sejak 2026-09-29 — kelompok `home` lama tinggal arsip). Tanpa pemisahan itu endpoint pertama mengirim headline
   hero ke footer yang cuma butuh alamat surel. Jangan menambahkan tabel
   kunci-nilai kedua untuk kelompok berikutnya — tambahkan nilai `group` baru.
+- **Naskah halaman dari Editor Halaman juga tinggal di `site_settings`**
+  (kelompok `page.{halaman}`, kunci `{halaman}.{section}.{field}`), dengan kolom
+  `draft` di samping `value`: `value` yang tayang, `draft` yang sedang
+  dikerjakan, `draft` null = tidak ada perubahan tertunda. Skemanya
+  `config('dwf.pages')`, dan **kuncinya kontrak** dengan `landing-page-nuxt`
+  (situs menandai elemennya dengan kunci yang sama) — `PageContentTest`
+  mengejanya lengkap. Data yang punya modul sendiri tidak disalin ke skema;
+  section-nya membawa `elsewhere`, tautan ke layar modul itu.
 - **Struktur sidebar cuma punya satu sumber:
   [`app/Support/Navigation.php`](app/Support/Navigation.php).** Sidebar Vue,
   daftar route di `routes/web.php`, dan judul halaman placeholder semuanya

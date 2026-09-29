@@ -38,6 +38,8 @@ use App\Models\SubCommittee;
 use App\Models\Tournament;
 use App\Support\DocumentSections;
 use App\Support\Media\StoredFile;
+use App\Support\PageContent;
+use App\Support\PreviewToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -293,25 +295,43 @@ class PublicController extends Controller
      * `<br>` di dalam satu kalimat adalah sesuatu yang harus dibawa-bawa
      * penerjemah.
      */
+    /**
+     * Naskah satu halaman dari editor halaman — hanya field yang terisi;
+     * sisanya situs memakai bawaan di kodenya.
+     *
+     * `?preview={token}` yang sah (dibuat layar editor, terikat ke halaman
+     * ini) membuka DRAF. Token yang kedaluwarsa atau salah TIDAK menjadi
+     * galat: jawabannya jatuh ke versi terbit, karena iframe pratinjau yang
+     * dibiarkan terbuka semalaman lebih baik memperlihatkan halaman yang tayang
+     * daripada halaman rusak.
+     */
+    public function page(Request $request, string $page): JsonResponse
+    {
+        abort_unless(PageContent::exists($page), 404);
+
+        $preview = PreviewToken::valid($request->query('preview'), $page);
+
+        return response()
+            ->json(['values' => (object) PageContent::forSite($page, $preview)])
+            // Draf tidak boleh tersimpan di cache mana pun di antara server
+            // dan pratinjau.
+            ->header('Cache-Control', $preview ? 'no-store' : 'public, max-age=0');
+    }
+
     public function home(): JsonResponse
     {
-        $values = SiteSetting::map(SiteSetting::GROUP_HOME);
+        // Sejak 2026-09-29 naskah beranda disunting di Editor Halaman
+        // (`/pages/home`). Endpoint ini dipertahankan dengan BENTUK lamanya
+        // supaya situs yang belum di-deploy ulang tetap benar di antara deploy
+        // backend dan frontend; situs yang baru membaca `/pages/home`.
+        $values = PageContent::forSite('home');
 
-        $pick = fn (string $prefix) => collect($values)
-            ->filter(fn (?string $v, string $k) => str_starts_with($k, $prefix) && filled($v))
-            ->mapWithKeys(fn (string $v, string $k) => [
-                (string) str($k)->after($prefix)->camel() => $v,
-            ])
+        $pick = fn (string $section) => collect($values)
+            ->filter(fn ($v, string $k) => str_starts_with($k, "{$section}."))
+            ->mapWithKeys(fn ($v, string $k) => [(string) str($k)->after("{$section}.")->camel() => $v])
             ->all();
 
-        $hero = $pick('hero_');
-        $closing = $pick('closing_');
-
-        if (isset($closing['headline'])) {
-            $closing['headline'] = preg_split('/\R/', trim($closing['headline'])) ?: [];
-        }
-
-        return response()->json(['hero' => $hero, 'closing' => $closing]);
+        return response()->json(['hero' => (object) $pick('hero'), 'closing' => (object) $pick('closing')]);
     }
 
     /**

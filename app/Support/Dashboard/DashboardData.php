@@ -6,8 +6,8 @@ use App\Models\ContactMessage;
 use App\Models\Document;
 use App\Models\FederationStat;
 use App\Models\NewsArticle;
-use App\Models\SiteSetting;
 use App\Models\Tournament;
+use App\Support\PageContent;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -151,7 +151,8 @@ final class DashboardData
         $featured = Tournament::query()->live()
             ->whereDate('starts_on', '>=', now()->startOfDay())
             ->count();
-        $homeCopy = SiteSetting::map(SiteSetting::GROUP_HOME);
+        // Naskah beranda dari Editor Halaman — yang TAYANG, bukan draf.
+        $homeCopy = PageContent::published('home');
 
         /**
          * Tiap baris menaut ke layar yang BENAR-BENAR mengelolanya.
@@ -176,11 +177,11 @@ final class DashboardData
             [
                 'key' => 'hero',
                 'label' => 'Hero',
-                'status' => filled($homeCopy['hero_headline'] ?? null) ? 'ready' : 'empty',
-                'note' => filled($homeCopy['hero_headline'] ?? null)
-                    ? $homeCopy['hero_headline']
+                'status' => filled($homeCopy['hero.headline'] ?? null) ? 'ready' : 'empty',
+                'note' => filled($homeCopy['hero.headline'] ?? null)
+                    ? $homeCopy['hero.headline']
                     : __('backoffice.section_status.empty_note'),
-                'href' => '/home-page',
+                'href' => '/pages/home',
             ],
             $count('stats', 'Stats & Metrics', $stats, '/federations/stats'),
             $count('featured-event', 'Featured Event', $featured, '/tournaments'),
@@ -210,11 +211,11 @@ final class DashboardData
             [
                 'key' => 'closing-cta',
                 'label' => 'Closing CTA',
-                'status' => filled($homeCopy['closing_headline'] ?? null) ? 'ready' : 'empty',
-                'note' => filled($homeCopy['closing_headline'] ?? null)
-                    ? str_replace("\n", ' ', $homeCopy['closing_headline'])
+                'status' => filled($homeCopy['closing.headline'] ?? null) ? 'ready' : 'empty',
+                'note' => filled($homeCopy['closing.headline'] ?? null)
+                    ? str_replace("\n", ' ', $homeCopy['closing.headline'])
                     : __('backoffice.section_status.empty_note'),
-                'href' => '/home-page',
+                'href' => '/pages/home',
             ],
         ];
     }

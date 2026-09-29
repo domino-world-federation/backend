@@ -191,6 +191,23 @@ kanvas **Backoffice**.
   (ganti satu kalimat = deploy), dan **tidak ada satu pun `og:image` di seluruh
   repo** — tiap tautan DWF yang dibagikan tampil tanpa gambar. Izinnya memakai
   `settings.*` yang sudah ada, bukan modul baru.
+- **Editor Halaman** (`/pages`, 2026-09-29) — naskah halaman publik disunting
+  dengan pratinjau halaman ASLI di sampingnya (iframe situs publik bertoken
+  pratinjau yang membaca draf). Klik teks di pratinjau → field-nya di panel;
+  ketikan tampil langsung lewat `postMessage`; Simpan Draf / Terbitkan / Buang
+  Draf; toggle Desktop/Tablet/HP. Tahap 1: **About** (59 field, 9 section;
+  milestone Heritage dan alamat/surel HQ ditautkan ke modulnya). Skema di
+  `config('dwf.pages')`, nilai di `site_settings` (kolom `draft` baru, kelompok
+  `page.{halaman}`), izin `pages.view`/`pages.update` (update = simpan DAN
+  terbitkan). Endpoint publik `/api/v1/pages/{page}`. Rencana lengkap:
+  `../docs/RENCANA-EDITOR-HALAMAN.md`.
+  **Tahap 2** (hari yang sama): tujuh halaman lagi — Domino, Tournaments,
+  Federation Members, Player Membership, Development, Governance, Integrity
+  (316 field total di delapan halaman); tiap tautan `elsewhere` dites menuju
+  layar yang benar-benar ada.
+  **Home** (hari yang sama): layar Home Page dialihkan ke `/pages/home` dan
+  keluar dari sidebar; isinya disalin migrasi; jenis field baru `url`;
+  `/api/v1/home` tetap menjawab bentuk lama dari naskah Editor Halaman.
 - **API publik (`/api/v1`)** — 24 endpoint baca yang dikonsumsi
   `../landing-page-nuxt`. Enam aturan lintas endpoint (PRD §5) dikodekan sekali
   di `App\Http\Resources\PublicResource` dan dikunci 48 tes. Endpoint TULIS
@@ -490,3 +507,7 @@ handler-nya. Rinciannya di
       punya aset tayang — `/gallery/albums` membuang album kosong, jadi halaman
       albumnya akan 404. Relasi baru `Tournament::galleryAlbum()` (hasOne).
 
+
+- **Batas judul berbaris di Editor Halaman dilonggarkan** (2026-09-29, permintaan
+  pemilik repo): judul header About 40 karakter/baris (tadinya 28), judul Vision
+  30 (tadinya 20), judul Mission 40 (tadinya 28); ketiganya kini boleh 3 baris.

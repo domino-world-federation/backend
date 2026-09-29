@@ -21,6 +21,7 @@ use App\Http\Controllers\Cms\NewsArticleController;
 use App\Http\Controllers\Cms\NewsCategoryController;
 use App\Http\Controllers\Cms\NewsletterController;
 use App\Http\Controllers\Cms\NotificationController;
+use App\Http\Controllers\Cms\PageController;
 use App\Http\Controllers\Cms\PeopleController;
 use App\Http\Controllers\Cms\ProfileController;
 use App\Http\Controllers\Cms\ResultController;
@@ -232,11 +233,19 @@ Route::middleware('auth')->group(function () {
     });
 
     // ----------------------------------------------------------- Home Page
-    Route::middleware('can:home.view')->group(function () {
-        Route::get('/home-page', [HomePageController::class, 'edit'])->name('home-page.edit');
+    // Dipindah ke Editor Halaman (`/pages/home`); tinggal pengalihan.
+    Route::get('/home-page', [HomePageController::class, 'edit'])
+        ->middleware('can:pages.view')->name('home-page.edit');
 
-        Route::middleware('can:home.update')->group(function () {
-            Route::put('/home-page', [HomePageController::class, 'update'])->name('home-page.update');
+    // --------------------------------------------------------- Page Editor
+    Route::prefix('pages')->name('pages.')->middleware('can:pages.view')->group(function () {
+        Route::get('/', [PageController::class, 'index'])->name('index');
+        Route::get('/{page}', [PageController::class, 'edit'])->where('page', '[a-z-]+')->name('edit');
+
+        Route::middleware('can:pages.update')->group(function () {
+            Route::put('/{page}/draft', [PageController::class, 'saveDraft'])->where('page', '[a-z-]+')->name('draft');
+            Route::delete('/{page}/draft', [PageController::class, 'discard'])->where('page', '[a-z-]+')->name('discard');
+            Route::post('/{page}/publish', [PageController::class, 'publish'])->where('page', '[a-z-]+')->name('publish');
         });
     });
 

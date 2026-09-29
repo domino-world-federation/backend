@@ -66,7 +66,7 @@ class NavigationTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('navigation.0.label', 'Dashboard')
                 ->where('navigation.1.label', 'Content Management')
-                ->where('navigation.2.label', 'Home Page')
+                ->where('navigation.2.label', 'Page Editor')
             );
     }
 

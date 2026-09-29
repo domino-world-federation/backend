@@ -512,6 +512,752 @@ return [
         'video_max_kb' => 51200,
     ],
 
+    /*
+     * Editor halaman (`/pages`) — skema naskah tiap halaman publik.
+     *
+     * ── Kuncinya kontrak antar-repo ──
+     *
+     * `landing-page-nuxt` membaca nilai lewat `/api/v1/pages/{page}` dengan
+     * kunci `section.field` (atau `section.list.N.field`), dan menandai
+     * elemennya dengan kunci yang sama untuk klik-untuk-menyunting. Mengganti
+     * kunci berarti nilai tersimpan jadi yatim DAN penanda di situs tidak lagi
+     * menemukan fieldnya — `PageContentTest` mengejanya lengkap.
+     *
+     * ── Yang TIDAK ada di sini ──
+     *
+     * Susunan dan jumlah section: itu milik kode situs. Jumlah kartu di `lists`
+     * juga tetap, karena desainnya menggambar sejumlah itu. Data yang punya
+     * modul sendiri (milestone Heritage, berita, turnamen, …) tidak disalin ke
+     * sini — section-nya membawa `elsewhere`, tautan ke layar yang mengelolanya.
+     *
+     * ── Batas karakter ──
+     *
+     * Ditentukan dari desain (lebar kolom, jumlah baris yang muat) dengan
+     * naskah terbit sekarang sebagai acuan — keputusan 2026-09-29, belum ada
+     * angka dari tim product. `lines` = satu baris per baris teks: `max` per
+     * baris, `lines` [minimal, maksimal] barisnya.
+     *
+     * Kosong (atau tidak pernah diisi) = situs memakai naskah bawaan di kodenya.
+     */
+    'pages' => [
+        'home' => [
+            'label' => 'Home',
+            'path' => '/',
+            'sections' => [
+                'hero' => [
+                    'label' => 'Hero',
+                    'fields' => [
+                        'tagline' => ['type' => 'text', 'label' => 'Tagline', 'max' => 60],
+                        'headline' => ['type' => 'text', 'label' => 'Headline', 'max' => 60],
+                        'mission' => ['type' => 'textarea', 'label' => 'Mission', 'max' => 300],
+                        'accountability' => ['type' => 'textarea', 'label' => 'Accountability line', 'max' => 200],
+                        'primary_cta' => ['type' => 'text', 'label' => 'Main button — label', 'max' => 32],
+                        'primary_cta_url' => ['type' => 'url', 'label' => 'Main button — link', 'max' => 300],
+                        'secondary_cta' => ['type' => 'text', 'label' => 'Second button — label', 'max' => 32],
+                        'secondary_cta_url' => ['type' => 'url', 'label' => 'Second button — link', 'max' => 300],
+                    ],
+                ],
+                'countdown' => [
+                    'label' => 'Upcoming Match Card',
+                    'fields' => [
+                        'cta' => ['type' => 'text', 'label' => 'Button — label', 'max' => 24],
+                        'days' => ['type' => 'text', 'label' => 'Timer unit — days', 'max' => 12],
+                        'hours' => ['type' => 'text', 'label' => 'Timer unit — hours', 'max' => 12],
+                        'mins' => ['type' => 'text', 'label' => 'Timer unit — minutes', 'max' => 12],
+                    ],
+                    'elsewhere' => [['label' => 'The event, its date, place and link', 'href' => '/tournaments']],
+                ],
+                'feature' => [
+                    'label' => 'Ready to Join (HQ picture)',
+                    'fields' => [
+                        'headline' => ['type' => 'lines', 'label' => 'Headline', 'max' => 40, 'lines' => [1, 3]],
+                        'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 220],
+                        'cta' => ['type' => 'text', 'label' => 'Button — label', 'max' => 28],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'The federation in numbers (below)', 'href' => '/federations/stats'],
+                        ['label' => 'The featured events band', 'href' => '/tournaments'],
+                        ['label' => 'The news strip', 'href' => '/news'],
+                    ],
+                ],
+                'partners' => [
+                    'label' => 'Official Partners',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Heading', 'max' => 40],
+                    ],
+                ],
+                'resources' => [
+                    'label' => 'Resource Library',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Heading', 'max' => 32],
+                        'intro' => ['type' => 'textarea', 'label' => 'Intro', 'max' => 160],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'The documents', 'href' => '/documents'],
+                        ['label' => 'Which documents show here', 'href' => '/documents/sections'],
+                    ],
+                ],
+                'faq' => [
+                    'label' => 'FAQ',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Heading', 'max' => 48],
+                        'view_more' => ['type' => 'text', 'label' => '"View more" link — label', 'max' => 24],
+                    ],
+                    'elsewhere' => [['label' => 'The questions', 'href' => '/faq/pages']],
+                ],
+                'closing' => [
+                    'label' => 'Closing Call (Join)',
+                    'fields' => [
+                        'headline' => ['type' => 'lines', 'label' => 'Headline', 'max' => 40, 'lines' => [1, 3]],
+                        'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 300],
+                        'cta' => ['type' => 'text', 'label' => 'Button — label', 'max' => 32],
+                        'cta_url' => ['type' => 'url', 'label' => 'Button — link', 'max' => 300],
+                    ],
+                ],
+            ],
+        ],
+        'about' => [
+            'label' => 'About Us',
+            'path' => '/about',
+            'sections' => [
+                'header' => [
+                    'label' => 'Page Intro',
+                    'fields' => [
+                        'title' => ['type' => 'lines', 'label' => 'Title', 'max' => 40, 'lines' => [1, 3]],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 320],
+                    ],
+                ],
+                'overview' => [
+                    'label' => 'Overview',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 60],
+                    ],
+                    'lists' => [
+                        'cards' => [
+                            'label' => 'Card',
+                            'count' => 2,
+                            'fields' => [
+                                'title' => ['type' => 'text', 'label' => 'Title', 'max' => 30],
+                                'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 180],
+                            ],
+                        ],
+                    ],
+                ],
+                'heritage' => [
+                    'label' => 'Our Journey',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'Timeline milestones (year, title, photo)', 'href' => '/blocks/heritage'],
+                    ],
+                ],
+                'vision' => [
+                    'label' => 'Our Vision',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'lines', 'label' => 'Title', 'max' => 30, 'lines' => [1, 3]],
+                        'lead' => ['type' => 'textarea', 'label' => 'Description 1', 'max' => 200],
+                        'detail' => ['type' => 'textarea', 'label' => 'Description 2', 'max' => 220],
+                    ],
+                ],
+                'pillars' => [
+                    'label' => 'Why Dominoes? (Key Selling Point)',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 30],
+                    ],
+                    'lists' => [
+                        'items' => [
+                            'label' => 'Item',
+                            'count' => 3,
+                            'fields' => [
+                                'title' => ['type' => 'text', 'label' => 'Title', 'max' => 34],
+                                'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 150],
+                            ],
+                        ],
+                    ],
+                ],
+                'mission' => [
+                    'label' => 'Our Mission',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'lines', 'label' => 'Title', 'max' => 40, 'lines' => [1, 3]],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 200],
+                    ],
+                    'lists' => [
+                        'cards' => [
+                            'label' => 'Card',
+                            'count' => 4,
+                            'fields' => [
+                                'title' => ['type' => 'text', 'label' => 'Title', 'max' => 30],
+                                'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 120],
+                            ],
+                        ],
+                    ],
+                ],
+                'frameworks' => [
+                    'label' => 'Our Global Network',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Supporting text', 'max' => 200],
+                        'apex_short' => ['type' => 'text', 'label' => 'Chart — top card, short name', 'max' => 8],
+                        'apex_name' => ['type' => 'text', 'label' => 'Chart — top card, full name', 'max' => 30],
+                        'federation' => ['type' => 'text', 'label' => 'Chart — middle cards, title', 'max' => 24],
+                        'countries' => ['type' => 'lines', 'label' => 'Chart — middle cards, one country per line', 'max' => 24, 'lines' => [3, 3]],
+                        'members' => ['type' => 'text', 'label' => 'Chart — bottom cards, title', 'max' => 24],
+                        'members_detail' => ['type' => 'text', 'label' => 'Chart — bottom cards, subtitle', 'max' => 32],
+                        'caption' => ['type' => 'lines', 'label' => 'Caption under the chart', 'max' => 80, 'lines' => [1, 2]],
+                    ],
+                ],
+                'boards' => [
+                    'label' => 'Executive Boards',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 30],
+                        'intro' => ['type' => 'textarea', 'label' => 'Opening paragraph', 'max' => 260],
+                        'members_label' => ['type' => 'text', 'label' => 'Members list — title', 'max' => 40],
+                        'members' => ['type' => 'lines', 'label' => 'Members list — one name per line', 'max' => 40, 'lines' => [1, 12]],
+                        'closing' => ['type' => 'textarea', 'label' => 'Closing paragraph', 'max' => 300],
+                    ],
+                    'lists' => [
+                        'officers' => [
+                            'label' => 'Officer',
+                            'count' => 5,
+                            'fields' => [
+                                'role' => ['type' => 'text', 'label' => 'Position', 'max' => 30],
+                                'name' => ['type' => 'text', 'label' => 'Name', 'max' => 40],
+                            ],
+                        ],
+                    ],
+                ],
+                'headquarters' => [
+                    'label' => 'Headquarters',
+                    'fields' => [
+                        'headline' => ['type' => 'text', 'label' => 'Title', 'max' => 60],
+                        'hours' => ['type' => 'text', 'label' => 'Office hours', 'max' => 60],
+                        // Alamat dan surel TIDAK di sini: situs sudah membacanya dari
+                        // Contact & Social, dan dua tempat untuk satu nilai berarti
+                        // yang satu diam-diam kalah. Telepon belum punya field di sana.
+                        'phone' => ['type' => 'text', 'label' => 'Phone', 'max' => 30],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'Address and email (shared with the site footer)', 'href' => '/contact-social'],
+                    ],
+                ],
+            ],
+        ],
+        'domino' => [
+            'label' => 'The Domino',
+            'path' => '/domino',
+            'sections' => [
+                'header' => [
+                    'label' => 'Page Intro',
+                    'fields' => [
+                        'title' => ['type' => 'lines', 'label' => 'Title', 'max' => 40, 'lines' => [1, 3]],
+                        'subtitle' => ['type' => 'text', 'label' => 'Subtitle', 'max' => 60],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 450],
+                    ],
+                ],
+                'formats' => [
+                    'label' => 'Singles & Doubles Formats',
+                    'lists' => [
+                        'panels' => ['label' => 'Format panel', 'count' => 2, 'fields' => [
+                            'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                            'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 280],
+                            'players_label' => ['type' => 'text', 'label' => 'Stat 1 — label', 'max' => 24],
+                            'players_value' => ['type' => 'text', 'label' => 'Stat 1 — value', 'max' => 24],
+                            'hand_size_label' => ['type' => 'text', 'label' => 'Stat 2 — label', 'max' => 24],
+                            'hand_size_value' => ['type' => 'text', 'label' => 'Stat 2 — value', 'max' => 24],
+                        ]],
+                    ],
+                ],
+                'rulebook' => [
+                    'label' => 'The Rulebook',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                    ],
+                    'lists' => [
+                        'sets' => ['label' => 'Rule set (tab)', 'count' => 3, 'fields' => [
+                            'tab' => ['type' => 'text', 'label' => 'Tab label', 'max' => 24],
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 50],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 340],
+                            'quote' => ['type' => 'textarea', 'label' => 'Quoted rule', 'max' => 180],
+                            'cite' => ['type' => 'text', 'label' => 'Rule reference', 'max' => 30],
+                        ]],
+                    ],
+                ],
+                'regulations' => [
+                    'label' => 'Referee Guidelines & Downloads',
+                    'fields' => [
+                        'rulebook_blurb' => ['type' => 'textarea', 'label' => 'Rulebook card — description', 'max' => 160],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 200],
+                    ],
+                    'lists' => [
+                        'duties' => ['label' => 'Referee duty', 'count' => 4, 'fields' => [
+                            'text' => ['type' => 'text', 'label' => 'Duty', 'max' => 100],
+                        ]],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'The featured rulebook (Domino rulebook shelf)', 'href' => '/documents/sections'],
+                        ['label' => 'Rulebook and competition regulation files', 'href' => '/documents'],
+                    ],
+                ],
+                'faq' => [
+                    'label' => 'FAQ',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 50],
+                        'view_more' => ['type' => 'text', 'label' => 'Button label', 'max' => 24],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'The questions and their order', 'href' => '/faq/pages'],
+                    ],
+                ],
+            ],
+        ],
+        'tournaments' => [
+            'label' => 'Tournaments',
+            'path' => '/tournaments',
+            'sections' => [
+                'hero' => [
+                    'label' => 'Highlighted Tournament',
+                    'fields' => [
+                        'watermark' => ['type' => 'text', 'label' => 'Background wordmark', 'max' => 24],
+                        'watch_live' => ['type' => 'text', 'label' => 'Live stream button', 'max' => 28],
+                    ],
+                    'elsewhere' => [['label' => 'The highlighted tournament itself', 'href' => '/tournaments']],
+                ],
+                'rail' => [
+                    'label' => 'All Tournaments',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'view_all' => ['type' => 'text', 'label' => 'View all button', 'max' => 24],
+                    ],
+                    'elsewhere' => [['label' => 'The tournaments themselves', 'href' => '/tournaments']],
+                ],
+                'regulations' => [
+                    'label' => 'Tournament Regulations',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 48],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'The regulation documents', 'href' => '/documents'],
+                        ['label' => 'Which documents this shelf shows', 'href' => '/documents/sections'],
+                    ],
+                ],
+                'champions' => [
+                    'label' => 'Champions Hall',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                    ],
+                    'elsewhere' => [['label' => 'The champions', 'href' => '/results/champions']],
+                ],
+                'results' => [
+                    'label' => 'Olympic Results',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'col_year' => ['type' => 'text', 'label' => 'Column — year', 'max' => 24],
+                        'col_event' => ['type' => 'text', 'label' => 'Column — event', 'max' => 24],
+                        'col_category' => ['type' => 'text', 'label' => 'Column — category', 'max' => 24],
+                        'col_winners' => ['type' => 'text', 'label' => 'Column — winners', 'max' => 24],
+                        'col_federation' => ['type' => 'text', 'label' => 'Column — country / federation', 'max' => 32],
+                        'more' => ['type' => 'text', 'label' => 'More results button', 'max' => 32],
+                    ],
+                    'elsewhere' => [['label' => 'The Olympic results', 'href' => '/results/olympic']],
+                ],
+                'faq' => [
+                    'label' => 'Frequently Asked Questions',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 48],
+                        'view_more' => ['type' => 'text', 'label' => 'View more button', 'max' => 24],
+                    ],
+                    'elsewhere' => [['label' => 'The questions and their order', 'href' => '/faq/pages']],
+                ],
+            ],
+        ],
+        'federation-members' => [
+            'label' => 'Federation Members',
+            'path' => '/federation-members',
+            'sections' => [
+                'hero' => [
+                    'label' => 'Page Intro',
+                    'fields' => [
+                        'title' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 240],
+                        'cta' => ['type' => 'text', 'label' => 'Button label', 'max' => 28],
+                    ],
+                    'elsewhere' => [['label' => 'The membership figures', 'href' => '/federations/stats']],
+                ],
+                'map' => [
+                    'label' => 'Member Map',
+                    'fields' => [
+                        'show_all' => ['type' => 'text', 'label' => '"Show All" filter', 'max' => 24],
+                    ],
+                    'lists' => [
+                        'tiers' => ['label' => 'Membership tier', 'count' => 4, 'fields' => [
+                            'label' => ['type' => 'text', 'label' => 'Tier name', 'max' => 28],
+                        ]],
+                    ],
+                ],
+                'directory' => [
+                    'label' => 'Federation Directory',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 48],
+                        'president_label' => ['type' => 'text', 'label' => 'Detail card — "President" label', 'max' => 24],
+                        'headquarters_label' => ['type' => 'text', 'label' => 'Detail card — "Headquarters" label', 'max' => 24],
+                        'contact_label' => ['type' => 'text', 'label' => 'Detail card — "Contact" label', 'max' => 24],
+                    ],
+                    'elsewhere' => [['label' => 'The member federations', 'href' => '/federations']],
+                ],
+                'benefits' => [
+                    'label' => 'Membership Benefits',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                    ],
+                    'lists' => [
+                        'cards' => ['label' => 'Card', 'count' => 3, 'fields' => [
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 180],
+                        ]],
+                    ],
+                ],
+                'process' => [
+                    'label' => 'Application Process',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 160],
+                    ],
+                    'lists' => [
+                        'steps' => ['label' => 'Step', 'count' => 4, 'fields' => [
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 24],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 140],
+                        ]],
+                    ],
+                ],
+                'cta' => [
+                    'label' => 'Closing Call',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 72],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 220],
+                        'button' => ['type' => 'text', 'label' => 'Button label', 'max' => 24],
+                    ],
+                ],
+            ],
+        ],
+        'player-membership' => [
+            'label' => 'Player Membership',
+            'path' => '/player-membership',
+            'sections' => [
+                'hero' => [
+                    'label' => 'Page Intro',
+                    'fields' => [
+                        'title' => ['type' => 'text', 'label' => 'Title', 'max' => 48],
+                        'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 260],
+                        'cta' => ['type' => 'text', 'label' => 'Button label', 'max' => 32],
+                    ],
+                ],
+                'what_is' => [
+                    'label' => 'What is DWF ID?',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'lead' => ['type' => 'text', 'label' => 'Lead line', 'max' => 60],
+                        'body' => ['type' => 'lines', 'label' => 'Paragraphs — one per line', 'max' => 360, 'lines' => [1, 4]],
+                    ],
+                ],
+                'benefits' => [
+                    'label' => 'Membership Benefits',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                    ],
+                    'lists' => [
+                        'cards' => ['label' => 'Benefit', 'count' => 6, 'fields' => [
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 150],
+                        ]],
+                    ],
+                ],
+                'apply' => [
+                    'label' => 'Who Can Apply & Application Process',
+                    'fields' => [
+                        'eligibility_heading' => ['type' => 'text', 'label' => 'Eligibility — title', 'max' => 40],
+                        'eligibility_intro' => ['type' => 'textarea', 'label' => 'Eligibility — intro', 'max' => 160],
+                        'requirements' => ['type' => 'lines', 'label' => 'Requirements — one per line', 'max' => 100, 'lines' => [1, 8]],
+                        'process_heading' => ['type' => 'text', 'label' => 'Process — title', 'max' => 40],
+                        'process_intro' => ['type' => 'textarea', 'label' => 'Process — intro', 'max' => 300],
+                    ],
+                    'lists' => [
+                        'steps' => ['label' => 'Step', 'count' => 4, 'fields' => [
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 130],
+                        ]],
+                    ],
+                ],
+                'cta' => [
+                    'label' => 'Closing Call',
+                    'fields' => [
+                        'headline' => ['type' => 'lines', 'label' => 'Headline — one line each', 'max' => 40, 'lines' => [1, 3]],
+                        'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 220],
+                        'cta' => ['type' => 'text', 'label' => 'Button label', 'max' => 24],
+                    ],
+                ],
+            ],
+        ],
+        'development' => [
+            'label' => 'Development',
+            'path' => '/development',
+            'sections' => [
+                'header' => [
+                    'label' => 'Page Intro',
+                    'fields' => [
+                        'title' => ['type' => 'lines', 'label' => 'Title', 'max' => 40, 'lines' => [1, 3]],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 240],
+                    ],
+                ],
+                'youth' => [
+                    'label' => 'Youth Development',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 200],
+                        'download_cta' => ['type' => 'text', 'label' => 'Curriculum button label', 'max' => 36],
+                    ],
+                    'lists' => [
+                        'stats' => ['label' => 'Figure', 'count' => 2, 'fields' => [
+                            'figure' => ['type' => 'text', 'label' => 'Figure', 'max' => 24],
+                            'label' => ['type' => 'text', 'label' => 'Label', 'max' => 32],
+                        ]],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'Which curriculum PDF the button downloads', 'href' => '/documents/sections'],
+                    ],
+                ],
+                'certifications' => [
+                    'label' => 'Official Certifications',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 32],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'grade_word' => ['type' => 'text', 'label' => 'Word under the grade letter', 'max' => 24],
+                    ],
+                    'lists' => [
+                        'grades' => ['label' => 'Referee grade (C, B, A)', 'count' => 3, 'fields' => [
+                            'name' => ['type' => 'text', 'label' => 'Name', 'max' => 40],
+                            'scope' => ['type' => 'text', 'label' => 'Scope', 'max' => 60],
+                        ]],
+                        'c_levels' => ['label' => 'Grade C level', 'count' => 3, 'fields' => [
+                            'marker' => ['type' => 'text', 'label' => 'Marker', 'max' => 24],
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 160],
+                        ]],
+                        'b_levels' => ['label' => 'Grade B level', 'count' => 3, 'fields' => [
+                            'marker' => ['type' => 'text', 'label' => 'Marker', 'max' => 24],
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 160],
+                        ]],
+                        'a_levels' => ['label' => 'Grade A level', 'count' => 3, 'fields' => [
+                            'marker' => ['type' => 'text', 'label' => 'Marker', 'max' => 24],
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 160],
+                        ]],
+                    ],
+                ],
+                'library' => [
+                    'label' => 'Educational Resources',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'Which documents appear here', 'href' => '/documents/sections'],
+                    ],
+                ],
+                'grassroots' => [
+                    'label' => 'Grassroots Initiatives',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'view_all' => ['type' => 'text', 'label' => 'Button label', 'max' => 24],
+                    ],
+                    'lists' => [
+                        'cards' => ['label' => 'Card', 'count' => 3, 'fields' => [
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 200],
+                        ]],
+                    ],
+                ],
+                'support' => [
+                    'label' => 'Federation Support Programs',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 48],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 200],
+                        'form_heading' => ['type' => 'text', 'label' => 'Form title', 'max' => 36],
+                        'form_intro' => ['type' => 'textarea', 'label' => 'Form description', 'max' => 240],
+                        'federation_label' => ['type' => 'text', 'label' => 'Federation field — label', 'max' => 32],
+                        'email_label' => ['type' => 'text', 'label' => 'Email field — label', 'max' => 32],
+                        'needs_label' => ['type' => 'text', 'label' => 'Request field — label', 'max' => 48],
+                        'submit' => ['type' => 'text', 'label' => 'Submit button', 'max' => 32],
+                    ],
+                    'lists' => [
+                        'benefits' => ['label' => 'Benefit', 'count' => 3, 'fields' => [
+                            'text' => ['type' => 'text', 'label' => 'Text', 'max' => 48],
+                        ]],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'Applications sent from this form', 'href' => '/contact-messages'],
+                    ],
+                ],
+                'cta' => [
+                    'label' => 'Closing Call to Action',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 48],
+                        'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 280],
+                        'button' => ['type' => 'text', 'label' => 'Button label', 'max' => 24],
+                    ],
+                ],
+            ],
+        ],
+        'governance' => [
+            'label' => 'Governance',
+            'path' => '/governance',
+            'sections' => [
+                'header' => [
+                    'label' => 'Page Intro',
+                    'fields' => [
+                        'title' => ['type' => 'lines', 'label' => 'Title', 'max' => 40, 'lines' => [1, 3]],
+                        'eyebrow' => ['type' => 'text', 'label' => 'Subtitle', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 240],
+                    ],
+                ],
+                'overview' => [
+                    'label' => 'Overview',
+                    'fields' => [
+                        'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 24],
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'role_label' => ['type' => 'text', 'label' => 'Role — label', 'max' => 24],
+                        'role' => ['type' => 'textarea', 'label' => 'Role — text', 'max' => 260],
+                        'commitments_label' => ['type' => 'text', 'label' => 'Commitments — label', 'max' => 32],
+                        'commitments' => ['type' => 'textarea', 'label' => 'Commitments — text', 'max' => 260],
+                    ],
+                ],
+                'committees' => [
+                    'label' => 'Institutional Commitments',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'The commitment cards (name, icon and points)', 'href' => '/people/committees'],
+                    ],
+                ],
+                'documents' => [
+                    'label' => 'Governance Documents',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 260],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'The documents themselves', 'href' => '/documents'],
+                        ['label' => 'Which documents this section shows', 'href' => '/documents/sections'],
+                    ],
+                ],
+                'strategy' => [
+                    'label' => 'Domino Agenda 2030 Strategic Plan',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 60],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 460],
+                    ],
+                ],
+            ],
+        ],
+        'integrity' => [
+            'label' => 'Integrity',
+            'path' => '/integrity',
+            'sections' => [
+                'header' => [
+                    'label' => 'Page Intro',
+                    'fields' => [
+                        'title' => ['type' => 'lines', 'label' => 'Title', 'max' => 40, 'lines' => [1, 3]],
+                        'eyebrow' => ['type' => 'text', 'label' => 'Subtitle', 'max' => 60],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 280],
+                    ],
+                ],
+                'principles' => [
+                    'label' => 'Core Principles',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                    ],
+                    'lists' => [
+                        'items' => ['label' => 'Principle', 'count' => 4, 'fields' => [
+                            'label' => ['type' => 'text', 'label' => 'Name', 'max' => 24],
+                            'detail' => ['type' => 'textarea', 'label' => 'Description', 'max' => 160],
+                        ]],
+                    ],
+                ],
+                'ethics' => [
+                    'label' => 'Our Standards of Conduct',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 48],
+                    ],
+                    'lists' => [
+                        'clauses' => ['label' => 'Clause', 'count' => 3, 'fields' => [
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 180],
+                        ]],
+                    ],
+                ],
+                'measures' => [
+                    'label' => 'Protecting the Game',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 240],
+                    ],
+                    'lists' => [
+                        'cards' => ['label' => 'Card', 'count' => 4, 'fields' => [
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                            'detail' => ['type' => 'textarea', 'label' => 'Description', 'max' => 120],
+                        ]],
+                    ],
+                ],
+                'flow' => [
+                    'label' => 'Integrity in Action',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 240],
+                    ],
+                    'lists' => [
+                        'steps' => ['label' => 'Step', 'count' => 4, 'fields' => [
+                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 32],
+                            'detail' => ['type' => 'textarea', 'label' => 'Description', 'max' => 120],
+                        ]],
+                    ],
+                ],
+                'report' => [
+                    'label' => 'Report an Integrity Issue',
+                    'fields' => [
+                        'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
+                        'intro' => ['type' => 'textarea', 'label' => 'Description', 'max' => 400],
+                        'form_heading' => ['type' => 'text', 'label' => 'Form title', 'max' => 36],
+                        'type_label' => ['type' => 'text', 'label' => 'Concern type — label', 'max' => 32],
+                        'type_placeholder' => ['type' => 'text', 'label' => 'Concern type — placeholder', 'max' => 48],
+                        'description_label' => ['type' => 'text', 'label' => 'Description — label', 'max' => 24],
+                        'description_placeholder' => ['type' => 'textarea', 'label' => 'Description — placeholder', 'max' => 140],
+                        'submit' => ['type' => 'text', 'label' => 'Submit button', 'max' => 24],
+                    ],
+                    'elsewhere' => [
+                        ['label' => 'Reports sent from this form', 'href' => '/integrity-reports'],
+                    ],
+                ],
+            ],
+        ],
+    ],
+
+    /*
+     * Alamat situs publik — sumber iframe pratinjau di editor halaman.
+     * Tanpa garis miring penutup.
+     */
+    'site_url' => rtrim((string) env('DWF_SITE_URL', 'http://localhost:3000'), '/'),
+
     // Halaman publik tempat FAQ bisa ditempelkan, beserta labelnya.
     'faq_pages' => [
         'home' => 'Home Page',

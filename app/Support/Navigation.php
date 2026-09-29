@@ -60,7 +60,7 @@ final class Navigation
              * tidak berfungsi, dan sesudah itu yang berfungsi pun ikut tidak
              * dicoba.
              */
-            self::item('Home Page', 'SquaresFour', 'home-page', built: true, permission: 'home.view'),
+            self::item('Page Editor', 'Browsers', 'pages', built: true, permission: 'pages.view'),
             self::item('Events & Tournaments', 'Chat', 'tournaments', built: true, permission: 'tournaments.view'),
             // Menu terpisah yang diminta desain Add Tournament sendiri:
             // "Results & Winners … managed from a separate menu after the

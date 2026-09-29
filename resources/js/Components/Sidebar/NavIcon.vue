@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
 import {
+    PhBrowsers,
     PhAddressBook,
     PhCalendarBlank,
     PhChat,
@@ -37,6 +38,7 @@ const props = defineProps<{ name?: string; size?: number }>()
 
 const ICONS: Record<string, Component> = {
     SquaresFour: PhSquaresFour,
+    Browsers: PhBrowsers,
     Chat: PhChat,
     CalendarBlank: PhCalendarBlank,
     Folder: PhFolder,

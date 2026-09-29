@@ -43,6 +43,9 @@ Route::prefix('v1')->group(function () {
     // Naskah halaman depan yang tidak dimiliki modul mana pun — hero dan band
     // ajakan penutup. Sisanya datang dari endpoint modulnya sendiri.
     Route::get('/home', [PublicController::class, 'home']);
+    // Naskah halaman dari editor halaman (`/pages` di backoffice). Kuncinya
+    // kontrak: `config('dwf.pages')`.
+    Route::get('/pages/{page}', [PublicController::class, 'page'])->where('page', '[a-z-]+');
     Route::get('/settings', [PublicController::class, 'settings']);
 
     // Judul, deskripsi, dan gambar bagikan tiap halaman — satu response.
