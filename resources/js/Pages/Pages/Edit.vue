@@ -27,7 +27,9 @@ import { useI18n } from '@/composables/useI18n'
  * dan setiap pesan dari iframe diperiksa origin-nya (`siteOrigin`):
  *
  * - iframe → sini: `dwf-cms:ready` (beserta naskah bawaan tiap field, dipakai
- *   sebagai placeholder panel) dan `dwf-cms:select` (orang mengklik teks);
+ *   sebagai placeholder panel), `dwf-cms:select` (orang mengklik teks), dan
+ *   `dwf-cms:navigation-blocked` (orang mengklik tautan ke halaman lain —
+ *   pratinjau menolaknya, dan layar ini mengatakan kenapa);
  * - sini → iframe: `dwf-cms:values` (semua nilai panel, setiap ketikan) dan
  *   `dwf-cms:highlight` (field di panel difokuskan).
  *
@@ -185,6 +187,16 @@ watch(
 
 const activeKey = ref<string | null>(null)
 
+/** Pesan singkat saat pratinjau menolak pindah halaman. */
+const blockedNotice = ref(false)
+let blockedTimer: ReturnType<typeof setTimeout> | undefined
+
+function showBlocked(): void {
+    blockedNotice.value = true
+    clearTimeout(blockedTimer)
+    blockedTimer = setTimeout(() => (blockedNotice.value = false), 3500)
+}
+
 function fieldId(key: string): string {
     return `field-${key.replaceAll('.', '-')}`
 }
@@ -215,6 +227,8 @@ function onMessage(event: MessageEvent): void {
         post({ type: 'dwf-cms:values', values: outgoing() })
     } else if (data?.type === 'dwf-cms:select' && data.key) {
         void select(data.key)
+    } else if (data?.type === 'dwf-cms:navigation-blocked') {
+        showBlocked()
     }
 }
 
@@ -234,6 +248,7 @@ onBeforeUnmount(() => {
     window.removeEventListener('message', onMessage)
     observer?.disconnect()
     clearTimeout(offlineTimer)
+    clearTimeout(blockedTimer)
 })
 
 const liveUrl = computed(() => props.siteOrigin + props.page.path)
@@ -311,6 +326,13 @@ const liveUrl = computed(() => props.siteOrigin + props.page.path)
                         class="absolute top-0 left-1/2 origin-top -translate-x-1/2 border-0 bg-white"
                         :style="frameStyle"
                     />
+                    <p
+                        v-if="blockedNotice"
+                        role="status"
+                        class="absolute inset-x-4 top-4 border border-cool-20 bg-surface px-4 py-3 text-body-s text-cool-90 shadow-lg"
+                    >
+                        {{ t('pages.navigation_blocked') }}
+                    </p>
                     <p
                         v-if="!ready"
                         class="absolute inset-x-0 bottom-0 bg-surface/90 px-4 py-3 text-body-xs text-cool-70"

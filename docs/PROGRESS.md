@@ -208,6 +208,8 @@ kanvas **Backoffice**.
   **Home** (hari yang sama): layar Home Page dialihkan ke `/pages/home` dan
   keluar dari sidebar; isinya disalin migrasi; jenis field baru `url`;
   `/api/v1/home` tetap menjawab bentuk lama dari naskah Editor Halaman.
+  Pratinjau menolak pindah halaman (2026-09-30); layar editor menampilkan
+  pesan singkat kenapa tautannya tidak dibuka.
 - **API publik (`/api/v1`)** — 24 endpoint baca yang dikonsumsi
   `../landing-page-nuxt`. Enam aturan lintas endpoint (PRD §5) dikodekan sekali
   di `App\Http\Resources\PublicResource` dan dikunci 48 tes. Endpoint TULIS

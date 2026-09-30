@@ -523,6 +523,7 @@ return [
         'chars' => ':count / :max',
         'lines_hint' => 'One line of the heading per line here.',
         'url_hint' => 'A page on the site (/contact), an anchor (#), or a full address (https://…).',
+        'navigation_blocked' => 'Links do not open in the preview — it stays on the page you are editing. To edit another page, go back to the Page Editor list.',
         'lines_count' => 'Write between :min and :max line(s).',
         'line_too_long' => 'Each line may be at most :max characters.',
         'elsewhere' => 'Managed elsewhere',

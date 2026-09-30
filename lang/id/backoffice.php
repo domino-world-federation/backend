@@ -524,6 +524,7 @@ return [
         'chars' => ':count / :max',
         'lines_hint' => 'Satu baris judul per baris di sini.',
         'url_hint' => 'Halaman situs (/contact), jangkar (#), atau alamat lengkap (https://…).',
+        'navigation_blocked' => 'Tautan tidak dibuka di pratinjau — pratinjau tetap di halaman yang sedang disunting. Untuk menyunting halaman lain, kembali ke daftar Editor Halaman.',
         'lines_count' => 'Tulis :min sampai :max baris.',
         'line_too_long' => 'Setiap baris paling banyak :max karakter.',
         'elsewhere' => 'Dikelola di tempat lain',
