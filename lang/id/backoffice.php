@@ -890,7 +890,7 @@ return [
         'stats_title' => 'Statistik Federasi',
         'stats_home' => 'Halaman beranda',
         'stats_members' => 'Halaman anggota',
-        'stats_hint' => 'Angka yang tampil di situs publik. Nilainya teks, bukan angka — “57”, “1974”, dan “120+” sama-sama muat di slot yang sama.',
+        'stats_hint' => 'Satu daftar, tampil di dua tempat: halaman beranda dan bagian atas halaman Federation Members. Nilainya teks, bukan angka — “57”, “1974”, dan “120+” sama-sama muat di slot yang sama.',
         'stat_label' => 'Label',
         'stat_value' => 'Nilai',
         'stats_empty' => 'Belum ada statistik.',

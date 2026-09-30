@@ -30,6 +30,7 @@ class DocumentSectionTest extends TestCase
     private const EXPECTED = [
         'home.resources',
         'domino.rulebook',
+        'domino.regulations',
         'governance.statutes',
         'development.library',
         'development.youth',
@@ -157,7 +158,7 @@ class DocumentSectionTest extends TestCase
     // ------------------------------------------------------------ layar CMS
 
     /**
-     * Layarnya menggambar DELAPAN raknya sekaligus, dan menandai mana yang
+     * Layarnya menggambar SEMBILAN raknya sekaligus, dan menandai mana yang
      * masih otomatis.
      *
      * Tanda itu bukan hiasan: rak yang belum dikurasi tampil kosong di layar ini
@@ -180,8 +181,8 @@ class DocumentSectionTest extends TestCase
                 ->has('sections', count(self::EXPECTED))
                 ->where('sections.0.key', 'home.resources')
                 ->where('sections.0.isAuto', true)
-                ->where('sections.7.key', 'news.publications')
-                ->where('sections.7.isAuto', false)
+                ->where('sections.8.key', 'news.publications')
+                ->where('sections.8.isAuto', false)
                 ->etc());
     }
 

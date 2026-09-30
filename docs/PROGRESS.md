@@ -513,3 +513,11 @@ handler-nya. Rinciannya di
 - **Batas judul berbaris di Editor Halaman dilonggarkan** (2026-09-29, permintaan
   pemilik repo): judul header About 40 karakter/baris (tadinya 28), judul Vision
   30 (tadinya 20), judul Mission 40 (tadinya 28); ketiganya kini boleh 3 baris.
+
+- **Statistik federasi jadi satu daftar; rak baru `domino.regulations`**
+  (2026-09-30). Roda beranda dan hero `/federation-members` membaca daftar yang
+  sama; layar Stats tanpa pilihan lingkup; migrasi `unify_federation_stats`
+  memilih daftar yang paling baru disunting dan memindahkan yang lain ke
+  lingkup `archive` (tidak dihapus). `/api/v1/stats?scope=` lama tetap sah dan
+  menjawab daftar yang sama. Tombol regulasi di Referee Guidelines `/domino`
+  kini rak yang dikurasi di "Documents per Page" (maks 12).

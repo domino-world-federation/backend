@@ -183,7 +183,7 @@ Namanya `/resources`, bukan `/documents` — mengikuti `getResources()` dan tipe
 bernama Documents; keduanya hal yang sama.
 
 **`?section=` adalah cara yang dipakai hampir semua rak.** Nilainya kunci di
-`config('dwf.document_sections')` — `home.resources`, `domino.rulebook`,
+`config('dwf.document_sections')` — `home.resources`, `domino.rulebook`, `domino.regulations`,
 `governance.statutes`, `development.library`,
 `development.youth`, `tournaments.regulations`, `news.press`,
 `news.publications` — dan yang dibalas adalah dokumen yang dipilih admin di

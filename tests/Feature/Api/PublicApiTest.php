@@ -490,13 +490,18 @@ class PublicApiTest extends TestCase
         $this->assertSame(['klub'], $names->all());
     }
 
-    /** Dua lingkup statistik tidak boleh tercampur. */
-    public function test_stats_are_separated_by_scope(): void
+    /**
+     * Satu daftar untuk beranda dan halaman anggota (2026-09-30). `?scope=`
+     * lama masih diterima — dan menjawab daftar yang sama — supaya situs yang
+     * belum di-deploy ulang tidak mendapat 422.
+     */
+    public function test_every_scope_answers_with_the_one_list(): void
     {
-        FederationStat::factory()->create(['label' => 'beranda']);
-        FederationStat::factory()->members()->create(['label' => 'anggota']);
+        FederationStat::factory()->create(['label' => 'satu']);
+        FederationStat::factory()->members()->create(['label' => 'arsip lama']);
 
-        $this->assertSame(['beranda'], collect($this->getJson('/api/v1/stats?scope=home')->json())->pluck('label')->all());
-        $this->assertSame(['anggota'], collect($this->getJson('/api/v1/stats?scope=members')->json())->pluck('label')->all());
+        foreach (['', '?scope=home', '?scope=members'] as $query) {
+            $this->assertSame(['satu'], collect($this->getJson('/api/v1/stats'.$query)->json())->pluck('label')->all(), $query);
+        }
     }
 }

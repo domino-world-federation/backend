@@ -76,45 +76,33 @@ class FrontendContentSeeder extends Seeder
     }
 
     /**
-     * `MOCK_STATS` (roda beranda) dan `MOCK_MEMBERSHIP_STATS` (hero halaman
-     * anggota).
-     *
-     * Dua daftar, bukan satu, dan mock situs publik menjelaskan kenapa meski
-     * isinya kini nyaris sama: keduanya endpoint berbeda, dan menyatukannya
-     * berarti halaman yang terakhir disunting menentukan apa yang ditampilkan
-     * halaman satunya.
+     * `MOCK_STATS` — satu daftar untuk roda beranda DAN hero halaman anggota
+     * sejak 2026-09-30. Dua daftar terpisah berakhir dengan angka berbeda di
+     * dua halaman untuk hal yang sama.
      *
      * Barisnya DIGANTI, bukan ditambahkan — `delete()` dulu supaya angka contoh
      * dari seeder sebelumnya tidak berdampingan dengan yang benar-benar dipakai.
      */
     private function stats(): void
     {
-        $home = [
-            ['Continents', '6'],
-            ['Member Federation', '142'],
-            ['Regional', '1.420'],
-            ['Annual Event', '850'],
-        ];
-
-        $members = [
+        // Satu daftar untuk beranda dan `/federation-members` (2026-09-30).
+        $rows = [
             ['Continents', '6'],
             ['National Federation', '142'],
             ['Regional', '1.420'],
             ['Annual Events', '850+'],
         ];
 
-        foreach ([FederationStat::SCOPE_HOME => $home, FederationStat::SCOPE_MEMBERS => $members] as $scope => $rows) {
-            FederationStat::query()->where('scope', $scope)->delete();
+        FederationStat::query()->whereIn('scope', [FederationStat::SCOPE_HOME, FederationStat::SCOPE_MEMBERS])->delete();
 
-            foreach ($rows as $index => [$label, $value]) {
-                FederationStat::query()->create([
-                    'scope' => $scope,
-                    'label' => $label,
-                    'value' => $value,
-                    'is_active' => true,
-                    'position' => $index + 1,
-                ]);
-            }
+        foreach ($rows as $index => [$label, $value]) {
+            FederationStat::query()->create([
+                'scope' => FederationStat::SCOPE_HOME,
+                'label' => $label,
+                'value' => $value,
+                'is_active' => true,
+                'position' => $index + 1,
+            ]);
         }
     }
 

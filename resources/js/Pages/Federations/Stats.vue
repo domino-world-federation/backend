@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3'
+import { Head, useForm } from '@inertiajs/vue3'
 import { PhPlus, PhTrash } from '@phosphor-icons/vue'
 
 import AdminLayout from '@/Layouts/AdminLayout.vue'
@@ -19,28 +19,14 @@ interface Stat {
 }
 
 const props = defineProps<{
-    scope: string
     stats: Array<{ id: number; label: string; value: string; isActive: boolean }>
 }>()
 
 const { t } = useI18n()
 
 const form = useForm({
-    scope: props.scope,
     stats: props.stats.map((s): Stat => ({ label: s.label, value: s.value, is_active: s.isActive })),
 })
-
-/**
- * Berpindah lingkup adalah KUNJUNGAN, bukan tab lokal.
- *
- * Tiap lingkup punya barisnya sendiri di database, jadi menukarnya di klien
- * berarti menyimpan sekumpulan baris ke lingkup yang salah kalau seseorang
- * berpindah tab lalu menekan Simpan. `UnsavedGuard` ikut menahannya kalau
- * masih ada perubahan.
- */
-function openScope(scope: string): void {
-    router.get('/federations/stats', { scope }, { preserveState: false })
-}
 
 function addStat(): void {
     form.stats = [...form.stats, { label: '', value: '', is_active: true }]
@@ -67,29 +53,6 @@ function submit(): void {
                 { label: t('federations.stats') },
             ]"
         />
-
-        <!-- Dua lingkup, satu layar. Bentuk barisnya identik, jadi dua layar
-             terpisah berarti dua tempat yang mengelola hal yang sama. -->
-        <div class="flex" role="group" :aria-label="t('federations.stats')">
-            <button
-                v-for="option in [
-                    { value: 'home', label: t('federations.stats_home') },
-                    { value: 'members', label: t('federations.stats_members') },
-                ]"
-                :key="option.value"
-                type="button"
-                class="cursor-pointer border px-3 py-1.5 text-body-xs transition-colors -ml-px first:ml-0"
-                :class="
-                    option.value === scope
-                        ? 'border-cool-90 bg-cool-90 text-on-inverse'
-                        : 'border-cool-30 bg-surface text-cool-70 hover:border-cool-60'
-                "
-                :aria-pressed="option.value === scope"
-                @click="openScope(option.value)"
-            >
-                {{ option.label }}
-            </button>
-        </div>
 
         <ContextNote>{{ t('federations.stats_hint') }}</ContextNote>
 

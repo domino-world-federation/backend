@@ -895,7 +895,7 @@ return [
         'stats_title' => 'Federation Statistics',
         'stats_home' => 'Home page',
         'stats_members' => 'Members page',
-        'stats_hint' => 'Numbers shown on the public site. Values are text, not numbers — “57”, “1974”, and “120+” all sit in the same slot.',
+        'stats_hint' => 'One list, shown in two places: the home page and the top of the Federation Members page. Values are text, not numbers — “57”, “1974”, and “120+” all sit in the same slot.',
         'stat_label' => 'Label',
         'stat_value' => 'Value',
         'stats_empty' => 'No statistic yet.',

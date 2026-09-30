@@ -31,7 +31,7 @@ import { useI18n } from '@/composables/useI18n'
  *   3. Batasnya berbeda-beda (1 untuk Official Rulebook, 6 untuk grid), jadi
  *      penghitungnya membaca `max` tiap rak, bukan satu angka bersama.
  *
- * Simpannya PER KARTU. Satu tombol untuk delapan rak akan membuat penolakan di
+ * Simpannya PER KARTU. Satu tombol untuk sembilan rak akan membuat penolakan di
  * satu rak membatalkan delapan rak lain yang tidak salah apa-apa.
  */
 interface Row {

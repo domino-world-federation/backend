@@ -123,24 +123,18 @@ class FederationTest extends TestCase
 
     // ------------------------------------------------------------ statistik
 
-    /**
-     * Satu tabel, dua lingkup — menyimpan yang satu tidak boleh menyentuh yang
-     * lain.
-     */
-    public function test_saving_one_scope_leaves_the_other_alone(): void
+    /** Satu daftar untuk beranda dan halaman anggota — tanpa pilihan lingkup. */
+    public function test_saving_writes_the_one_list(): void
     {
-        FederationStat::factory()->members()->create(['label' => 'Federations', 'value' => '57']);
+        FederationStat::factory()->create(['label' => 'Old']);
 
         $this->actingAs($this->actor())->put('/federations/stats', [
-            'scope' => 'home',
             'stats' => [
                 ['label' => 'Member federations', 'value' => '120+', 'is_active' => true],
             ],
         ])->assertSessionHasNoErrors();
 
-        $this->assertSame(1, FederationStat::query()->where('scope', 'home')->count());
-        $this->assertSame(1, FederationStat::query()->where('scope', 'members')->count());
-        $this->assertSame('57', FederationStat::query()->where('scope', 'members')->sole()->value);
+        $this->assertSame(['Member federations'], FederationStat::query()->where('scope', 'home')->pluck('label')->all());
     }
 
     /** Urutannya dari susunan di layar, dan ditulis ulang tiap simpan. */
@@ -149,7 +143,6 @@ class FederationTest extends TestCase
         $actor = $this->actor();
 
         $this->actingAs($actor)->put('/federations/stats', [
-            'scope' => 'home',
             'stats' => [
                 ['label' => 'A', 'value' => '1', 'is_active' => true],
                 ['label' => 'B', 'value' => '2', 'is_active' => true],
@@ -158,7 +151,6 @@ class FederationTest extends TestCase
         ]);
 
         $this->actingAs($actor)->put('/federations/stats', [
-            'scope' => 'home',
             'stats' => [
                 ['label' => 'C', 'value' => '3', 'is_active' => true],
                 ['label' => 'A', 'value' => '9', 'is_active' => true],
@@ -176,17 +168,32 @@ class FederationTest extends TestCase
     public function test_a_statistic_value_may_be_text(): void
     {
         $this->actingAs($this->actor())->put('/federations/stats', [
-            'scope' => 'members',
             'stats' => [['label' => 'Countries', 'value' => '120+', 'is_active' => true]],
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('120+', FederationStat::query()->sole()->value);
     }
 
-    public function test_an_unknown_scope_is_refused(): void
+    /** Penyatuan memilih daftar yang paling baru disunting, dan mengarsipkan yang lain. */
+    public function test_unifying_keeps_the_most_recently_edited_list(): void
     {
-        $this->actingAs($this->actor())
-            ->put('/federations/stats', ['scope' => 'about', 'stats' => []])
-            ->assertSessionHasErrors('scope');
+        FederationStat::factory()->create(['label' => 'home-old', 'updated_at' => now()->subDay()]);
+        FederationStat::factory()->members()->create(['label' => 'members-new', 'updated_at' => now()]);
+
+        (require database_path('migrations/2026_09_30_100000_unify_federation_stats.php'))->up();
+
+        $this->assertSame(['members-new'], FederationStat::query()->where('scope', 'home')->pluck('label')->all());
+        $this->assertSame(['home-old'], FederationStat::query()->where('scope', 'archive')->pluck('label')->all());
+    }
+
+    public function test_unifying_keeps_home_when_it_is_the_newer_one(): void
+    {
+        FederationStat::factory()->create(['label' => 'home-new', 'updated_at' => now()]);
+        FederationStat::factory()->members()->create(['label' => 'members-old', 'updated_at' => now()->subDay()]);
+
+        (require database_path('migrations/2026_09_30_100000_unify_federation_stats.php'))->up();
+
+        $this->assertSame(['home-new'], FederationStat::query()->where('scope', 'home')->pluck('label')->all());
+        $this->assertSame(['members-old'], FederationStat::query()->where('scope', 'archive')->pluck('label')->all());
     }
 }

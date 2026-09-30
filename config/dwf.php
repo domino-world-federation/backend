@@ -366,6 +366,16 @@ return [
             'category' => 'Rules & Regulations',
             'max' => 1,
         ],
+        // Tombol-tombol regulasi di bawah daftar tugas wasit (2026-09-30).
+        // Dulu "sisa kategori" — tidak ada yang bisa memilih mana yang tampil
+        // atau urutannya. Rulebook di kartu kiri tetap disaring keluar di situs,
+        // supaya satu dokumen tidak tercetak dua kali.
+        'domino.regulations' => [
+            'page' => 'Domino',
+            'label' => 'Referee Guidelines — Regulation Buttons',
+            'category' => 'Rules & Regulations',
+            'max' => 12,
+        ],
         'governance.statutes' => [
             'page' => 'Governance',
             'label' => 'Governance Documents',
@@ -801,7 +811,7 @@ return [
                         ]],
                     ],
                     'elsewhere' => [
-                        ['label' => 'The featured rulebook (Domino rulebook shelf)', 'href' => '/documents/sections'],
+                        ['label' => 'Which rulebook and which regulation buttons show here', 'href' => '/documents/sections'],
                         ['label' => 'Rulebook and competition regulation files', 'href' => '/documents'],
                     ],
                 ],

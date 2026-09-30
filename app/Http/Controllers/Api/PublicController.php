@@ -591,10 +591,14 @@ class PublicController extends Controller
 
     public function stats(Request $request): JsonResponse
     {
-        $scope = $this->enum($request, 'scope', FederationStat::SCOPES) ?: FederationStat::SCOPE_HOME;
+        // Satu daftar untuk beranda dan `/federation-members` (2026-09-30).
+        // `?scope=` masih divalidasi — nilai asing tetap 422, aturan penyaring
+        // tertutup — tapi `home` dan `members` menjawab daftar yang SAMA,
+        // supaya situs yang belum di-deploy ulang tetap mendapat angka benar.
+        $this->enum($request, 'scope', FederationStat::SCOPES);
 
         return $this->list(FederationStatResource::bare(
-            FederationStat::query()->where('scope', $scope)->active()->ordered()->get(),
+            FederationStat::query()->where('scope', FederationStat::SCOPE_HOME)->active()->ordered()->get(),
         ));
     }
 

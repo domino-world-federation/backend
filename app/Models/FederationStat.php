@@ -13,8 +13,12 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Satu angka statistik federasi.
  *
- * Satu tabel untuk dua tempat — roda di beranda dan blok keanggotaan di
- * `/federation-members` — dibedakan `scope`. Alasannya di migrasinya.
+ * **Satu daftar untuk dua tempat** — roda di beranda dan hero
+ * `/federation-members` — sejak 2026-09-30. Dulu dua daftar dibedakan
+ * `scope`, dan keduanya berbeda angka di prod (5 benua di beranda, 6 di halaman
+ * anggota) karena yang satu diperbarui dan yang lain terlupa. Yang tayang
+ * sekarang hanya `SCOPE_HOME`; migrasi `unify_federation_stats` memilih daftar
+ * yang paling baru disunting dan mengarsipkan yang lain (`SCOPE_ARCHIVE`).
  */
 #[Fillable(['scope', 'label', 'value', 'is_active', 'position', 'updated_by_id'])]
 class FederationStat extends Model
@@ -23,7 +27,11 @@ class FederationStat extends Model
 
     public const SCOPE_HOME = 'home';
 
+    /** Lingkup lama, dipertahankan untuk migrasi dan factory. Tidak tayang. */
     public const SCOPE_MEMBERS = 'members';
+
+    /** Daftar yang kalah saat penyatuan — disimpan, tidak dibaca siapa pun. */
+    public const SCOPE_ARCHIVE = 'archive';
 
     public const SCOPES = [self::SCOPE_HOME, self::SCOPE_MEMBERS];
 
