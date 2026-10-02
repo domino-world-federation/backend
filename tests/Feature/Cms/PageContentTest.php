@@ -125,7 +125,7 @@ class PageContentTest extends TestCase
             'apply.requirements', 'apply.process_heading', 'apply.process_intro', 'apply.steps.0.title',
             'apply.steps.0.body', 'apply.steps.1.title', 'apply.steps.1.body', 'apply.steps.2.title',
             'apply.steps.2.body', 'apply.steps.3.title', 'apply.steps.3.body', 'cta.headline',
-            'cta.body', 'cta.cta',
+            'cta.body',
         ],
         'development' => [
             'header.title', 'header.intro', 'youth.eyebrow', 'youth.heading', 'youth.intro',

@@ -1009,7 +1009,7 @@ return [
                     'fields' => [
                         'headline' => ['type' => 'lines', 'label' => 'Headline — one line each', 'max' => 40, 'lines' => [1, 3]],
                         'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 220],
-                        'cta' => ['type' => 'text', 'label' => 'Button label', 'max' => 24],
+                        // Tanpa tombol sejak 2026-10-02 — "Contact us" dicabut.
                     ],
                 ],
             ],
