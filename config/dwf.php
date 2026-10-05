@@ -595,6 +595,9 @@ return [
                     'fields' => [
                         'heading' => ['type' => 'text', 'label' => 'Heading', 'max' => 40],
                     ],
+                    'elsewhere' => [
+                        ['label' => 'The partner logos (the section stays hidden until one has a logo)', 'href' => '/blocks'],
+                    ],
                 ],
                 'resources' => [
                     'label' => 'Resource Library',

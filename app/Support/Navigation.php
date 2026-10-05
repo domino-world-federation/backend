@@ -76,20 +76,15 @@ final class Navigation
             self::item('Federations & Members', 'File', 'federations', built: true, permission: 'federations.view'),
             self::item('People & Governance', 'UsersThree', 'people', built: true, permission: 'people.view'),
             /*
-             * "Heritage", bukan "Partners & Heritage" — atas keputusan pemilik
-             * repo 2026-09-03: deret logo partner dijadikan STATIS di situs
-             * publik untuk sekarang, jadi tidak ada yang perlu diinput di sini.
+             * Partners kembali ke sidebar (2026-10-05): deret logo di beranda
+             * kini dibaca dari `/api/v1/partners`, jadi layar ini yang
+             * menentukannya lagi. Partner tanpa logo tidak digambar situs, dan
+             * tanpa satu pun partner berlogo seluruh section-nya disembunyikan
+             * — federasi belum punya partner resmi.
              *
-             * Layar Partners-nya TIDAK dihapus, cuma tidak lagi ditaut:
-             * `/blocks` tetap bekerja kalau URL-nya dibuka, tabelnya tetap
-             * berisi, dan endpoint `/api/v1/partners` tetap hidup. Mengembalikan
-             * menunya cukup mengganti baris ini — sementara menghapus layar dan
-             * tabelnya berarti membangun ulang saat partner benar-benar mulai
-             * berganti.
-             *
-             * Kuncinya `blocks.heritage`, jadi `href`-nya `/blocks/heritage` —
-             * layar yang MASIH dikelola dari sini.
+             * Heritage tetap item sendiri, `blocks.heritage` → `/blocks/heritage`.
              */
+            self::item('Partners', 'Handshake', 'blocks', built: true, permission: 'blocks.view'),
             self::item('Heritage', 'Stack', 'blocks.heritage', built: true, permission: 'blocks.view'),
 
             // ---------------------------------------------------------------

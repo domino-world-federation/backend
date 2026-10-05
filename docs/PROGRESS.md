@@ -521,3 +521,8 @@ handler-nya. Rinciannya di
   lingkup `archive` (tidak dihapus). `/api/v1/stats?scope=` lama tetap sah dan
   menjawab daftar yang sama. Tombol regulasi di Referee Guidelines `/domino`
   kini rak yang dikurasi di "Documents per Page" (maks 12).
+
+- **Menu Partners kembali ke sidebar** (2026-10-05): deret logo beranda kini
+  dibaca dari `/api/v1/partners`. Partner tanpa logo tidak tampil di situs;
+  tanpa satu pun partner berlogo, section Official Partners disembunyikan.
+  Page Editor → Home → Official Partners menautkan ke layar ini.
