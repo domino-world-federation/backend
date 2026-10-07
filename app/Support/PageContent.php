@@ -141,8 +141,19 @@ final class PageContent
     }
 
     /**
+     * Batas pengaman per field. Batas di skema (`max`) adalah PANDUAN sejak
+     * 2026-10-07 — layar editor memperingatkan dan minta konfirmasi, tapi tetap
+     * menyimpan, karena pratinjaunya sudah memperlihatkan akibatnya. Yang ini
+     * hanya menolak teks yang tidak wajar untuk satu field halaman.
+     */
+    public const HARD_MAX = 5000;
+
+    /**
      * Aturan validasi untuk `values.*` — setiap field boleh kosong (= bawaan
-     * kode), dan batasnya dari skema.
+     * kode). Panjang di skema hanya diperingatkan layar editor; yang ditolak
+     * di sini: lewat `HARD_MAX`, jumlah baris di luar rentang `lines` (tata
+     * letaknya bergantung padanya — bagan Our Global Network menggambar tepat
+     * tiga kartu), dan tautan yang bukan path, jangkar, atau URL.
      *
      * @return array<string, array<int, mixed>>
      */
@@ -153,10 +164,10 @@ final class PageContent
         foreach (self::fields($page) as $key => $field) {
             $rule = ['nullable', 'string'];
 
+            $rule[] = 'max:'.self::HARD_MAX;
+
             if ($field['type'] === 'lines') {
                 $rule[] = self::linesRule($field);
-            } else {
-                $rule[] = 'max:'.$field['max'];
             }
 
             if ($field['type'] === 'url') {
@@ -287,7 +298,7 @@ final class PageContent
     {
         [$min, $max] = $field['lines'] ?? [1, 1];
 
-        return function (string $attribute, mixed $value, Closure $fail) use ($field, $min, $max): void {
+        return function (string $attribute, mixed $value, Closure $fail) use ($min, $max): void {
             $lines = self::splitLines((string) $value);
 
             // Kosong = bawaan kode; hanya naskah yang ditulis yang diperiksa.
@@ -295,18 +306,10 @@ final class PageContent
                 return;
             }
 
+            // Panjang tiap baris hanya diperingatkan layar editor (lihat
+            // `HARD_MAX`); jumlah barisnya yang ditegakkan.
             if (count($lines) < $min || count($lines) > $max) {
                 $fail(__('backoffice.pages.lines_count', ['min' => $min, 'max' => $max]));
-
-                return;
-            }
-
-            foreach ($lines as $line) {
-                if (mb_strlen($line) > $field['max']) {
-                    $fail(__('backoffice.pages.line_too_long', ['max' => $field['max']]));
-
-                    return;
-                }
             }
         };
     }

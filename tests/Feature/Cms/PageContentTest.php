@@ -356,10 +356,26 @@ class PageContentTest extends TestCase
 
     // ------------------------------------------------------------- validasi
 
-    public function test_text_over_the_limit_is_refused(): void
+    /**
+     * Batas di skema adalah panduan (2026-10-07): layar editor minta konfirmasi,
+     * tapi teks yang lebih panjang tetap tersimpan — termasuk baris judul.
+     */
+    public function test_text_over_the_guide_limit_still_saves(): void
     {
         $this->actingAs($this->editor())
-            ->put('/pages/about/draft', ['values' => ['heritage.heading' => str_repeat('x', 41)]])
+            ->put('/pages/about/draft', ['values' => [
+                'heritage.heading' => str_repeat('x', 41),
+                'header.title' => str_repeat('y', 60),
+            ]])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(str_repeat('x', 41), PageContent::drafts('about')['heritage.heading']);
+    }
+
+    public function test_text_past_the_safety_cap_is_refused(): void
+    {
+        $this->actingAs($this->editor())
+            ->put('/pages/about/draft', ['values' => ['heritage.heading' => str_repeat('x', PageContent::HARD_MAX + 1)]])
             ->assertSessionHasErrors('values.heritage.heading');
     }
 

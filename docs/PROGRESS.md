@@ -526,3 +526,11 @@ handler-nya. Rinciannya di
   dibaca dari `/api/v1/partners`. Partner tanpa logo tidak tampil di situs;
   tanpa satu pun partner berlogo, section Official Partners disembunyikan.
   Page Editor → Home → Official Partners menautkan ke layar ini.
+
+- **Batas karakter Editor Halaman jadi panduan** (2026-10-07, feedback tim).
+  Teks yang melewati `max` skema tetap bisa disimpan; Simpan Draf / Terbitkan
+  memunculkan konfirmasi "Some Sections Exceed the Limit" (Review Content →
+  lompat ke field pertama yang kelebihan; Save Anyway → simpan). Penghitung
+  tetap merah sebagai peringatan. Yang masih ditolak server: lewat 5.000
+  karakter (`PageContent::HARD_MAX`), jumlah baris di luar rentang `lines`, dan
+  tautan yang bukan path/jangkar/URL.

@@ -108,12 +108,53 @@ function afterSave(): void {
     form.reset()
 }
 
+/**
+ * Batas karakter adalah PANDUAN, bukan larangan (2026-10-07): pratinjau di kiri
+ * sudah memperlihatkan apakah teksnya muat. Kalau ada field yang melewatinya,
+ * simpan minta konfirmasi dulu — "Review Content" melompat ke field pertama
+ * yang kelebihan, "Save Anyway" tetap menyimpan.
+ */
+function overLimit(): Field[] {
+    return props.sections.flatMap((s) => s.fields).filter((f) => lengthOf(f) > f.max)
+}
+
+type SaveAction = 'draft' | 'publish'
+const confirmingOverLimit = ref<SaveAction | null>(null)
+
+function run(action: SaveAction): void {
+    if (action === 'draft') {
+        form.put(`/pages/${props.page.key}/draft`, { preserveScroll: true, onSuccess: afterSave })
+    } else {
+        form.post(`/pages/${props.page.key}/publish`, { preserveScroll: true, onSuccess: afterSave })
+    }
+}
+
+function attempt(action: SaveAction): void {
+    if (overLimit().length > 0) {
+        confirmingOverLimit.value = action
+        return
+    }
+    run(action)
+}
+
 function saveDraft(): void {
-    form.put(`/pages/${props.page.key}/draft`, { preserveScroll: true, onSuccess: afterSave })
+    attempt('draft')
 }
 
 function publish(): void {
-    form.post(`/pages/${props.page.key}/publish`, { preserveScroll: true, onSuccess: afterSave })
+    attempt('publish')
+}
+
+function saveAnyway(): void {
+    const action = confirmingOverLimit.value
+    confirmingOverLimit.value = null
+    if (action) run(action)
+}
+
+function reviewContent(): void {
+    confirmingOverLimit.value = null
+    const first = overLimit()[0]
+    if (first) void select(first.key)
 }
 
 const confirmingDiscard = ref(false)
@@ -436,6 +477,16 @@ const liveUrl = computed(() => props.siteOrigin + props.page.path)
             :processing="discarding"
             @confirm="discard"
             @cancel="confirmingDiscard = false"
+        />
+
+        <ConfirmDialog
+            :open="confirmingOverLimit !== null"
+            :title="t('pages.over_limit_title')"
+            :description="t('pages.over_limit_body')"
+            :confirm-label="t('pages.over_limit_save')"
+            :cancel-label="t('pages.over_limit_review')"
+            @confirm="saveAnyway"
+            @cancel="reviewContent"
         />
 
         <UnsavedGuard :dirty="form.isDirty" />
