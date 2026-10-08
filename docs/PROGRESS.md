@@ -534,3 +534,9 @@ handler-nya. Rinciannya di
   tetap merah sebagai peringatan. Yang masih ditolak server: lewat 5.000
   karakter (`PageContent::HARD_MAX`), jumlah baris di luar rentang `lines`, dan
   tautan yang bukan path/jangkar/URL.
+
+- **Editor Halaman → Development → Official Certifications** (2026-10-08):
+  field `areas_label` dan `priorities_label` (subjudul kedua kolom) ditambahkan;
+  `grade_word`, `b_levels`, dan `a_levels` dicabut karena situsnya tidak lagi
+  menggambar tab grade. Kunci `grades` dan `c_levels` dipertahankan, jadi naskah
+  yang sudah tayang tidak hilang.

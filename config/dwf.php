@@ -1051,24 +1051,20 @@ return [
                     'fields' => [
                         'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow', 'max' => 32],
                         'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
-                        'grade_word' => ['type' => 'text', 'label' => 'Word under the grade letter', 'max' => 24],
+                        'areas_label' => ['type' => 'text', 'label' => 'Left column subtitle', 'max' => 40],
+                        'priorities_label' => ['type' => 'text', 'label' => 'Right column subtitle', 'max' => 40],
                     ],
+                    // Dua daftar bernomor yang tidak bisa diklik sejak 2026-10-08.
+                    // Kiri dulunya tiga tab grade (C, B, A) yang menukar daftar
+                    // kanan; kanan kini selalu `c_levels`. Kuncinya dipertahankan
+                    // supaya naskah yang sudah tayang tidak hilang. Nomor kiri
+                    // diturunkan dari urutan, jadi bukan field.
                     'lists' => [
-                        'grades' => ['label' => 'Referee grade (C, B, A)', 'count' => 3, 'fields' => [
+                        'grades' => ['label' => 'Development area', 'count' => 3, 'fields' => [
                             'name' => ['type' => 'text', 'label' => 'Name', 'max' => 40],
                             'scope' => ['type' => 'text', 'label' => 'Scope', 'max' => 60],
                         ]],
-                        'c_levels' => ['label' => 'Grade C level', 'count' => 3, 'fields' => [
-                            'marker' => ['type' => 'text', 'label' => 'Marker', 'max' => 24],
-                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
-                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 160],
-                        ]],
-                        'b_levels' => ['label' => 'Grade B level', 'count' => 3, 'fields' => [
-                            'marker' => ['type' => 'text', 'label' => 'Marker', 'max' => 24],
-                            'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
-                            'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 160],
-                        ]],
-                        'a_levels' => ['label' => 'Grade A level', 'count' => 3, 'fields' => [
+                        'c_levels' => ['label' => 'Learning priority', 'count' => 3, 'fields' => [
                             'marker' => ['type' => 'text', 'label' => 'Marker', 'max' => 24],
                             'title' => ['type' => 'text', 'label' => 'Title', 'max' => 36],
                             'body' => ['type' => 'textarea', 'label' => 'Description', 'max' => 160],
