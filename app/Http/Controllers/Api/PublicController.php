@@ -438,9 +438,22 @@ class PublicController extends Controller
             ->orderBy('starts_on')
             ->first();
 
-        return response()->json(
-            $tournament === null ? null : $this->showcaseEvent($tournament),
-        );
+        return $tournament === null
+            ? self::nothing()
+            : response()->json($this->showcaseEvent($tournament));
+    }
+
+    /**
+     * Badan `null` yang sungguhan untuk endpoint satu-event yang kosong.
+     *
+     * `response()->json(null)` TIDAK menghasilkan `null`: JsonResponse
+     * menerjemahkan data null jadi `{}`. Objek kosong itu truthy di situs, dan
+     * sampai 2026-10-12 hero `/tournaments` serta countdown beranda tergambar
+     * tanpa isi alih-alih disembunyikan.
+     */
+    private static function nothing(): JsonResponse
+    {
+        return JsonResponse::fromJsonString('null');
     }
 
     /** `FeaturedEvent` — enam field untuk countdown beranda. */
@@ -452,7 +465,7 @@ class PublicController extends Controller
             ->first();
 
         if ($tournament === null) {
-            return response()->json(null);
+            return self::nothing();
         }
 
         return response()->json(array_filter([

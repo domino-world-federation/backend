@@ -161,7 +161,6 @@ function submit(posting: 'now' | 'schedule' | 'draft'): void {
                 <FormRow
                     :label="t('news.image_landscape')"
                     :description="t('news.image_hint_landscape')"
-                    :required="!isEdit"
                     compact
                 >
                     <template #default="{ id }">

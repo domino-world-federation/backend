@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\Faq;
 use App\Models\GalleryItem;
 use App\Models\NewsArticle;
+use App\Models\Tournament;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -132,6 +133,26 @@ class StandardListTest extends TestCase
         $this->assertSame($rina->id, $press->fresh()->updated_by_id);
         $this->assertSame($rina->id, $item->fresh()->updated_by_id);
         $this->assertSame($rina->id, $article->fresh()->updated_by_id);
+    }
+
+    /**
+     * Penyunting TERAKHIR, bukan pembuatnya. Baris yang sudah punya
+     * `updated_by_id` harus berpindah ke orang yang menyimpan berikutnya —
+     * tes di atas tidak menangkapnya karena barisnya lahir tanpa penyunting.
+     */
+    public function test_last_modified_moves_to_the_latest_editor(): void
+    {
+        $maker = User::factory()->superAdmin()->create(['name' => 'Maker']);
+        $rina = User::factory()->superAdmin()->create(['name' => 'Rina']);
+
+        $article = NewsArticle::factory()->create(['updated_by_id' => $maker->id]);
+        $tournament = Tournament::factory()->create(['updated_by_id' => $maker->id]);
+
+        $this->actingAs($rina)->patch("/news/{$article->id}/highlight", ['is_highlighted' => true]);
+        $this->actingAs($rina)->patch("/tournaments/{$tournament->id}/featured", ['is_featured' => true]);
+
+        $this->assertSame($rina->id, $article->fresh()->updated_by_id);
+        $this->assertSame($rina->id, $tournament->fresh()->updated_by_id);
     }
 
     /**

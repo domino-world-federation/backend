@@ -364,21 +364,33 @@ class NewsTest extends TestCase
         $this->actingAs($this->actor())->get('/news/export')->assertOk();
     }
 
-    public function test_both_images_are_required_when_creating(): void
+    public function test_only_the_hero_image_is_required_when_creating(): void
     {
         Storage::fake('public');
         $category = NewsCategory::factory()->create();
 
-        // Desain `252:4480` memberi tanda wajib pada KEDUANYA. Saat menyunting
-        // keduanya opsional — kalau tidak, memperbaiki satu typo di judul
-        // memaksa mengunggah ulang gambar yang sudah ada.
+        // Hero wajib saat membuat; saat menyunting opsional — kalau tidak,
+        // memperbaiki satu typo di judul memaksa mengunggah ulang gambar yang
+        // sudah ada. Gambar lanskap opsional sejak 2026-10-12: situs jatuh ke
+        // thumbnail hero.
         $this->actingAs($this->actor())->post('/news', [
             'title' => 'Tanpa gambar',
             'news_category_id' => $category->id,
             'body' => '<p>Isi.</p>',
             'is_highlighted' => false,
             'posting' => 'now',
-        ])->assertSessionHasErrors(['hero', 'landscape']);
+        ])->assertSessionHasErrors(['hero'])->assertSessionDoesntHaveErrors(['landscape']);
+
+        $this->actingAs($this->actor())->post('/news', [
+            'title' => 'Tanpa gambar lanskap',
+            'news_category_id' => $category->id,
+            'body' => '<p>Isi.</p>',
+            'is_highlighted' => false,
+            'posting' => 'now',
+            'hero' => UploadedFile::fake()->image('hero.webp', 1920, 800),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('news_articles', ['title' => 'Tanpa gambar lanskap', 'landscape_image_path' => null]);
     }
 
     public function test_only_webp_is_accepted(): void

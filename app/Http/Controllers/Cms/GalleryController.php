@@ -370,11 +370,11 @@ class GalleryController extends Controller
                 'max:'.$maxKb,
             ],
         ], attributes: [
-            'tournament_id' => 'turnamen',
-            'gallery_event_id' => 'event',
-            'event_name' => 'nama event',
-            'asset' => 'berkas aset',
-            'alt' => 'keterangan',
+            'tournament_id' => __('backoffice.gallery.tournament_name'),
+            'gallery_event_id' => __('backoffice.gallery.event'),
+            'event_name' => __('backoffice.gallery.event_name'),
+            'asset' => __('backoffice.gallery.asset'),
+            'alt' => __('backoffice.gallery.alt'),
         ]);
     }
 

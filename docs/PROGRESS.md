@@ -540,3 +540,16 @@ handler-nya. Rinciannya di
   `grade_word`, `b_levels`, dan `a_levels` dicabut karena situsnya tidak lagi
   menggambar tab grade. Kunci `grades` dan `c_levels` dipertahankan, jadi naskah
   yang sudah tayang tidak hilang.
+
+- **Feedback tim DWF** (2026-10-12).
+  - **Last Modified membeku di nama pembuat** di SEMUA modul ber-`TracksEditor`:
+    trait hanya mengisi `updated_by_id` kalau kolomnya null, dan baris yang
+    sudah pernah disimpan selalu berisi. Kini `! isDirty('updated_by_id')`. Baris
+    lama baru pindah ke nama yang benar saat disimpan berikutnya. Ada tesnya.
+  - **Gambar lanskap ("Image") berita opsional** saat membuat; hero tetap wajib.
+    Situs sudah jatuh ke thumbnail hero bila kosong.
+  - **Nama field di pesan galat kini lewat `lang/`**, bukan string Indonesia
+    tertulis tangan: News, News/FAQ Category, FAQ, Documents, Gallery, Legal.
+  - **`/tournaments/highlighted` dan `/tournaments/featured` membalas `null`
+    sungguhan** saat kosong (`JsonResponse::fromJsonString('null')`) —
+    `response()->json(null)` menghasilkan `{}`.

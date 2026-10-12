@@ -90,6 +90,6 @@ class FaqCategoryController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:120', Rule::unique('faq_categories', 'name')->ignore($ignore)],
             'is_active' => ['required', 'boolean'],
-        ], attributes: ['name' => 'nama kategori', 'is_active' => 'status']);
+        ], attributes: ['name' => __('backoffice.category.name'), 'is_active' => __('backoffice.common.status')]);
     }
 }

@@ -504,4 +504,16 @@ class PublicApiTest extends TestCase
             $this->assertSame(['satu'], collect($this->getJson('/api/v1/stats'.$query)->json())->pluck('label')->all(), $query);
         }
     }
+
+    /**
+     * Endpoint satu-event yang kosong membalas `null` SUNGGUHAN, bukan `{}`.
+     * `response()->json(null)` menghasilkan objek kosong, dan objek kosong
+     * truthy di situs — hero `/tournaments` tergambar tanpa isi.
+     */
+    public function test_single_event_endpoints_answer_null_when_empty(): void
+    {
+        foreach (['/api/v1/tournaments/highlighted', '/api/v1/tournaments/featured'] as $url) {
+            $this->assertSame('null', $this->getJson($url)->assertOk()->getContent(), $url);
+        }
+    }
 }

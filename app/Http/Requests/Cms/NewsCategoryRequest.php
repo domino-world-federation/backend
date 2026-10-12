@@ -29,6 +29,6 @@ class NewsCategoryRequest extends FormRequest
     /** @return array<string, string> */
     public function attributes(): array
     {
-        return ['name' => 'nama kategori', 'is_active' => 'status'];
+        return ['name' => __('backoffice.category.name'), 'is_active' => __('backoffice.common.status')];
     }
 }

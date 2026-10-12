@@ -98,7 +98,7 @@ class LegalPageController extends Controller
             'blocks.*.is_active' => ['required', 'boolean'],
         ], attributes: [
             'slug' => 'slug',
-            'last_updated_at' => 'tanggal pembaruan',
+            'last_updated_at' => __('backoffice.legal.last_updated'),
         ]);
 
         // Blok ditulis ulang seluruhnya di dalam satu transaksi.

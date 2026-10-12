@@ -30,8 +30,11 @@ class NewsArticleRequest extends FormRequest
             // Gambar hero wajib saat membuat, opsional saat menyunting — kalau
             // wajib juga saat menyunting, mengubah judul memaksa mengunggah
             // ulang gambar yang sudah ada.
+            //
+            // Gambar lanskap ("Image") SELALU opsional sejak 2026-10-12
+            // (feedback tim): situs memakai thumbnail hero saat ia kosong.
             'hero' => $this->imageRules('hero', $isCreate),
-            'landscape' => $this->imageRules('landscape', $isCreate),
+            'landscape' => $this->imageRules('landscape', false),
 
             'posting' => ['required', Rule::in(['now', 'schedule', 'draft'])],
             'published_at' => ['nullable', 'required_if:posting,schedule', 'date'],
@@ -81,11 +84,13 @@ class NewsArticleRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'news_category_id' => 'kategori',
-            'body' => 'isi berita',
-            'hero' => 'gambar hero',
-            'landscape' => 'gambar',
-            'published_at' => 'waktu tayang',
+            'title' => __('backoffice.news.field_title'),
+            'slug' => __('backoffice.news.field_slug'),
+            'news_category_id' => __('backoffice.common.category'),
+            'body' => __('backoffice.news.field_content'),
+            'hero' => __('backoffice.news.image_hero'),
+            'landscape' => __('backoffice.news.image_landscape'),
+            'published_at' => __('backoffice.news.posting_schedule'),
         ];
     }
 

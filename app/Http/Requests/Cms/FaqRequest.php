@@ -26,9 +26,9 @@ class FaqRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'faq_category_id' => 'kategori',
-            'question' => 'pertanyaan',
-            'answer' => 'jawaban',
+            'faq_category_id' => __('backoffice.common.category'),
+            'question' => __('backoffice.faq.question'),
+            'answer' => __('backoffice.faq.answer'),
         ];
     }
 }

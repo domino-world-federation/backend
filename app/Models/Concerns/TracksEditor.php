@@ -30,9 +30,13 @@ trait TracksEditor
         static::saving(function (self $model): void {
             $id = Auth::id();
 
-            // Yang sudah disetel pemanggil tidak ditimpa: impor dan penyalinan
-            // data kadang memang perlu menyebut penyunting selain dirinya.
-            if ($id !== null && $model->getAttribute('updated_by_id') === null) {
+            // Yang sudah disetel pemanggil DI SIMPAN INI tidak ditimpa: impor
+            // dan penyalinan data kadang memang perlu menyebut penyunting
+            // selain dirinya. `isDirty`, BUKAN `=== null` — sampai 2026-10-12
+            // pemeriksaannya "kolomnya kosong", dan baris yang sudah pernah
+            // disimpan selalu berisi, jadi Last Modified membeku di nama
+            // pembuatnya selamanya.
+            if ($id !== null && ! $model->isDirty('updated_by_id')) {
                 $model->setAttribute('updated_by_id', $id);
             }
         });

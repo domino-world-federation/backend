@@ -416,9 +416,9 @@ class DocumentController extends Controller
                 'max:'.$uploads['document_max_kb'],
             ],
         ], attributes: [
-            'title' => 'judul dokumen',
-            'file' => 'berkas dokumen',
-            'category' => 'kategori',
+            'title' => __('backoffice.documents.doc_title'),
+            'file' => __('backoffice.documents.file'),
+            'category' => __('backoffice.common.category'),
         ]);
     }
 
