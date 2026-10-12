@@ -32,13 +32,21 @@ const props = withDefaults(
          * publik. Yang digambar di sini persis yang akan dilihat pembaca.
          */
         fallbackInitials?: string | null
+        /**
+         * Berkas yang SUDAH tersimpan boleh dibuang, bukan cuma diganti.
+         * Hanya untuk slot opsional — slot wajib yang dikosongkan akan
+         * ditolak server. Hasilnya lewat `v-model:removed`; formulirnya yang
+         * mengirim penanda itu ke server.
+         */
+        removable?: boolean
     }>(),
-    { kind: 'image', existingUrl: null, existingLabel: null, fallbackInitials: null },
+    { kind: 'image', existingUrl: null, existingLabel: null, fallbackInitials: null, removable: false },
 )
 
 const { t } = useI18n()
 
 const model = defineModel<File | null>({ default: null })
+const removed = defineModel<boolean>('removed', { default: false })
 
 const preview = ref<string | null>(null)
 const input = ref<HTMLInputElement | null>(null)
@@ -67,6 +75,7 @@ function onPick(event: Event): void {
     release()
 
     model.value = file
+    if (file) removed.value = false
     if (file && props.kind === 'image') {
         preview.value = URL.createObjectURL(file)
     }
@@ -78,8 +87,10 @@ function clear(): void {
     if (input.value) input.value.value = ''
 }
 
-const shownImage = computed(() => preview.value ?? (props.kind === 'image' ? props.existingUrl : null))
-const fileName = computed(() => model.value?.name ?? props.existingLabel)
+const existing = computed(() => (removed.value ? null : props.existingUrl))
+const shownImage = computed(() => preview.value ?? (props.kind === 'image' ? existing.value : null))
+const fileName = computed(() => model.value?.name ?? (removed.value ? null : props.existingLabel))
+const canRemoveExisting = computed(() => props.removable && !model.value && !!existing.value)
 </script>
 
 <template>
@@ -131,6 +142,24 @@ const fileName = computed(() => model.value?.name ?? props.existingLabel)
                     {{ t('common.remove_selection') }}
                 </button>
             </div>
+
+            <button
+                v-else-if="canRemoveExisting"
+                type="button"
+                class="flex w-fit cursor-pointer items-center gap-1 text-body-xs text-cool-60 hover:text-danger"
+                @click="removed = true"
+            >
+                <PhX :size="14" aria-hidden="true" />
+                {{ t('common.remove_file') }}
+            </button>
+            <button
+                v-else-if="removable && removed && !model"
+                type="button"
+                class="flex w-fit cursor-pointer items-center gap-1 text-body-xs text-cool-60 hover:text-cool-90"
+                @click="removed = false"
+            >
+                {{ t('common.undo_remove') }}
+            </button>
         </div>
 
         <p v-if="error" role="alert" class="text-body-xs text-danger">{{ error }}</p>

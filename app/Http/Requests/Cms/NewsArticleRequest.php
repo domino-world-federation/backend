@@ -35,6 +35,7 @@ class NewsArticleRequest extends FormRequest
             // (feedback tim): situs memakai thumbnail hero saat ia kosong.
             'hero' => $this->imageRules('hero', $isCreate),
             'landscape' => $this->imageRules('landscape', false),
+            'remove_landscape' => ['sometimes', 'boolean'],
 
             'posting' => ['required', Rule::in(['now', 'schedule', 'draft'])],
             'published_at' => ['nullable', 'required_if:posting,schedule', 'date'],

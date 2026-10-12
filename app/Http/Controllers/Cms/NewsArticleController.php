@@ -292,6 +292,14 @@ class NewsArticleController extends Controller
                 $article->{$column} = StoredFile::put($request->file($field), 'news', $article->{$column});
             }
         }
+
+        // Gambar lanskap opsional, jadi layar sunting boleh membuangnya. Berkas
+        // baru menang atas penanda hapus — memilih gambar lalu menekan hapus
+        // pada yang lama tetap berarti "ganti".
+        if ($request->boolean('remove_landscape') && ! $request->hasFile('landscape')) {
+            StoredFile::forget($article->landscape_image_path);
+            $article->landscape_image_path = null;
+        }
     }
 
     /** @return array<int, array{value: int, label: string}> */

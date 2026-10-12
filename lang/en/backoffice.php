@@ -34,6 +34,8 @@ return [
         'row_actions' => 'Actions for :name',
         'loading' => 'Loading…',
         'remove_selection' => 'Remove selection',
+        'remove_file' => 'Remove image',
+        'undo_remove' => 'Undo remove',
     ],
 
     'nav' => [

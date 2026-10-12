@@ -54,6 +54,9 @@ const form = useForm({
     published_at: props.article?.publishedAt ?? '',
     hero: null as File | null,
     landscape: null as File | null,
+    // Gambar lanskap opsional, jadi yang tersimpan boleh dibuang di layar
+    // sunting — bukan cuma diganti. Hero wajib, jadi tidak punya penanda ini.
+    remove_landscape: false,
 })
 
 // Slug mengikuti judul selama editor belum menyentuhnya sendiri. Sekali diubah
@@ -167,7 +170,9 @@ function submit(posting: 'now' | 'schedule' | 'draft'): void {
                         <MediaUpload
                             :id="id"
                             v-model="form.landscape"
+                            v-model:removed="form.remove_landscape"
                             :existing-url="article?.landscapeUrl"
+                            removable
                             :error="form.errors.landscape"
                         />
                     </template>

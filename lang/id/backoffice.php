@@ -35,6 +35,8 @@ return [
         'row_actions' => 'Aksi untuk :name',
         'loading' => 'Memuat…',
         'remove_selection' => 'Hapus pilihan',
+        'remove_file' => 'Hapus gambar',
+        'undo_remove' => 'Batalkan hapus',
     ],
 
     'nav' => [

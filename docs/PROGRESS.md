@@ -553,3 +553,8 @@ handler-nya. Rinciannya di
   - **`/tournaments/highlighted` dan `/tournaments/featured` membalas `null`
     sungguhan** saat kosong (`JsonResponse::fromJsonString('null')`) —
     `response()->json(null)` menghasilkan `{}`.
+
+- **Gambar lanskap berita bisa dihapus di layar sunting** (2026-10-12), bukan
+  cuma diganti. `MediaUpload` mendapat prop `removable` + `v-model:removed`
+  (tombol "Remove image" / "Undo remove"); formulir mengirim `remove_landscape`.
+  Berkas baru menang atas penanda hapus. Hero tetap wajib, jadi tidak removable.

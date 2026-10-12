@@ -86,6 +86,44 @@ class NewsTest extends TestCase
             ->assertSessionHasErrors('published_at');
     }
 
+    /**
+     * Gambar lanskap yang tersimpan boleh DIBUANG di layar sunting, bukan cuma
+     * diganti — ia opsional. Berkas baru menang atas penanda hapus.
+     */
+    public function test_the_landscape_image_can_be_removed_when_editing(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('news/old.webp', 'x');
+        $article = NewsArticle::factory()->create([
+            'hero_image_path' => 'news/hero.webp',
+            'landscape_image_path' => 'news/old.webp',
+        ]);
+
+        $payload = [
+            '_method' => 'put',
+            'title' => $article->title,
+            'news_category_id' => $article->news_category_id,
+            'body' => '<p>Isi</p>',
+            'is_highlighted' => false,
+            'posting' => 'now',
+        ];
+
+        $this->actingAs($this->actor())
+            ->post("/news/{$article->id}", $payload + ['remove_landscape' => true])
+            ->assertSessionHasNoErrors();
+
+        $this->assertNull($article->fresh()->landscape_image_path);
+        $this->assertSame('news/hero.webp', $article->fresh()->hero_image_path);
+        Storage::disk('public')->assertMissing('news/old.webp');
+
+        $this->actingAs($this->actor())->post("/news/{$article->id}", $payload + [
+            'remove_landscape' => true,
+            'landscape' => UploadedFile::fake()->image('new.webp', 1600, 900),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertNotNull($article->fresh()->landscape_image_path);
+    }
+
     public function test_the_body_is_purified_before_it_is_stored(): void
     {
         Storage::fake('public');
