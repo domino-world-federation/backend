@@ -392,7 +392,8 @@ class DocumentController extends Controller
         StoredFile::forget($document->file_path);
         $document->delete();
 
-        return back()->with('success', __('backoffice.documents.deleted'));
+        return $this->afterDelete("/documents/{$document->id}", 'documents.index')
+            ->with('success', __('backoffice.documents.deleted'));
     }
 
     /** @return array<string, mixed> */

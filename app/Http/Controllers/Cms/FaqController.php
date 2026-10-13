@@ -176,7 +176,8 @@ class FaqController extends Controller
     {
         $faq->delete();
 
-        return back()->with('success', __('backoffice.faq.deleted'));
+        return $this->afterDelete("/faq/{$faq->id}", 'faq.index')
+            ->with('success', __('backoffice.faq.deleted'));
     }
 
     /**

@@ -265,7 +265,8 @@ class NewsArticleController extends Controller
 
         $article->delete();
 
-        return back()->with('success', __('backoffice.news.deleted'));
+        return $this->afterDelete("/news/{$article->id}", 'news.articles.index')
+            ->with('success', __('backoffice.news.deleted'));
     }
 
     private function fill(NewsArticle $article, NewsArticleRequest $request): void

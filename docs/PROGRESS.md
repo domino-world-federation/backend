@@ -563,3 +563,10 @@ handler-nya. Rinciannya di
   NAMA kategori (dari `/news/categories`), `/news?category=` hanya mencocokkan
   slug — tiap tab selain "All" kosong. Kini nama (tanpa peduli huruf besar)
   ATAU slug. Ada tesnya.
+
+- **Hapus dari layar baca berujung 404** (2026-10-13) di News, FAQ, dan
+  Documents: `destroy` memakai `back()`, yang kembali ke layar barisnya sendiri.
+  `Controller::afterDelete()` kini mengarah ke daftar bila halaman sebelumnya
+  adalah barisnya (`/news/12`, `/news/12/edit`); dari daftar tetap `back()`
+  supaya filter dan halaman bertahan. Integrity dan Contact Messages sudah
+  benar sejak awal. Ada tesnya.

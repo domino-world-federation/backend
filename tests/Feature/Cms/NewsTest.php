@@ -124,6 +124,25 @@ class NewsTest extends TestCase
         $this->assertNotNull($article->fresh()->landscape_image_path);
     }
 
+    /**
+     * Menghapus dari layar BACA kembali ke daftar, bukan ke layar yang barusan
+     * dihapus (404). Dari daftar, tetap di daftar dengan filternya.
+     */
+    public function test_deleting_from_the_detail_page_returns_to_the_list(): void
+    {
+        $article = NewsArticle::factory()->create();
+        $this->actingAs($this->actor())
+            ->from("/news/{$article->id}")
+            ->delete("/news/{$article->id}")
+            ->assertRedirect('/news');
+
+        $other = NewsArticle::factory()->create();
+        $this->actingAs($this->actor())
+            ->from('/news?page=2&q=x')
+            ->delete("/news/{$other->id}")
+            ->assertRedirect('/news?page=2&q=x');
+    }
+
     public function test_the_body_is_purified_before_it_is_stored(): void
     {
         Storage::fake('public');
