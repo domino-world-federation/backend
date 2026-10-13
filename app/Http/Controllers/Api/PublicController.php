@@ -71,7 +71,13 @@ class PublicController extends Controller
             ->live()
             ->when(
                 $request->string('category')->toString() !== '',
-                fn ($q) => $q->whereHas('category', fn ($c) => $c->where('slug', $request->string('category'))),
+                // NAMA kategori, seperti yang dikirim `/news/categories` dan
+                // dipakai tab situs; slug tetap diterima. Sampai 2026-10-13
+                // hanya slug yang dicocokkan, jadi tiap tab selain "All"
+                // membalas kosong ("Development" ≠ "development").
+                fn ($q) => $q->whereHas('category', fn ($c) => $c
+                    ->whereRaw('LOWER(name) = LOWER(?)', [$request->string('category')->toString()])
+                    ->orWhere('slug', $request->string('category')->toString())),
             )
             ->when($request->boolean('featured'), fn ($q) => $q->where('is_highlighted', true))
             ->latest('published_at')

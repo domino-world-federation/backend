@@ -9,6 +9,7 @@ use App\Models\GalleryEvent;
 use App\Models\GalleryItem;
 use App\Models\MemberFederation;
 use App\Models\NewsArticle;
+use App\Models\NewsCategory;
 use App\Models\Partner;
 use App\Models\Tournament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -514,6 +515,26 @@ class PublicApiTest extends TestCase
     {
         foreach (['/api/v1/tournaments/highlighted', '/api/v1/tournaments/featured'] as $url) {
             $this->assertSame('null', $this->getJson($url)->assertOk()->getContent(), $url);
+        }
+    }
+
+    /**
+     * Tab situs mengirim NAMA kategori (dari `/news/categories`), bukan slug.
+     * Keduanya harus menyaring.
+     */
+    public function test_news_filters_by_category_name_or_slug(): void
+    {
+        $dev = NewsCategory::factory()->create(['name' => 'Development', 'slug' => 'development']);
+        $other = NewsCategory::factory()->create(['name' => 'Governance', 'slug' => 'governance']);
+        NewsArticle::factory()->create(['news_category_id' => $dev->id, 'title' => 'Dev story']);
+        NewsArticle::factory()->create(['news_category_id' => $other->id, 'title' => 'Gov story']);
+
+        foreach (['Development', 'development'] as $query) {
+            $this->assertSame(
+                ['Dev story'],
+                collect($this->getJson('/api/v1/news?category='.$query)->assertOk()->json())->pluck('title')->all(),
+                $query,
+            );
         }
     }
 }

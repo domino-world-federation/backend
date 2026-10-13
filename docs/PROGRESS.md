@@ -558,3 +558,8 @@ handler-nya. Rinciannya di
   cuma diganti. `MediaUpload` mendapat prop `removable` + `v-model:removed`
   (tombol "Remove image" / "Undo remove"); formulir mengirim `remove_landscape`.
   Berkas baru menang atas penanda hapus. Hero tetap wajib, jadi tidak removable.
+
+- **Filter kategori News di situs tidak bekerja** (2026-10-13). Tab mengirim
+  NAMA kategori (dari `/news/categories`), `/news?category=` hanya mencocokkan
+  slug — tiap tab selain "All" kosong. Kini nama (tanpa peduli huruf besar)
+  ATAU slug. Ada tesnya.
