@@ -38,9 +38,7 @@ class PageContentTest extends TestCase
         'mission.cards.1.title', 'mission.cards.1.body',
         'mission.cards.2.title', 'mission.cards.2.body',
         'mission.cards.3.title', 'mission.cards.3.body',
-        'frameworks.heading', 'frameworks.intro', 'frameworks.apex_short', 'frameworks.apex_name',
-        'frameworks.federation', 'frameworks.countries', 'frameworks.members',
-        'frameworks.members_detail', 'frameworks.caption',
+        'frameworks.heading', 'frameworks.officers', 'frameworks.bodies',
         'boards.heading', 'boards.intro', 'boards.members_label', 'boards.members', 'boards.closing',
         'boards.officers.0.role', 'boards.officers.0.name',
         'boards.officers.1.role', 'boards.officers.1.name',
@@ -378,11 +376,14 @@ class PageContentTest extends TestCase
             ->assertSessionHasErrors('values.header.title');
     }
 
-    public function test_the_chart_needs_exactly_three_countries(): void
+    public function test_the_chart_needs_exactly_four_officers_and_three_bodies(): void
     {
         $this->actingAs($this->editor())
-            ->put('/pages/about/draft', ['values' => ['frameworks.countries' => "A\nB"]])
-            ->assertSessionHasErrors('values.frameworks.countries');
+            ->put('/pages/about/draft', ['values' => [
+                'frameworks.officers' => "A\nB\nC",
+                'frameworks.bodies' => "A\nB",
+            ]])
+            ->assertSessionHasErrors(['values.frameworks.officers', 'values.frameworks.bodies']);
     }
 
     // --------------------------------------------------------------- layar

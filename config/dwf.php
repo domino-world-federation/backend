@@ -711,17 +711,11 @@ return [
                     ],
                 ],
                 'frameworks' => [
-                    'label' => 'Our Global Network',
+                    'label' => 'Structural Frameworks',
                     'fields' => [
                         'heading' => ['type' => 'text', 'label' => 'Title', 'max' => 40],
-                        'intro' => ['type' => 'textarea', 'label' => 'Supporting text', 'max' => 200],
-                        'apex_short' => ['type' => 'text', 'label' => 'Chart — top card, short name', 'max' => 8],
-                        'apex_name' => ['type' => 'text', 'label' => 'Chart — top card, full name', 'max' => 30],
-                        'federation' => ['type' => 'text', 'label' => 'Chart — middle cards, title', 'max' => 24],
-                        'countries' => ['type' => 'lines', 'label' => 'Chart — middle cards, one country per line', 'max' => 24, 'lines' => [3, 3]],
-                        'members' => ['type' => 'text', 'label' => 'Chart — bottom cards, title', 'max' => 24],
-                        'members_detail' => ['type' => 'text', 'label' => 'Chart — bottom cards, subtitle', 'max' => 32],
-                        'caption' => ['type' => 'lines', 'label' => 'Caption under the chart', 'max' => 80, 'lines' => [1, 2]],
+                        'officers' => ['type' => 'lines', 'label' => 'Chart — officers, top to bottom, one per line (the first is gold)', 'max' => 24, 'lines' => [4, 4]],
+                        'bodies' => ['type' => 'lines', 'label' => 'Chart — bottom row, left to right, one per line', 'max' => 48, 'lines' => [3, 3]],
                     ],
                 ],
                 'boards' => [
